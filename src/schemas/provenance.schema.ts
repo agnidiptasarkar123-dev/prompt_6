@@ -5,10 +5,12 @@ import { z } from "zod";
  * Enforces strict scientific and regulatory separation across the platform.
  */
 export const DataTypologySchema = z.enum([
-  "TYPE_A_OFFICIAL_AQI",      // Certified CPCB bulletin value
-  "TYPE_B_CALCULATED_AQI",    // Independently calculated using official MoEFCC 2014 CPCB formula
-  "TYPE_C_RAW_SENSOR",        // Physical observed sensor concentration (µg/m³ or mg/m³)
-  "TYPE_D_MODEL_FORECAST"     // Modelled atmospheric dispersion forecast (CAMS Global ~45 km)
+  "TYPE_A_OFFICIAL_AQI",          // Certified CPCB bulletin value
+  "TYPE_A_OFFICIAL_CPCB_AQI",     // Explicit alias for Certified CPCB bulletin value
+  "TYPE_B_CALCULATED_AQI",        // Independently calculated using official MoEFCC 2014 CPCB formula
+  "TYPE_B_CALCULATED_CPCB_AQI",   // Explicit alias for independently calculated CPCB AQI
+  "TYPE_C_RAW_SENSOR",            // Physical observed sensor concentration (µg/m³ or mg/m³)
+  "TYPE_D_MODEL_FORECAST"         // Modelled atmospheric dispersion forecast (CAMS Global ~45 km)
 ]);
 
 export type DataTypology = z.infer<typeof DataTypologySchema>;

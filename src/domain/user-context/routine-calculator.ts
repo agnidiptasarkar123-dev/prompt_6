@@ -1,22 +1,39 @@
 import { RoutineActivity } from "@/schemas/routine.schema";
 import { CpcbCategory } from "@/schemas/cpcb.schema";
 
+export interface MeteorologicalForecastContext {
+  boundaryLayerHeightMeters?: number;
+  windSpeedKmH?: number;
+  temperatureCelsius?: number;
+  source: "TYPE_D_MODEL_FORECAST";
+}
+
 export interface DiurnalExposureWindow {
   activityId: string;
   label: string;
   startHour: number;
   endHour: number;
-  isInversionPeakRisk: boolean; // 07:00 - 09:30 morning peak or late night
+  isNcdcPeakHourRisk: boolean; // Morning (06:00-09:30) or late evening (18:00-22:00) per NCDC October 2025
+  isMeteorologicalInversionRisk: boolean; // Grounded in atmospheric boundary layer height (<250m) & low wind (<7 km/h)
   suggestedShiftMinutes: number;
+  guidanceRationale: string;
 }
 
 /**
  * Calculates diurnal exposure risks for daily routine activities.
- * Morning inversion peaks in Indian urban winters typically occur between 07:00 and 09:30.
+ * Grounded in:
+ * 1. Ministry of Health & Family Welfare / NCDC October 2025 Health Advisory:
+ *    Recommends avoiding outdoor physical activities and keeping external openings shut
+ *    during morning (06:00 - 09:30) and late evening (18:00 - 22:00) pollution peak hours.
+ * 2. Atmospheric Boundary Layer Meteorology:
+ *    Only flags true physical thermal radiation inversion when forecast/modeled boundary layer
+ *    height is shallow (< 250m) and wind speed is calm (< 7 km/h / 2 m/s). Modelled forecasts
+ *    are strictly identified as model estimates.
  */
 export function evaluateRoutineExposureWindows(
   activities: RoutineActivity[],
-  currentCategory: CpcbCategory
+  currentCategory: CpcbCategory,
+  forecast?: MeteorologicalForecastContext
 ): DiurnalExposureWindow[] {
   return activities.map((act) => {
     const startHour = Math.floor(act.timeWindow.startMinuteOfDay / 60);
@@ -24,9 +41,24 @@ export function evaluateRoutineExposureWindows(
       (act.timeWindow.startMinuteOfDay + act.timeWindow.durationMinutes) / 60
     );
 
-    // Morning inversion window in Indian cities: 07:00 to 09:30 (420 - 570 mins)
-    const isMorningPeak =
-      act.timeWindow.startMinuteOfDay >= 420 && act.timeWindow.startMinuteOfDay <= 570;
+    // NCDC documented peak hours:
+    // Morning peak: 06:00 to 09:30 (360 - 570 mins)
+    // Evening peak: 18:00 to 22:00 (1080 - 1320 mins)
+    const isMorningNcdc =
+      act.timeWindow.startMinuteOfDay >= 360 && act.timeWindow.startMinuteOfDay <= 570;
+    const isEveningNcdc =
+      act.timeWindow.startMinuteOfDay >= 1080 && act.timeWindow.startMinuteOfDay <= 1320;
+    const isNcdcPeakHour = (isMorningNcdc || isEveningNcdc) && act.locationType !== "INDOOR";
+
+    // Meteorology-dependent inversion verification:
+    // Only affirmed when atmospheric boundary layer height is shallow (<250m) and surface wind is stagnant (<7 km/h)
+    let isMeteorologicalInversionRisk = false;
+    if (forecast) {
+      const isShallowBlh =
+        forecast.boundaryLayerHeightMeters !== undefined && forecast.boundaryLayerHeightMeters < 250;
+      const isCalmWind = forecast.windSpeedKmH !== undefined && forecast.windSpeedKmH < 7;
+      isMeteorologicalInversionRisk = isShallowBlh && isCalmWind && act.locationType !== "INDOOR";
+    }
 
     const isHighSmog =
       currentCategory === "POOR" ||
@@ -34,9 +66,20 @@ export function evaluateRoutineExposureWindows(
       currentCategory === "SEVERE";
 
     let suggestedShift = 0;
-    if (isMorningPeak && isHighSmog && act.locationType === "OUTDOOR") {
-      // Suggest shifting later if flexibility allows
-      suggestedShift = Math.min(60, act.flexibility.canShiftLaterMinutes);
+    let rationale = "Routine timing falls outside documented peak exposure windows.";
+
+    if (isHighSmog && act.locationType === "OUTDOOR") {
+      if (isMorningNcdc && act.flexibility.canShiftLaterMinutes > 0) {
+        suggestedShift = Math.min(60, act.flexibility.canShiftLaterMinutes);
+        rationale = "NCDC October 2025 Advisory: Shift outdoor departure past morning peak hours (06:00–09:30) toward midday when solar mixing improves atmospheric dispersion.";
+      } else if (isEveningNcdc && act.flexibility.canShiftEarlierMinutes > 0) {
+        suggestedShift = -Math.min(60, act.flexibility.canShiftEarlierMinutes);
+        rationale = "NCDC October 2025 Advisory: Complete outdoor commute prior to evening rush-hour pollution accumulation (18:00–22:00).";
+      }
+    }
+
+    if (isMeteorologicalInversionRisk) {
+      rationale += " [MODEL_FORECAST: Shallow boundary layer (<250m) and stagnant wind indicate atmospheric inversion trapping ground emissions.]";
     }
 
     return {
@@ -44,8 +87,10 @@ export function evaluateRoutineExposureWindows(
       label: act.label,
       startHour,
       endHour,
-      isInversionPeakRisk: isMorningPeak && act.locationType !== "INDOOR",
-      suggestedShiftMinutes: suggestedShift
+      isNcdcPeakHourRisk: isNcdcPeakHour,
+      isMeteorologicalInversionRisk,
+      suggestedShiftMinutes: suggestedShift,
+      guidanceRationale: rationale
     };
   });
 }

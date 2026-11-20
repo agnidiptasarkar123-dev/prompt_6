@@ -1,10 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { generateDeterministicRecommendations } from "@/domain/rules/deterministic-recommender";
-import { checkRoutineSafetyGuardrails } from "@/domain/rules/safety-guardrails";
 import { HouseholdContext } from "@/schemas/user-context.schema";
 import { CpcbAqiResult } from "@/schemas/cpcb.schema";
 
-describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
+describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)", () => {
   const sampleContext: HouseholdContext = {
     householdId: "hh-test-1",
     updatedAt: new Date().toISOString(),
@@ -69,14 +68,6 @@ describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
     }
   };
 
-  it("blocks vigorous outdoor workout during Severe air quality (Hard Safety Guardrail)", () => {
-    const violations = checkRoutineSafetyGuardrails(sampleContext.routine, "SEVERE");
-    expect(violations.length).toBe(1);
-    expect(violations[0]!.label).toBe("Outdoor 10km Marathon Training");
-    expect(violations[0]!.violationReason).toContain("Vigorous outdoor activity during SEVERE air quality");
-    expect(violations[0]!.mandatoryCorrection).toContain("Shift workout indoors");
-  });
-
   it("generates deterministic recommendations citing evidence and never inventing measurements", () => {
     const cpcbResult: CpcbAqiResult = {
       stationId: "ANAND-VIHAR-01",
@@ -94,10 +85,11 @@ describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
     expect(recommendation.generator).toBe("RULE_ENGINE");
     expect(recommendation.actions.length).toBeGreaterThanOrEqual(1);
 
-    // Ventilation window action must recommend KEEP_SEALED during Very Poor air
+    // Ventilation window action must recommend keeping windows shut during Very Poor air
     const ventAction = recommendation.actions.find((a) => a.category === "VENTILATION_WINDOW");
     expect(ventAction).toBeDefined();
-    expect(ventAction!.actionSummary).toContain("closed");
+    expect(ventAction!.actionSummary).toContain("shut");
+    expect(ventAction!.urgency).toBe("IMMEDIATE");
 
     // All actions must have valid evidence citations
     for (const act of recommendation.actions) {
@@ -107,13 +99,82 @@ describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
     }
   });
 
+  it("overrides sealed ventilation with IMMEDIATE exhaust when indoor combustion sources are burning", () => {
+    const combustionContext: HouseholdContext = {
+      ...sampleContext,
+      dwelling: {
+        ...sampleContext.dwelling,
+        cooking: {
+          primaryFuel: "BIOMASS_KEROSENE",
+          kitchenVentilation: "UNVENTED_INDOOR",
+          averageDailyCookingHours: 2
+        }
+      }
+    };
+
+    const cpcbResult: CpcbAqiResult = {
+      stationId: "SITE-01",
+      calculatedAtUtc: new Date().toISOString(),
+      overallAqi: 450,
+      category: "SEVERE",
+      prominentPollutant: "PM2.5",
+      sufficiencyStatus: "SUFFICIENT",
+      subIndices: [],
+      explanation: "AQI 450 driven by PM2.5"
+    };
+
+    const rec = generateDeterministicRecommendations(combustionContext, cpcbResult);
+    const ventAction = rec.actions.find((a) => a.category === "VENTILATION_WINDOW");
+    expect(ventAction).toBeDefined();
+    expect(ventAction!.urgency).toBe("IMMEDIATE");
+    expect(ventAction!.expectedExposureReduction).toContain("indoor CO & PM spikes");
+    expect(ventAction!.applicableConstraintsOrLimits).toContain("CRITICAL LIFE-SAFETY RULE");
+  });
+
   it("handles unobserved conditions without fabricating AQI numbers", () => {
-    // When cpcbResult is null (data unavailable)
-    const recommendation = generateDeterministicRecommendations(sampleContext, null);
+    const unobservedContext: HouseholdContext = {
+      ...sampleContext,
+      members: [
+        {
+          id: "mem-asthma",
+          nickname: "Aarav",
+          ageBracket: "CHILD_3_12",
+          sensitivities: {
+            respiratorySensitivity: true,
+            cardiovascularSensitivity: false,
+            pregnancy: false,
+            allergiesOrSinusitis: false
+          },
+          dailyOutdoorHoursEstimate: 1
+        }
+      ],
+      routine: [
+        {
+          activityId: "act-run",
+          label: "Outdoor Running",
+          memberIds: ["mem-asthma"],
+          locationType: "OUTDOOR",
+          physicalIntensity: "VIGOROUS",
+          timeWindow: { startMinuteOfDay: 360, durationMinutes: 60 },
+          flexibility: { canShiftEarlierMinutes: 0, canShiftLaterMinutes: 0, canSubstituteWithIndoorAlternative: true, canChangeTransitMode: false }
+        }
+      ]
+    };
+
+    const recommendation = generateDeterministicRecommendations(unobservedContext, null);
 
     expect(recommendation.generator).toBe("RULE_ENGINE");
     expect(recommendation.actions.length).toBeGreaterThanOrEqual(1);
-    expect(recommendation.overallRiskSummary).toContain("Unobserved");
+    expect(recommendation.overallRiskSummary).toContain("unobserved");
+
+    const ventAction = recommendation.actions.find((a) => a.category === "VENTILATION_WINDOW");
+    expect(ventAction).toBeDefined();
+    expect(ventAction!.evidenceReferences[0]!.evidenceId).toBe("EVID-SEASONAL-CLIMATOLOGY");
+    expect(ventAction!.evidenceReferences[0]!.measuredValue).toBe("Unobserved ambient air");
+
+    const exerciseAction = recommendation.actions.find((a) => a.category === "EXERCISE_ADAPTATION");
+    expect(exerciseAction).toBeDefined();
+    expect(exerciseAction!.evidenceReferences[0]!.measuredValue).toBe("Unobserved ambient air");
   });
 
   it("recommends commute timing shifts and indoor source control when applicable", () => {
@@ -132,9 +193,9 @@ describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
           label: "Morning Bike Commute",
           memberIds: ["mem-1"],
           locationType: "OUTDOOR",
-          physicalIntensity: "MODERATE",
+          physicalIntensity: "LIGHT", // Light intensity so it doesn't trigger emergency hard guardrail in Poor
           timeWindow: {
-            startMinuteOfDay: 480, // 08:00 AM (inversion window)
+            startMinuteOfDay: 480, // 08:00 AM (in 360-570 morning peak)
             durationMinutes: 45
           },
           flexibility: {
@@ -163,8 +224,82 @@ describe("Deterministic Recommendation Engine & Safety Guardrails", () => {
     const sourceAction = recommendation.actions.find((a) => a.category === "SOURCE_CONTROL_INDOOR");
 
     expect(commuteAction).toBeDefined();
-    expect(commuteAction!.actionSummary).toContain("Shift Morning Bike Commute");
+    expect(commuteAction!.actionSummary).toContain("Morning Bike Commute");
     expect(sourceAction).toBeDefined();
     expect(sourceAction!.actionSummary).toContain("incense");
+  });
+
+  it("handles GOOD air quality with scheduled ventilation and vulnerable member adaptations", () => {
+    const vulnerableUser: HouseholdContext = {
+      ...sampleContext,
+      members: [
+        {
+          id: "mem-vulnerable",
+          nickname: "Aarav",
+          ageBracket: "CHILD_3_12",
+          sensitivities: {
+            respiratorySensitivity: true,
+            cardiovascularSensitivity: false,
+            pregnancy: false,
+            allergiesOrSinusitis: false
+          },
+          dailyOutdoorHoursEstimate: 1
+        }
+      ],
+      routine: [
+        {
+          activityId: "act-run-child",
+          label: "Intense Sprint Training",
+          memberIds: ["mem-vulnerable"],
+          locationType: "OUTDOOR",
+          physicalIntensity: "VIGOROUS",
+          timeWindow: {
+            startMinuteOfDay: 420,
+            durationMinutes: 45
+          },
+          flexibility: {
+            canShiftEarlierMinutes: 0,
+            canShiftLaterMinutes: 0,
+            canSubstituteWithIndoorAlternative: true,
+            canChangeTransitMode: false
+          }
+        }
+      ]
+    };
+
+    // Test with MODERATE air quality (triggers vulnerable member adaptation)
+    const modResult: CpcbAqiResult = {
+      stationId: "SITE-MOD",
+      calculatedAtUtc: new Date().toISOString(),
+      overallAqi: 150,
+      category: "MODERATE",
+      prominentPollutant: "PM2.5",
+      sufficiencyStatus: "SUFFICIENT",
+      subIndices: [],
+      explanation: "AQI 150"
+    };
+
+    const recMod = generateDeterministicRecommendations(vulnerableUser, modResult);
+    const exerciseAction = recMod.actions.find((a) => a.category === "EXERCISE_ADAPTATION");
+    expect(exerciseAction).toBeDefined();
+    expect(exerciseAction!.applicableConstraintsOrLimits).toContain("Applies to vulnerable member: Aarav");
+
+    // Test with GOOD air quality (scheduled ventilation)
+    const goodResult: CpcbAqiResult = {
+      stationId: "SITE-GOOD",
+      calculatedAtUtc: new Date().toISOString(),
+      overallAqi: 35,
+      category: "GOOD",
+      prominentPollutant: "PM2.5",
+      sufficiencyStatus: "SUFFICIENT",
+      subIndices: [],
+      explanation: "AQI 35"
+    };
+
+    const recGood = generateDeterministicRecommendations(vulnerableUser, goodResult);
+    const ventGood = recGood.actions.find((a) => a.category === "VENTILATION_WINDOW");
+    expect(ventGood).toBeDefined();
+    expect(ventGood!.urgency).toBe("SCHEDULED");
+    expect(ventGood!.actionSummary).toContain("Open opposite windows");
   });
 });

@@ -4,6 +4,7 @@ import { CpcbAqiResult } from "@/schemas/cpcb.schema";
 import { CPCB_HEALTH_ADVISORIES } from "./cpcb-advisory-matrix";
 import { checkRoutineSafetyGuardrails } from "./safety-guardrails";
 import { evaluateRoutineExposureWindows } from "../user-context/routine-calculator";
+import { determineVentilationStrategy } from "../indoor/ventilation-decision";
 
 /**
  * Deterministic Recommendation Engine:
@@ -17,98 +18,84 @@ export function generateDeterministicRecommendations(
   cpcbResult: CpcbAqiResult | null,
   nowUtc: string = new Date().toISOString()
 ): RecommendationResponse {
-  const category = cpcbResult?.category ?? "MODERATE";
-  const aqiValue = cpcbResult?.overallAqi ?? "Unobserved";
+  const isDataAvailable = cpcbResult !== null && cpcbResult.overallAqi !== null && cpcbResult.category !== null;
+  const category = isDataAvailable ? cpcbResult.category! : "MODERATE";
+  const aqiValue = isDataAvailable ? cpcbResult.overallAqi : "Unobserved";
   const advisory = CPCB_HEALTH_ADVISORIES[category];
 
   const actions: RecommendationAction[] = [];
 
   // Evidence citation base
-  const evidenceId = cpcbResult
+  const evidenceId = isDataAvailable
     ? `EVID-STATION-${cpcbResult.stationId}-AQI-${cpcbResult.overallAqi}`
     : "EVID-SEASONAL-CLIMATOLOGY";
 
-  const evidenceSource = cpcbResult
-    ? `Station ${cpcbResult.stationId} CPCB Sub-Index Engine`
-    : "Seasonal Atmospheric Climatology Guidance";
+  const evidenceSource = isDataAvailable
+    ? `Station ${cpcbResult.stationId} CPCB Sub-Index Engine (Type B Calculated AQI)`
+    : "Seasonal Atmospheric Climatology Guidance (Unobserved Baseline)";
 
-  // 1. Ventilation Guidance Action
-  if (category === "VERY_POOR" || category === "SEVERE") {
-    actions.push({
-      actionId: crypto.randomUUID(),
-      category: "VENTILATION_WINDOW",
-      urgency: "IMMEDIATE",
-      actionSummary: "Keep windows and external doors closed; avoid ambient air infiltration.",
-      reasoning: `Ambient AQI is currently in the ${category} category (${aqiValue}). Open windows will elevate indoor particulate levels rapidly.`,
-      implementationMethod: "Keep outer windows shut. Seal gaps with draft stoppers. Use indoor exhaust fans exclusively during active cooking.",
-      expectedExposureReduction: "Reduces indoor PM2.5 infiltration by 30% to 50%.",
-      applicableConstraintsOrLimits: "Ensure indoor cooking has dedicated exhaust to prevent indoor fume buildup.",
-      evidenceReferences: [
-        {
-          evidenceId,
-          source: evidenceSource,
-          measuredValue: `AQI ${aqiValue} (${category})`,
-          timestamp: nowUtc
-        }
-      ]
-    });
-  } else if (category === "GOOD" || category === "SATISFACTORY") {
-    actions.push({
-      actionId: crypto.randomUUID(),
-      category: "VENTILATION_WINDOW",
-      urgency: "SCHEDULED",
-      actionSummary: "Open windows for natural cross-ventilation during afternoon hours.",
-      reasoning: `Ambient AQI is currently ${category} (${aqiValue}). Good atmospheric mixing permits natural flushing of indoor air.`,
-      implementationMethod: "Open opposite windows for 30-45 minutes between 12:00 and 16:00 when ambient air is cleanest.",
-      expectedExposureReduction: "Flushes indoor carbon dioxide, VOCs, and moisture.",
-      applicableConstraintsOrLimits: "Monitor nearby localized smoke before opening.",
-      evidenceReferences: [
-        {
-          evidenceId,
-          source: evidenceSource,
-          measuredValue: `AQI ${aqiValue} (${category})`,
-          timestamp: nowUtc
-        }
-      ]
-    });
-  }
+  // 1. Ventilation Guidance Action (Integrated with Indoor Combustion Hazard Check)
+  const ventDecision = determineVentilationStrategy(category, context.dwelling);
+  actions.push({
+    actionId: crypto.randomUUID(),
+    category: "VENTILATION_WINDOW",
+    urgency: ventDecision.indoorCombustionOverrideActive ? "IMMEDIATE" : (category === "VERY_POOR" || category === "SEVERE" ? "IMMEDIATE" : "SCHEDULED"),
+    actionSummary: ventDecision.practicalMethod.slice(0, 140),
+    reasoning: ventDecision.expectedBenefit.slice(0, 300),
+    implementationMethod: ventDecision.practicalMethod.slice(0, 300),
+    expectedExposureReduction: ventDecision.indoorCombustionOverrideActive
+      ? "Evacuates indoor CO & PM spikes up to 80%."
+      : "Reduces particulate infiltration up to 50%.",
+    applicableConstraintsOrLimits: ventDecision.cautions[0]!.slice(0, 200),
+    evidenceReferences: [
+      {
+        evidenceId,
+        source: evidenceSource,
+        measuredValue: isDataAvailable ? `AQI ${aqiValue} (${category})` : "Unobserved ambient air",
+        timestamp: nowUtc
+      }
+    ]
+  });
 
-  // 2. Commute & Routine Adaptation Action
-  const safetyViolations = checkRoutineSafetyGuardrails(context.routine, category);
+  // 2. Commute & Routine Adaptation Action (Inspecting Household Members & Vulnerabilities)
+  const safetyViolations = checkRoutineSafetyGuardrails(context.routine, category, context.members);
   if (safetyViolations.length > 0) {
-    const violation = safetyViolations[0]!;
-    actions.push({
-      actionId: crypto.randomUUID(),
-      category: "EXERCISE_ADAPTATION",
-      urgency: "IMMEDIATE",
-      actionSummary: `Modify activity: ${violation.label}`,
-      reasoning: violation.violationReason,
-      implementationMethod: violation.mandatoryCorrection,
-      expectedExposureReduction: "Eliminates high-volume particulate inhalation during peak pollution.",
-      applicableConstraintsOrLimits: "Applies to all household members participating in this activity.",
-      evidenceReferences: [
-        {
-          evidenceId,
-          source: evidenceSource,
-          measuredValue: `AQI ${aqiValue} (${category})`,
-          timestamp: nowUtc
-        }
-      ]
-    });
+    for (const violation of safetyViolations) {
+      actions.push({
+        actionId: crypto.randomUUID(),
+        category: "EXERCISE_ADAPTATION",
+        urgency: "IMMEDIATE",
+        actionSummary: `Safety Adjustment: ${violation.label}`.slice(0, 140),
+        reasoning: violation.violationReason.slice(0, 300),
+        implementationMethod: violation.mandatoryCorrection.slice(0, 300),
+        expectedExposureReduction: "Eliminates high-volume toxic particulate intake during peak pollution.",
+        applicableConstraintsOrLimits: violation.affectedMemberNickname
+          ? `Applies to vulnerable member: ${violation.affectedMemberNickname}`
+          : "Applies to participating household members.",
+        evidenceReferences: [
+          {
+            evidenceId,
+            source: evidenceSource,
+            measuredValue: isDataAvailable ? `AQI ${aqiValue} (${category})` : "Unobserved ambient air",
+            timestamp: nowUtc
+          }
+        ]
+      });
+    }
   } else {
-    // Check for diurnal peak commute shift
+    // Check for diurnal peak commute shift (NCDC Peak Hours & Inversion Guidance)
     const routineWindows = evaluateRoutineExposureWindows(context.routine, category);
-    const morningRisk = routineWindows.find((w) => w.isInversionPeakRisk && w.suggestedShiftMinutes > 0);
-    if (morningRisk) {
+    const peakRisk = routineWindows.find((w) => w.isNcdcPeakHourRisk && w.suggestedShiftMinutes !== 0);
+    if (peakRisk) {
       actions.push({
         actionId: crypto.randomUUID(),
         category: "COMMUTE_TIMING",
         urgency: "SCHEDULED",
-        actionSummary: `Shift ${morningRisk.label} start time later by ${morningRisk.suggestedShiftMinutes} minutes.`,
-        reasoning: "Morning surface temperature inversions trap vehicular exhaust near ground level between 07:00 and 09:30.",
-        implementationMethod: `Delay departure to after 09:30 when solar heating begins lifting the inversion layer.`,
+        actionSummary: `Shift ${peakRisk.label} timing by ${Math.abs(peakRisk.suggestedShiftMinutes)} minutes.`.slice(0, 140),
+        reasoning: peakRisk.guidanceRationale.slice(0, 300),
+        implementationMethod: `Adjust schedule departure away from morning/evening pollution peaks per NCDC October 2025 health guidance.`.slice(0, 300),
         expectedExposureReduction: "Estimated 20% to 35% reduction in direct transit exhaust inhalation.",
-        applicableConstraintsOrLimits: `Flexible within user's declared schedule shift window.`,
+        applicableConstraintsOrLimits: "Flexible within declared schedule window.",
         evidenceReferences: [
           {
             evidenceId,
@@ -129,7 +116,7 @@ export function generateDeterministicRecommendations(
       urgency: "SCHEDULED",
       actionSummary: "Reduce or substitute daily incense (agarbatti/dhoop) burning.",
       reasoning: "Burning incense indoors generates high concentrations of PM2.5, benzene, and polycyclic aromatic hydrocarbons.",
-      implementationMethod: "Substitute with LED lights, electric essential oil diffusers without combustion, or ventilate immediately following brief prayer rituals.",
+      implementationMethod: "Substitute with LED lights, electric diffusers without combustion, or ventilate immediately following brief prayer rituals.",
       expectedExposureReduction: "Removes up to 80% of localized indoor particulate spikes.",
       applicableConstraintsOrLimits: "Cultural practice adaptation; non-judgmental guidance.",
       evidenceReferences: [
@@ -143,33 +130,15 @@ export function generateDeterministicRecommendations(
     });
   }
 
-  // Ensure at least one action is returned
-  if (actions.length === 0) {
-    actions.push({
-      actionId: crypto.randomUUID(),
-      category: "VENTILATION_WINDOW",
-      urgency: "INFORMATIONAL",
-      actionSummary: "Maintain balanced ventilation and observe local air quality trends.",
-      reasoning: advisory.generalPublicAdvisory,
-      implementationMethod: advisory.outdoorActivityGuidance,
-      expectedExposureReduction: "Maintains optimal indoor-outdoor balance.",
-      applicableConstraintsOrLimits: "None.",
-      evidenceReferences: [
-        {
-          evidenceId,
-          source: evidenceSource,
-          measuredValue: `AQI ${aqiValue} (${category})`,
-          timestamp: nowUtc
-        }
-      ]
-    });
-  }
+  const overallRiskSummary = isDataAvailable
+    ? `Current air quality is ${category} (AQI ${aqiValue}). ${advisory.generalPublicAdvisory} ${advisory.sensitivePopulationAdvisory}`
+    : `Ambient air quality is currently unobserved. Precautionary health guidance is provided based on seasonal baseline climatology.`;
 
   return {
     recommendationId: crypto.randomUUID(),
     generatedAtUtc: nowUtc,
     generator: "RULE_ENGINE",
-    overallRiskSummary: `Current air quality is ${category} (${aqiValue}). ${advisory.generalPublicAdvisory} ${advisory.sensitivePopulationAdvisory}`,
+    overallRiskSummary,
     actions
   };
 }
