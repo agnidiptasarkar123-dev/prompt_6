@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Environment variables & secrets (NEVER COMMIT)
+.env
+.env*.local
+.env.development
+.env.production
+.env.test
+
+# Logs & runtime caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.turbo/
+.cache/
+
+# Testing coverage & reports
+coverage/
+playwright-report/
+test-results/
+
+# Media & large binary files (Strict <10MB rule)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+*.zip
+*.tar.gz
+*.tar
+*.iso
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
