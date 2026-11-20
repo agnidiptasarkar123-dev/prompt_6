@@ -102,14 +102,14 @@ Every air quality data point stored or displayed must preserve its complete prov
 
 ## 5. Security & Privacy Safeguards (ASVS 5.0.0)
 
-1. **Guest Mode:** Unauthenticated users get full access to live AQI, routine planner, and indoor coach. Sensitive user context is kept solely in client-side ephemeral storage (`sessionStorage` or local memory).
-2. **Authenticated Mode:** Google OAuth 2.0 (PKCE) + Passwordless Magic Link. Tokens verified cryptographically in backend middleware.
-3. **UID-Scoped Isolation:** All database tables enforce strict tenant isolation using UID matching. Cross-user access is impossible by design.
+1. **Guest Mode:** Unauthenticated users get full access to live AQI, routine planner, and indoor coach. Sensitive user context is kept solely in client-side ephemeral storage (`sessionStorage` or local memory) or optional Firebase Anonymous Auth.
+2. **Authenticated Mode:** Firebase Auth (Google OAuth 2.0 PKCE + Passwordless Magic Link). Anonymous sessions link to permanent credentials via `linkWithCredential` preserving user context.
+3. **UID-Scoped Isolation:** Cloud Firestore Security Rules enforce strict tenant isolation (`request.auth.uid == userId`). Cross-user access returns `PERMISSION_DENIED` at the database engine level.
 4. **Data Privacy (DPDP Act 2023 / GDPR):**
    - Zero health data profiling or sharing.
    - 1-Click Complete Data Export (machine-readable JSON).
-   - 1-Click Account Deletion (hard delete cascading to all child records).
-5. **No Secrets in Frontend:** API keys (`GEMINI_API_KEY`, `DATA_GOV_IN_API_KEY`, `OPENAQ_API_KEY`, `AUTH_SECRET`) are accessible strictly within server runtime.
+   - 1-Click Account Deletion (hard delete cascading to all child records in Firestore).
+5. **No Secrets in Frontend:** API keys (`GEMINI_API_KEY`, `DATA_GOV_IN_API_KEY`, `OPENAQ_API_KEY`) are accessible strictly within server runtime. Public Firebase configuration is restricted by Firestore Security Rules.
 
 ---
 

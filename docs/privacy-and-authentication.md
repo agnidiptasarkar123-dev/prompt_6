@@ -54,23 +54,67 @@ flowchart TD
 
 ### 2.1 Supported Authentication Flows
 
-#### Flow A: Guest Access (Zero Server Footprint)
-- The user accesses all core views without an account.
-- Household composition and routine schedules are stored purely within browser `sessionStorage`.
-- Outgoing API requests for AQI and recommendations pass ephemeral parameters in the request body.
-- When the tab closes, the data is destroyed.
+#### Flow A: Guest Access (Zero Server Footprint / Ephemeral Anonymous UID)
+- The user accesses all core views without providing an email or password.
+- Implemented via:
+  - *Option 1 (Default):* Pure client-side `sessionStorage` with zero Firebase network calls.
+  - *Option 2 (Optional Cloud Guest):* Firebase Anonymous Authentication (`signInAnonymously`). Provides an ephemeral UID with temporary Firestore storage.
+- When an anonymous user decides to save their household permanently, `linkWithCredential` seamlessly links the anonymous session to a Google account or Email Magic Link without data loss.
 
 #### Flow B: Google OAuth 2.0 with PKCE (Proof Key for Code Exchange)
-- Implements RFC 7636 to prevent authorization code interception attacks.
-- Requires cryptographic `code_verifier` and `code_challenge` (SHA-256).
-- Verification of signed ID tokens on the server.
-- Exchanges authorization code for an internal session cookie.
+- Implements RFC 7636 via Firebase `GoogleAuthProvider`.
+- Uses SHA-256 code challenge to prevent authorization code interception.
+- Zero client-exposed client secrets.
+- Issues a secure Firebase ID token with cryptographic validation.
 
 #### Flow C: Passwordless Email Magic Link
-- User submits email $\to$ server generates a cryptographically secure random token (256-bit entropy).
-- Token is hashed (HMAC-SHA256) and saved with a 15-minute expiration time.
-- Single-use constraint: Token is invalidated immediately upon successful consumption.
+- User submits email $\to$ Firebase client calls `sendSignInLinkToEmail`.
+- Generates a cryptographically signed magic link with an expiration window of exactly 15 minutes.
+- Verified on return via `signInWithEmailLink`.
+- Single-use constraint: Link is invalidated immediately upon successful consumption.
 - Eliminates password compromise risks (credential stuffing, dictionary attacks).
+
+### 2.2 Cloud Firestore Security Rules Specification
+Tenant isolation is enforced natively in the database layer via `firestore.rules`:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default: Deny all operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public Station Read-Only Cache (Populated exclusively by Server)
+    match /public_stations/{stationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Tenant Isolation Boundary: Scoped to User's UID
+    match /users/{userId} {
+      // User Document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Subcollection: Saved Household Profiles
+      match /households/{householdId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Subcollection: Saved Daily Routines
+      match /routines/{routineId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Subcollection: Privacy Consents & Audit Trail
+      match /consents/{consentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
+```
 
 ### 2.2 Session Management & Token Verification Standards
 - **Cookie Security Attributes:**

@@ -17,6 +17,8 @@ To ensure scientific truthfulness and regulatory compliance, HawaSaathi strictly
 | **CPCB CAAQMS (data.gov.in)** | Ground Observed Sensor | `https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69` | `api-key` query param (Free registration on OGD India) | 1,000 records/page, 10,000 req/day per key | Government Open Data License - India (GODL) | **VERIFIED PRIMARY** |
 | **OpenAQ API v3** | Ground Observed Aggregator | `https://api.openaq.org/v3/locations` (Country ID: 9 / `IN`) | `X-API-Key` HTTP Header | 60 req/min, 2,000 req/hour (Free Tier) | Open Database License (ODbL) / CC BY 4.0 | **VERIFIED SECONDARY** |
 | **WAQI (aqicn.org)** | Ground Observed Feeds | `https://api.waqi.info/feed/geo:{lat};{lng}/` | `token` query param (Free registration) | 1,000 req/min (Standard tier) | Attribution required; Non-commercial standard | **VERIFIED FALLBACK (RAW ONLY)** *(Note: WAQI's calculated AQI is US EPA standard; we ingest only raw `iaqi` measurements)* |
+| **Google Gemini API** | AI Contextual Inference | `https://generativelanguage.googleapis.com` via `@google/genai` | API Key (`GEMINI_API_KEY` in server environment) | Free Tier (15 RPM, 1500 RPD); Pay-as-you-go | Google Generative AI Terms | **VERIFIED INFERENCE** *(Structured JSON output mode, temperature 0.2)* |
+| **Firebase Auth & Firestore** | Identity & Persisted Store | Google Cloud Firebase Platform (`firebase` SDK) | Firebase Project Config + UID Security Rules | 50k MAU Auth, 50k reads/day, 20k writes/day | Google Cloud Terms of Service | **VERIFIED AUTH & STORE** *(Anonymous guest, Google PKCE, Magic Link, UID rules)* |
 | **Open-Meteo Air Quality** | Atmospheric Dispersion Forecast | `https://air-quality-api.open-meteo.com/v1/air-quality?domains=cams_global` | None required (Free tier) | 600 req/min, 5,000 req/hour, 10,000 req/day | CC BY 4.0 (Attribution to Open-Meteo & CAMS mandatory) | **VERIFIED FORECAST** *(Modelled CAMS Global ~45km, NOT ground sensor)* |
 | **Open-Meteo Weather API** | Meteorological Context | `https://api.open-meteo.com/v1/forecast` (Wind, Temp, Humidity, Rain) | None required (Free tier) | 600 req/min, 5,000 req/hour, 10,000 req/day | CC BY 4.0 (Attribution to Open-Meteo mandatory) | **VERIFIED METEOROLOGY** |
 | **CPCB Realtime Portal Direct Scraper (app.cpcbccr.com)** | Ground Observed HTML | Direct portal scraping | N/A | Variable / Anti-bot challenges | Prohibited under Terms of Service | **UNVERIFIED / PROHIBITED** *(Violates stability & anti-scraping rules)* |
@@ -79,6 +81,31 @@ To ensure scientific truthfulness and regulatory compliance, HawaSaathi strictly
   This is a **fluid dynamics and chemical transport atmospheric dispersion model**, NOT an in-situ physical measurement. The UI must render this in dedicated forecast sections with explicit labels:
   - Label: `"5-Day Regional Forecast (CAMS Model)"`
   - Disclaimer: *"Modelled estimate over a 45 km grid cell. For immediate health decisions, refer to verified ground stations."*
+
+### 2.4 Google Gemini API (Inference Engine)
+- **SDK & Client:** `@google/genai` (Official Google Gen AI SDK)
+- **Model Target:** `gemini-2.5-flash` (or `gemini-1.5-flash` as backup)
+- **Inference Mode:** Structured JSON Output (`responseMimeType: "application/json"`, paired with JSON schema definition matching `RecommendationResponseSchema`).
+- **Temperature Setting:** `0.2` (low temperature for deterministic, hallucination-resistant structured advice).
+- **Zero Hallucination Anchor:** The prompt injects immutable physical evidence:
+  - Exact observed station concentrations and calculated CPCB NAQI.
+  - CAMS dispersion forecast for the next 24–48 hours.
+  - Meteorological parameters (wind speed, temperature inversion flag).
+  - Explicit system instruction: *"Do not calculate, estimate, or modify the provided AQI. Generate contextual recommendations strictly grounded in the supplied physical readings and user dwelling parameters."*
+- **Circuit Breaker:** 5,000 ms timeout. Automatic switchover to `DeterministicRecommender` on timeout, HTTP 429/5xx, or Zod validation failure.
+
+### 2.5 Firebase Authentication & Cloud Firestore Verification
+- **SDK:** `firebase` (Client modular v10+ SDK)
+- **Authentication Providers:**
+  1. *Anonymous Authentication (`signInAnonymously`):* Provides an ephemeral session UID for guest users without collecting email or PII.
+  2. *Google Sign-In (`GoogleAuthProvider`):* Uses popup/redirect with PKCE on the web.
+  3. *Passwordless Email Link (`sendSignInLinkToEmail` / `signInWithEmailLink`):* Generates single-use, 15-minute expiring cryptographic tokens.
+  4. *Account Linking (`linkWithCredential`):* Allows an anonymous guest to upgrade to Google or Email Auth while retaining all saved household and routine profiles.
+- **Cloud Firestore Security Rules:**
+  - Enforces strict tenant boundary: `allow read, write: if request.auth != null && request.auth.uid == userId;`
+  - Zero cross-user read or write permissions.
+  - Direct root collection writes denied by default (`match /{document=**} { allow read, write: if false; }`).
+  - Offline IndexedDB caching enabled automatically by the Firestore SDK for resilient PWA operation.
 
 ---
 

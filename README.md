@@ -105,11 +105,14 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 | [AGENTS.md](AGENTS.md) | Persistent agent engineering rules and project directives |
 | [Requirements Traceability Matrix](docs/requirements-matrix.md) | Full mapping from requirements to features, schemas, and test cases |
 | [System Architecture](docs/architecture.md) | Technical blueprint, data flow, sequence diagrams, and module design |
-| [Data Source Verification](docs/data-source-verification.md) | Ground-truth analysis of CPCB, OpenAQ, WAQI, and Open-Meteo CAMS |
+| [Data Source Verification](docs/data-source-verification.md) | Ground-truth analysis of CPCB, OpenAQ, WAQI, Open-Meteo, Gemini & Firebase |
+| [API Dependency Matrix](docs/api-dependency-matrix.md) | Upstream limits, licensing, caching strategy, and failover matrix |
 | [User Context Model](docs/user-context-model.md) | Flexible schema definitions for households, routines, and micro-climates |
 | [Security Threat Model](docs/threat-model.md) | STRIDE analysis, OWASP ASVS 5.0.0 checklist, and 3,000+ test case plan |
+| [Security Acceptance Criteria](docs/security-acceptance-criteria.md) | Formal verifiable security criteria and benchmark assertions |
 | [Testing Strategy](docs/testing-strategy.md) | Unit, integration, E2E, accessibility, and automated security test suite |
-| [Privacy & Authentication](docs/privacy-and-authentication.md) | Guest mode, OAuth 2.0 PKCE, UID-isolation, and DPDP Act compliance |
+| [Phase-Wise Development Plan](docs/phase-plan.md) | Milestone roadmap from Phase 0 to Phase 7 and release gates |
+| [Privacy & Authentication](docs/privacy-and-authentication.md) | Guest mode, Firebase Auth, Firestore rules, and DPDP Act compliance |
 
 ---
 

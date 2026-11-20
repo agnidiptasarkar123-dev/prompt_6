@@ -55,8 +55,9 @@ flowchart TD
         EXT_OpenAQ["OpenAQ API v3"]
         EXT_WAQI["WAQI (Raw Sensor Feeds)"]
         EXT_Meteo["Open-Meteo (CAMS Forecast & Weather)"]
-        DB_Storage["PostgreSQL / SQLite (UID-Scoped Tenant Storage)"]
-        CACHE_KV["Memory / Redis Cache (15m observed, 3h forecast)"]
+        DB_Storage["Cloud Firestore (UID-Scoped Tenant Partition with Rules)"]
+        AUTH_FB["Firebase Auth (Anonymous Guest, Google PKCE, Magic Link)"]
+        CACHE_KV["Memory / Edge KV Cache (15m observed, 3h forecast)"]
     end
 
     Client --> Edge
@@ -299,6 +300,7 @@ sequenceDiagram
 │   │   └── idor/
 │   ├── a11y/                      # Axe accessibility test suite
 │   └── e2e/                       # Playwright browser end-to-end flows
+├── firestore.rules                # Cloud Firestore UID-scoped security rules
 ├── AGENTS.md                      # Persistent agent rules & constraints
 ├── README.md                      # Project overview & documentation index
 ├── tsconfig.json                  # Strict TypeScript configuration

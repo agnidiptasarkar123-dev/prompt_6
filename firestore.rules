@@ -1,0 +1,45 @@
+rules_version = '2';
+
+/**
+ * HawaSaathi Cloud Firestore Security Rules
+ * Baseline: OWASP ASVS 5.0.0 Level 2 (Tenant Scoped Isolation)
+ * Policy: Default Deny All. Access strictly restricted to authenticated owner (request.auth.uid == userId).
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default Deny All: Prevent any unmapped read or write
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public cached station readings: Read-only to clients; written exclusively by server Admin SDK
+    match /public_stations/{stationId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Tenant Isolation: Every record under /users/{userId} belongs strictly to that authenticated UID
+    match /users/{userId} {
+      // User Profile Document
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Saved Household Context Subcollection
+      match /households/{householdId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && (!('members' in request.resource.data) || request.resource.data.members.size() <= 20);
+      }
+
+      // Saved Daily Routines Subcollection
+      match /routines/{routineId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId
+          && (!('activities' in request.resource.data) || request.resource.data.activities.size() <= 30);
+      }
+
+      // Privacy Consent & Export Audit Subcollection
+      match /consents/{consentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
