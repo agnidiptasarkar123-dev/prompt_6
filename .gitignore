@@ -28,6 +28,7 @@ yarn-error.log*
 coverage/
 playwright-report/
 test-results/
+*.tsbuildinfo
 
 # Media & large binary files (Strict <10MB rule)
 *.mp4
