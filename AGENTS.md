@@ -15,6 +15,7 @@ Every contributor, agent, and subagent working on HawaSaathi MUST abide by these
 2. **Repository Safeguards:**
    - **Single Branch:** Exactly one branch: `main`. Feature branches must not be pushed to remote origin.
    - **Repository Size Limit:** Total repository size must stay strictly below **10 MB** at all times. Never commit binary datasets, MP4/video files, heavy fonts, unoptimized images, node_modules, build outputs, or database dumps.
+   - **Remote Status:** Public repository setup is currently **PENDING**. No remote origin is configured, no remote visibility is assumed, and no push or remote creation may occur without explicit user approval.
    - **Submission Cap:** Maximum three (3) official submission attempts. 100% verification required before any release tag or submission.
 3. **Data Integrity & Truthfulness:**
    - **NEVER** hardcode, mock, invent, or simulate real-time pollution readings in production code.
@@ -24,9 +25,10 @@ Every contributor, agent, and subagent working on HawaSaathi MUST abide by these
      - **Type B:** Independently calculated CPCB-methodology AQI (computed by HawaSaathi from validated raw sensor concentrations).
      - **Type C:** Raw pollutant concentration (measured physical value with timestamp, unit, and averaging window).
      - **Type D:** Modelled atmospheric forecast (Open-Meteo CAMS Global ~45 km grid, strictly tagged `MODEL_FORECAST`).
-   - Ground-based physical sensor readings and atmospheric dispersion models MUST never be blended into single ambiguous badges.
+   - **Record vs Station Semantics:** In the CPCB CAAQMS dataset (`data.gov.in`), reported records represent **individual pollutant measurement rows**, NOT unique stations. A single physical monitoring station produces multiple pollutant rows. Stations must be counted and grouped distinctly.
+   - **Regulatory Averaging Semantics:** Never assume `avg_value` in an API feed represents a valid regulatory 24-hour or 8-hour average without verified data sufficiency (minimum 16 hours for 24h window; minimum 6 hours for 8h window). Do not calculate official-looking AQI from incomplete or unverified evidence.
 4. **Dynamic Context (Anti-Enum):**
-   - **NEVER** reduce a user to a static enum or persona archetype (e.g. `type Persona = 'athlete' | 'cop' | 'elderly'`). Real households contain multi-generational vulnerabilities, variable daily commute modes, flexible schedules, and unique indoor micro-environments.
+   - **NEVER** reduce a user to a static enum or persona archetype (e.g. `type Persona = 'athlete' | 'cop' | 'elderly'`). Real households contain multi-generational vulnerabilities, variable daily commute modes, flexible schedules, and unique indoor micro-environments. Health info is strictly minimised, non-diagnostic, and optional.
 5. **Security Baseline (OWASP ASVS 5.0.0 Level 2):**
    - Target minimum **3,000 meaningful automated security test cases** covering input fuzzing, prompt injection vectors, authentication edge cases, IDOR, and schema boundary violations.
    - CPCB mathematical boundary tests belong strictly to **Domain Correctness Tests**, and are NOT counted toward the 3,000 security test target.
@@ -34,42 +36,23 @@ Every contributor, agent, and subagent working on HawaSaathi MUST abide by these
 
 ---
 
-## 2. Engineering Standards & Code Quality
+## 2. Engineering Standards & Technology Stack
 
-### 2.1 TypeScript Rigor
-- Strict mode enabled (`strict: true`, `noImplicitAny: true`, `strictNullChecks: true`, `noUncheckedIndexedAccess: true`).
-- No `any` types permitted. Use `unknown` with type guards or schema validation when dealing with untyped boundaries.
-- Explicit return types on all domain functions, API route handlers, and service methods.
+### 2.1 Framework & Runtime
+- **Framework:** Next.js 16.x (latest stable supported release) with App Router and Node.js runtime ($\ge 20.x$).
+- **TypeScript Rigor:** Strict mode enabled (`strict: true`, `noImplicitAny: true`, `strictNullChecks: true`, `noUncheckedIndexedAccess: true`). No `any` types permitted.
+- **Boundary Validation (Zod):** Every external ingress and egress boundary MUST be validated with Zod schemas.
 
-### 2.2 Boundary Validation (Zod)
-- Every external ingress and egress boundary MUST be validated with Zod:
-  - External API responses (CPCB/OGD, OpenAQ, Open-Meteo).
-  - LLM completion payloads (Gemini API structured JSON output).
-  - HTTP request headers, query parameters, and JSON bodies.
-  - User session tokens and persisted profile state.
-- Parse failures must never crash the service; they must trigger domain-specific error handling and fallbacks.
+### 2.2 Map Visualization & Tile Policies
+- **Tile Provider:** OpenStreetMap Carto tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
+- **Licensing Separation:** OSM database is licensed under Open Database License (ODbL) 1.0; tile layer cartography is licensed under CC BY-SA 2.0. Mandatory attribution: `© OpenStreetMap contributors`.
+- **Tile Terms:** Complies with OpenStreetMap Foundation (OSMF) Tile Usage Policy: client HTTP caching is strictly honored; automated scraping or bulk pre-downloading is prohibited. Standard browser requests carry standard browser headers (custom User-Agent is not required or feasible on browser `<img>` requests).
+- **Alternative Production Providers:** If production traffic exceeds OSMF acceptable usage, fallback to Stadia Maps or self-hosted vector tiles (Protomaps PMTiles via CDN).
 
 ### 2.3 Exception & Error Handling
 - **No Swallowed Exceptions:** Never write empty `catch` blocks or log-and-continue without structured error states.
-- Domain error hierarchy:
-  - `DataSourceUnavailableError` (API down or timeout).
-  - `DataStaleError` (Timestamp older than threshold).
-  - `InsufficientDataError` (CPCB criteria < 3 pollutants or missing PM parameter).
-  - `AIServiceUnavailableError` (Gemini API 5xx/rate limit/timeout).
-  - `SchemaValidationError` (Malformed payload).
-  - `UnauthorizedError` / `ForbiddenError`.
-- Every UI component consuming async data must handle all 5 standard states:
-  1. `idle`
-  2. `loading` (accessible skeleton / spinner with aria-live)
-  3. `empty` (no stations found / no routines scheduled)
-  4. `error` (actionable recovery message + retry button)
-  5. `unavailable` / `stale` (clear visual warning badge + observation timestamp)
-
-### 2.4 Accessibility & UI Standards
-- WCAG 2.1 Level AA compliance throughout.
-- Full keyboard navigability (logical tab order, visible focus rings, modal focus traps, escape key dismissal).
-- Accessible color contrast (minimum 4.5:1 for normal text, 3:1 for large text and UI components; tested against dark mode and AQI color palettes).
-- Internationalization (i18n): Native support for **English**, **Bengali (বাংলা)**, and **Hindi (हिन्दी)**.
+- Domain error hierarchy: `DataSourceUnavailableError`, `DataStaleError`, `InsufficientDataError`, `AIServiceUnavailableError`, `SchemaValidationError`, `UnauthorizedError`, `ForbiddenError`.
+- UI async state handling: `idle`, `loading`, `empty`, `error`, `unavailable / stale`.
 
 ---
 
@@ -77,8 +60,8 @@ Every contributor, agent, and subagent working on HawaSaathi MUST abide by these
 
 ### 3.1 CPCB Calculation Rules & Sufficiency Standard
 - **Monitored Parameters (8 total):**
-  - 24-hourly average: $PM_{10}, PM_{2.5}, NO_2, SO_2, NH_3, Pb$.
-  - 8-hourly average: $CO, O_3$.
+  - 24-hourly average: $PM_{10}, PM_{2.5}, NO_2, SO_2, NH_3, Pb$ (all in $\mu\text{g/m}^3$).
+  - 8-hourly average: $CO$ (in $\text{mg/m}^3$), $O_3$ (in $\mu\text{g/m}^3$).
 - **Running Average Data Sufficiency:**
   - 24-hour average requires a minimum of **16 hours** of valid hourly readings (67% data availability rule).
   - 8-hour average requires a minimum of **6 hours** of valid hourly readings (75% data availability rule).
@@ -108,10 +91,13 @@ Every air quality data point stored or displayed must preserve its complete prov
 ## 4. AI Orchestration & Deterministic Fallback Rules
 
 1. **Role of Gemini:** Synthesizes evidence-backed contextual advice from validated ground readings, CAMS forecasts, weather dispersion metrics, and user-provided micro-environment context.
-2. **Factual Grounding Anchor:** Pre-calculated, deterministic CPCB metrics and weather variables are injected as immutable facts into the prompt. The model is explicitly forbidden from calculating or altering AQI.
-3. **Structured Schema Enforcement:** Gemini outputs strictly typed JSON matching `RecommendationResponseSchema`.
-4. **Citation Validation:** All factual claims in model outputs must cite verified evidence IDs supplied in the prompt.
-5. **Deterministic Fallback Engine:** If Gemini fails, times out (>5000ms), or returns schema-violating output, the system seamlessly transitions to our deterministic rule-based engine (`DeterministicRecommender`). The user receives verified recommendations without interruption, tagged with `generator: "RULE_ENGINE"`.
+2. **Defensible Factuality Pipeline:**
+   - Pre-calculated CPCB metrics and weather variables are injected as immutable facts into the prompt.
+   - The model is explicitly forbidden from calculating or altering AQI.
+   - Server-side output validation parses all completions against `RecommendationResponseSchema`.
+   - All factual claims in output must cite verified evidence IDs supplied in the prompt; invalid citations fail validation.
+3. **Availability Objective:** 99.9% uptime is an **architectural engineering objective**, not an achieved contractual SLA.
+4. **Deterministic Fallback Engine:** If Gemini fails, times out (>5000ms), or returns schema-violating output, the system transitions to our deterministic rule-based engine (`DeterministicRecommender`). The fallback engine provides safe, category-aware behavioral guidance and **never invents measurements**.
 
 ---
 

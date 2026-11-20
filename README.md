@@ -6,6 +6,7 @@
 [![Repository Size](https://img.shields.io/badge/Repo_Size-%3C10MB-brightgreen.svg)]()
 [![Security: OWASP ASVS 5.0.0](https://img.shields.io/badge/Security-ASVS_5.0.0_L2-blueviolet.svg)]()
 [![TypeScript: Strict](https://img.shields.io/badge/TypeScript-Strict_Mode-blue.svg)]()
+[![Remote Status](https://img.shields.io/badge/GitHub_Remote-SETUP_PENDING-orange.svg)]()
 
 ---
 
@@ -65,6 +66,7 @@ However, existing public-facing AQI platforms suffer from critical deficiencies:
   - Requires minimum **6 hours** of valid hourly readings for 8-hr running averages ($CO, O_3$).
   - Requires minimum **3 valid pollutants** including at least one particulate parameter ($PM_{2.5}$ or $PM_{10}$).
   - Automatically suppresses overall AQI if sufficiency fails, displaying individual sub-indices alongside a clear explanation.
+- **Record Semantics:** Distinguishes pollutant measurement rows (e.g. 4,046 rows nationwide on data.gov.in) from unique stations (~500–600 distinct monitoring stations nationwide).
 - **Four-Way Data Typology:** Strictly segregates:
   - Type A: Official CPCB-published AQI.
   - Type B: Independently calculated CPCB-methodology AQI.
@@ -80,8 +82,9 @@ However, existing public-facing AQI platforms suffer from critical deficiencies:
 
 ### C. Dual AI & Deterministic Recommendation Engine
 - **Gemini API Backend:** Formulates tailored, structured recommendations citing specific physical evidence, physiological risks, and practical alternatives.
-- **Strict Zod Guardrails & Citation Verification:** All model outputs undergo rigorous schema validation against `RecommendationResponseSchema` and citation check against injected evidence IDs.
-- **Deterministic Fallback Engine:** Should external AI services experience downtime, latency spikes, or schema deviations, HawaSaathi instantly engages a local rule-based expert engine ensuring continuous service availability.
+- **Defensible Factuality Pipeline:** Prompts are anchored in immutable factual evidence; model outputs undergo server-side validation against `RecommendationResponseSchema`; all claims must reference valid evidence IDs.
+- **Deterministic Fallback Engine:** Should external AI services experience downtime, latency spikes, or schema deviations, HawaSaathi instantly engages a local rule-based expert engine. The fallback engine **never invents measurements**.
+- **Availability Objective:** 99.9% uptime is an **architectural engineering design objective**, not an achieved contractual SLA.
 
 ### D. Multilingual Localization & High Accessibility
 - Fully localized in **English**, **Bengali (বাংলা)**, and **Hindi (हिन्दी)**.
@@ -96,6 +99,7 @@ However, existing public-facing AQI platforms suffer from critical deficiencies:
 | :--- | :--- | :--- |
 | **Branch Policy** | Strictly `main` only | Pre-push hook & CI assertion blocking non-main branch pushes |
 | **Repository Size** | Strictly $< 10\text{ MB}$ | Pre-commit size check, `.gitignore` exclusions, no binary commits |
+| **GitHub Remote** | **PUBLIC REPOSITORY SETUP PENDING** | Local git repository on `main`. Remote origin will be configured upon explicit user authorization. |
 | **Submission Cap** | 3 attempts max | Exhaustive pre-release verification & smoke testing protocol |
 | **Security Verification** | OWASP ASVS 5.0.0 Level 2 | Automated test suite targeting **3,050 security assertions** |
 | **Type Safety** | TypeScript Strict | Zero `any` policy, 100% runtime boundary validation via Zod |
@@ -110,7 +114,7 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 | :--- | :--- |
 | [AGENTS.md](AGENTS.md) | Persistent agent engineering rules, CPCB calculation directives, and quality constraints |
 | [Requirements Traceability Matrix](docs/requirements-matrix.md) | Full mapping from requirements to features, schemas, and test cases |
-| [System Architecture](docs/architecture.md) | Technical blueprint, BFF topology, sequence flows, and map tile integration |
+| [System Architecture](docs/architecture.md) | Technical blueprint, Next.js 16.x BFF topology, sequence flows, and map tile integration |
 | [Architecture Decision Log](docs/architecture-decision-log.md) | Formal ADRs, unresolved technical dependencies, and audit trade-offs |
 | [Data Source Verification](docs/data-source-verification.md) | Ground-truth analysis of CPCB, OpenAQ, Open-Meteo, 4-way typology, and CPCB 2014 math |
 | [API Dependency Matrix](docs/api-dependency-matrix.md) | Upstream limits, verified evidence, caching strategy, and failover matrix |
@@ -125,11 +129,11 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 
 ## 5. Technology Stack
 
-- **Framework:** Next.js 15.x (App Router, Node.js Runtime)
+- **Framework:** Next.js 16.x (App Router, Node.js Runtime $\ge 20.x$, React 19)
 - **Language:** Strict TypeScript (Target: ES2022)
 - **Validation:** Zod 3.x
 - **Styling & UI:** Tailwind CSS, Lucide Icons, Radix UI primitives
-- **Map Visualization:** Leaflet.js with OpenStreetMap Carto tiles
+- **Map Visualization:** Leaflet.js with OpenStreetMap Carto tiles (OSMF policy compliant; production fallback to Stadia Maps / Protomaps PMTiles)
 - **AI Orchestration:** Google Gemini SDK (`@google/genai`) via secure backend API routes
 - **Database & Persistence:** Cloud Firestore (managed via server-side Firebase Admin SDK)
 - **Authentication:** Firebase Client SDK (Google Sign-In + Passwordless Email Link)
@@ -140,9 +144,9 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 
 ## 6. Repository Size & Metrics Transparency
 
-As of the Phase 0 Architecture Audit (2026-11-20):
-- **Working Tree (Files on Disk):** **408 KB** (includes 252 KB of `.git` metadata and 156 KB of workspace documentation).
-- **Git Loose Objects Database:** **152 KiB** (as reported by `git count-objects -vH`).
+As of the Phase 0 Final Architecture Audit:
+- **Working Tree (Files on Disk):** **528 KB** (includes 252 KB of `.git` metadata and 276 KB of workspace documentation).
+- **Git Loose Objects Database:** **252 KiB** (as reported by `git count-objects -vH`).
 - **Maximum Ceiling:** **10,240 KB (10 MB)**.
 - **Safeguard Enforcement:** Verified continuously via [scripts/check-repo-size.sh](scripts/check-repo-size.sh).
 

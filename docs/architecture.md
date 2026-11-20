@@ -1,8 +1,8 @@
 # System Architecture Document
 
 > **Document ID:** HS-ARCH-001  
-> **Status:** Revised Baseline (Post-Audit)  
-> **Target Framework:** Next.js 15.x (App Router) / Node.js TypeScript  
+> **Status:** Revised Baseline (Phase 0 Audit Revisions)  
+> **Target Framework:** Next.js 16.x (App Router) / Node.js TypeScript ($\ge 20.x$)  
 > **Compliance:** OWASP ASVS 5.0.0 Level 2, MoEFCC CPCB NAQI (2014), WCAG 2.1 AA
 
 ---
@@ -57,7 +57,7 @@ flowchart TD
         EXT_OpenAQ["OpenAQ API v3 (iso=IN)"]
         EXT_CAMS["Open-Meteo CAMS Global Forecast"]
         EXT_Weather["Open-Meteo Weather (Dispersion)"]
-        EXT_OSM["OpenStreetMap Carto Tile Server"]
+        EXT_OSM["OpenStreetMap Carto / Stadia / PMTiles"]
         DB_Firestore["Cloud Firestore (Server Admin SDK Access Only)"]
         CACHE_Redis["Upstash Redis / In-Memory KV Cache"]
     end
@@ -74,7 +74,7 @@ flowchart TD
     CACHE_Redis --> EXT_OpenAQ
     CACHE_Redis --> EXT_CAMS
     CACHE_Redis --> EXT_Weather
-    Client -->|Vector / Raster Map Display| EXT_OSM
+    Client -->|Map Tile Display| EXT_OSM
     AI --> AI_Prompt --> AI_Gemini --> AI_Zod
     AI_Zod -.->|On Timeout (>5s) or Schema Error| ENG_Rules
     BFF -->|UID-Scoped Server Operations| DB_Firestore
@@ -85,7 +85,7 @@ flowchart TD
 ## 2. Multi-Tier Layer Specifications
 
 ### 2.1 Presentation Layer (Client)
-- **Framework:** Next.js 15.x (React 19, Strict TypeScript).
+- **Framework:** Next.js 16.x (React 19, Strict TypeScript, ES2022).
 - **Styling & Components:** Responsive Tailwind CSS with unstyled, accessible Radix UI primitives.
 - **Client Authentication:** Firebase Client SDK used strictly for identity acquisition (Google Sign-In or Passwordless Email Link) to obtain a short-lived Firebase ID token.
 - **Guest Experience:** Unauthenticated visitors operate 100% locally. Household configurations and daily routines are held in browser `sessionStorage` with zero server-side database footprint.
@@ -124,13 +124,17 @@ flowchart TD
   1. `cpcb-calculator`: Implements MoEFCC 2014 breakpoint linear interpolation, 16-hour running-average sufficiency rules, and dominant pollutant selection.
   2. `exposure-optimizer`: Calculates diurnal exposure curves and evaluates schedule shifts against diurnal pollution peaks.
   3. `indoor-advisor`: Evaluates ventilation windows based on outdoor/indoor particulate gradients and computes CADR requirements.
-  4. `deterministic-recommender`: Local rule-based recommendation engine operating strictly on verified CPCB data and user constraints.
+  4. `deterministic-recommender`: Local rule-based recommendation engine operating strictly on verified CPCB data and user constraints. Does **never invent measurements**.
 
 ### 2.5 AI Inference Orchestration Layer
 - **Provider & SDK:** Google Gemini API via official `@google/genai` SDK on the server runtime.
 - **Configuration:** `temperature: 0.2`, structured JSON output mode with JSON schema matching `RecommendationResponseSchema`.
-- **Factual Grounding Anchor:** Pre-calculated, deterministic CPCB metrics and meteorological parameters are injected as immutable facts into the system prompt. The model is explicitly forbidden from calculating or guessing AQI.
-- **Citation Verifier:** Model responses must cite evidence IDs supplied in the prompt; citations are validated during Zod parsing.
+- **Defensible Factuality Pipeline:**
+  - Pre-calculated, deterministic CPCB metrics and meteorological parameters are injected as immutable facts into the system prompt.
+  - The model is explicitly forbidden from calculating or altering AQI.
+  - Server-side output validation parses all model outputs through Zod.
+  - All factual claims must reference verified evidence IDs supplied in the prompt; invalid citations fail validation.
+- **Availability Objective:** 99.9% uptime is an **architectural engineering design objective**, not an achieved contractual SLA.
 - **Circuit Breaker:** 5,000 ms timeout. Automatic switchover to `DeterministicRecommender` on timeout, HTTP 429/5xx, or schema mismatch.
 
 ---
@@ -149,14 +153,14 @@ sequenceDiagram
     participant OpenAQ as OpenAQ v3 (Fallback)
     participant Calc as CPCB 2014 Engine
 
-    User->>BFF: GET /api/air-quality/live?city=Delhi&stationId=karala
+    User->>BFF: GET /api/air-quality/live?city=Delhi&station=Karala
     BFF->>Cache: Query cache by station ID (TTL: 15 min)
     alt Cache Hit
         Cache-->>BFF: Return cached DataProvenanceRecord (isCached: true)
     else Cache Miss
         critical Primary Provider Fetch
             BFF->>CPCB: GET resource/3b01bcb8... (filters[city]=Delhi)
-            CPCB-->>BFF: Raw station record (min_value, max_value, avg_value)
+            CPCB-->>BFF: Pollutant rows for station (min_value, max_value, avg_value)
         option Timeout (>3000ms) or HTTP 5xx
             BFF->>OpenAQ: GET /v3/locations?iso=IN (Secondary Provider)
             OpenAQ-->>BFF: Sensor measurements
@@ -175,50 +179,20 @@ sequenceDiagram
     BFF-->>User: 200 OK (DataProvenanceRecord with 4-Way Typology Tag)
 ```
 
-### 3.2 Dual Recommendation Pipeline Sequence
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as Client Browser
-    participant BFF as /api/recommendations/generate
-    participant Synthesizer as Prompt Synthesizer
-    participant Gemini as Google Gemini API
-    participant Zod as Zod Parser & Citation Verifier
-    participant Fallback as Deterministic Rule Engine
-
-    User->>BFF: POST /api/recommendations/generate (UserContext + StationId)
-    BFF->>BFF: Retrieve verified ground station reading + CAMS forecast
-    BFF->>Synthesizer: Build prompt (Ground truth evidence + Dwelling parameters)
-    
-    critical AI Inference with 5000ms Circuit Breaker
-        BFF->>Gemini: generateContent(SystemPrompt + EvidenceContext)
-        Gemini-->>BFF: Raw JSON response
-        BFF->>Zod: Validate against RecommendationResponseSchema & verify evidence IDs
-        alt Validation Passed
-            Zod-->>BFF: Validated Structured Recommendation (generator: "GEMINI_AI")
-        else Validation Failed
-            BFF->>Fallback: Execute Deterministic Rules(Context, CPCB, Weather)
-            Fallback-->>BFF: Deterministic Recommendation (generator: "RULE_ENGINE")
-        end
-    option Timeout (>5000ms) or API Error
-        BFF->>Fallback: Execute Deterministic Rules(Context, CPCB, Weather)
-        Fallback-->>BFF: Deterministic Recommendation (generator: "RULE_ENGINE")
-    end
-
-    BFF-->>User: 200 OK (Structured Recommendation with Evidence Citations)
-```
-
 ---
 
 ## 4. Map Integration & Tile Provider Specification
 
-- **Provider:** OpenStreetMap Carto Standard Tiles.
-- **Tile URL:** `https://tile.openstreetmap.org/{z}/{x}/{y}.png`
-- **Library:** Leaflet.js (pure React wrapper via `react-leaflet` or lightweight direct Leaflet instantiation).
-- **Tile Policy Compliance:**
+- **Baseline Tile Provider:** OpenStreetMap Carto Standard Tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
+- **Licensing Separation:**
+  - Geodata is licensed under the Open Database License (ODbL) 1.0.
+  - Cartography is licensed under Creative Commons Attribution-ShareAlike 2.0 (CC BY-SA 2.0).
   - Mandatory Attribution: `© OpenStreetMap contributors` rendered on all map views.
-  - Rate Limit: Client requests capped well below the 2 req/s OSM ceiling through debounced panning and zoom constraints.
-  - HTTP Caching: Leaflet leverages standard browser cache honoring OSM `Cache-Control` headers (7-day cache).
-  - Custom User-Agent: Configured on server tile proxies where applicable (`HawaSaathi/1.0 (+https://github.com/...)`).
-  - Production Roadmap: For high-volume production deployments, vector tiles self-hosted via Cloudflare / Protomaps PMTiles will replace OSM community tile servers.
+- **OSMF Tile Policy Compliance:**
+  - Standard browser-initiated requests carry standard browser headers (custom User-Agent is not required or feasible on browser `<img>` requests).
+  - Client-side HTTP caching is strictly respected (Leaflet leverages browser cache honoring OSMF `Cache-Control` headers).
+  - Bulk pre-downloading or automated tile scraping is prohibited.
+- **Production Alternatives:** If application traffic grows beyond OSMF acceptable usage, the platform supports:
+  1. **Stadia Maps (Alidade Smooth):** Cloud-hosted tiles with 200k free monthly requests and commercial SLA.
+  2. **CARTO Basemaps:** Positron / Dark Matter basemaps with explicit commercial terms.
+  3. **Self-Hosted Vector Tiles (Protomaps / PMTiles):** Static vector PMTiles served from Cloudflare R2 / AWS S3 using MapLibre GL. Zero server compute, infinite scalability, and total operational autonomy.
