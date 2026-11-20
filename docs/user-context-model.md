@@ -1,20 +1,21 @@
 # Dynamic User Context Data Model
 
 > **Document ID:** HS-CTX-001  
-> **Status:** Approved Specification  
-> **Key Architectural Mandate:** Zero Static Persona Enums. Fully composable, multi-dimensional household and individual context.
+> **Status:** Revised Baseline (Post-Audit)  
+> **Key Architectural Mandates:** Zero Static Persona Enums. Data Minimization. Non-Diagnostic Health Disclosures.
 
 ---
 
-## 1. Context Architecture & Philosophy
+## 1. Context Modeling Philosophy & Non-Clinical Scope
 
-Traditional air quality apps rely on rigid personas (e.g., `"Athlete"`, `"Elderly"`, `"Office Worker"`). This model fundamentally fails the reality of Indian urban life where:
-- A single household often spans multiple generations (infants, asthmatic grandparents, working adults).
-- Commutes are multi-modal (walking to an e-rickshaw, boarding a metro, then walking through street dust).
-- Daily routines vary dynamically based on daylight, heat, and seasonal smog peaks.
-- Indoor micro-environments vary dramatically (cooking with LPG vs induction, high-rise 18th floor vs ground-floor street-facing home, presence of air purifiers).
+Traditional platforms reduce people to static labels (e.g. `"Athlete"`, `"Elderly"`, `"Patient"`). In reality, real households in Indian cities feature:
+- Multi-generational composition (infants, adults, seniors sharing a home).
+- Varied housing micro-environments (high-rise vs ground floor, LPG vs induction vs biomass cooking, exhaust ventilation, presence and CADR of air purifiers).
+- Multi-modal daily commutes (walking, e-rickshaws, metro trains, two-wheelers, non-AC buses).
+- Variable daily schedules with shiftable windows ($\pm 30$ to $120$ minutes).
 
-HawaSaathi discards enum archetypes in favor of an **Arbitrary Dynamic Context Model**. Recommendations are derived from specific environmental, physiological, and temporal attributes.
+### Non-Diagnostic Boundary Directive
+HawaSaathi is strictly an environmental exposure mitigation and activity-planning platform. **It does NOT provide medical diagnosis or clinical treatment.** Health-related disclosures are strictly optional, minimised to non-diagnostic sensitivity checkboxes (e.g. self-reported respiratory or cardiovascular sensitivity), and consumed solely to calibrate public health advisory thresholds.
 
 ```mermaid
 classDiagram
@@ -46,9 +47,10 @@ classDiagram
 
     class HouseholdMember {
         +string id
+        +string nickname
         +AgeBracket ageBracket
-        +VulnerabilityContext vulnerabilities
-        +ActivitySensitivity sensitivity
+        +SelfReportedSensitivities sensitivities
+        +number dailyOutdoorHoursEstimate
     }
 
     class RoutineActivity {
@@ -62,10 +64,8 @@ classDiagram
     }
 
     class UserConstraints {
-        +BudgetTier maskBudget
-        +BudgetTier purifierBudget
-        +ScheduleRigidity scheduleRigidity
-        +PriorityGoal[] goals
+        +AffordabilityTier affordabilityTier
+        +PriorityGoal[] priorityGoals
     }
 
     HouseholdContext --> LocationContext
@@ -77,7 +77,7 @@ classDiagram
 
 ---
 
-## 2. Zod Schema Specification
+## 2. Canonical Zod Schema Specification
 
 ```typescript
 import { z } from "zod";
@@ -97,7 +97,7 @@ export const CookingFuelSchema = z.enum([
 export const DwellingContextSchema = z.object({
   dwellingType: z.enum([
     "STANDALONE_HOUSE",
-    "APARTMENT_LOW_RISE",   // Floors 1-3
+    "APARTMENT_LOW_RISE",   // Floors 0-3
     "APARTMENT_HIGH_RISE",  // Floor 4+
     "INFORMAL_SETTLEMENT"
   ]),
@@ -129,7 +129,7 @@ export const DwellingContextSchema = z.object({
 });
 
 // ==========================================
-// 2. HOUSEHOLD MEMBERS & VULNERABILITIES
+// 2. HOUSEHOLD MEMBERS & MINIMISED SENSITIVITIES
 // ==========================================
 
 export const AgeBracketSchema = z.enum([
@@ -140,19 +140,19 @@ export const AgeBracketSchema = z.enum([
   "ELDERLY_60_PLUS"
 ]);
 
-export const VulnerabilityContextSchema = z.object({
-  hasAsthmaOrRespiratoryCondition: z.boolean().default(false),
-  hasCardiovascularCondition: z.boolean().default(false),
-  isPregnant: z.boolean().default(false),
-  hasAllergiesOrSinusitis: z.boolean().default(false),
-  notes: z.string().max(280).optional() // Self-described nuance (e.g. "Recovering from pneumonia")
+// Strictly minimised, non-diagnostic sensitivity checkboxes
+export const SelfReportedSensitivitiesSchema = z.object({
+  respiratorySensitivity: z.boolean().default(false), // e.g. self-reported asthma/bronchitis tendency
+  cardiovascularSensitivity: z.boolean().default(false),
+  pregnancy: z.boolean().default(false),
+  allergiesOrSinusitis: z.boolean().default(false)
 });
 
 export const HouseholdMemberSchema = z.object({
   id: z.string().uuid(),
   nickname: z.string().min(1).max(30),
   ageBracket: AgeBracketSchema,
-  vulnerabilities: VulnerabilityContextSchema,
+  sensitivities: SelfReportedSensitivitiesSchema,
   dailyOutdoorHoursEstimate: z.number().min(0).max(24)
 });
 
@@ -173,10 +173,10 @@ export const TransitModeSchema = z.enum([
 ]);
 
 export const PhysicalIntensitySchema = z.enum([
-  "RESTING_SEDENTARY", // Sleeping, sitting, desk work
-  "LIGHT",              // Slow walking, shopping, casual standing
-  "MODERATE",           // Brisk walk, cleaning, easy cycle
-  "VIGOROUS"            // Running, heavy sports, outdoor physical labor
+  "RESTING_SEDENTARY", // Desk work, sleeping
+  "LIGHT",              // Casual standing, slow walk
+  "MODERATE",           // Brisk walk, cleaning
+  "VIGOROUS"            // Running, outdoor physical labor, strenuous exercise
 ]);
 
 export const TimeWindowSchema = z.object({
@@ -193,7 +193,7 @@ export const FlexibilityWindowSchema = z.object({
 
 export const RoutineActivitySchema = z.object({
   activityId: z.string().uuid(),
-  label: z.string().min(1).max(60), // e.g. "Morning School Drop", "Brisk Jog", "Construction Site Work"
+  label: z.string().min(1).max(60), // e.g. "Morning Commute", "Evening Walk"
   memberIds: z.array(z.string().uuid()),
   locationType: z.enum(["INDOOR", "OUTDOOR", "TRANSIT"]),
   physicalIntensity: PhysicalIntensitySchema,
@@ -208,9 +208,9 @@ export const RoutineActivitySchema = z.object({
 
 export const UserConstraintsSchema = z.object({
   affordabilityTier: z.enum([
-    "NO_ADDITIONAL_COST",  // Free actions: window timing, route shifting, wet mopping
-    "LOW_COST",            // N95 masks, DIY draft stoppers, salt water gargle
-    "MODERATE_TO_HIGH"     // Air purifiers, replacement HEPA filters, AC rides
+    "NO_ADDITIONAL_COST",  // Free behavioral adjustments: ventilation timing, wet mopping, schedule shift
+    "LOW_COST",            // N95 masks, DIY draft stoppers
+    "MODERATE_TO_HIGH"     // True HEPA air purifiers, replacement filters, AC rides
   ]),
   priorityGoals: z.array(z.enum([
     "PROTECT_VULNERABLE_MEMBER",
@@ -242,11 +242,15 @@ export type RoutineActivity = z.infer<typeof RoutineActivitySchema>;
 
 ---
 
-## 3. Context Processing & Rule Synthesis
+## 3. Evidence-Based Category Decision Rules (Replacing Arbitrary Overrides)
 
-When this dynamic context is evaluated against live air quality data:
+Rather than using unexplained `AQI > 200` thresholds, HawaSaathi ties all activity and commute recommendations directly to the **CPCB National Air Quality Index Health Advisory Categories (MoEFCC 2014)**:
 
-1. **Member Vulnerability Weighting:** An activity involving an infant (`INFANT_0_2`) or a member with asthma (`hasAsthmaOrRespiratoryCondition: true`) immediately triggers stricter exposure thresholds (e.g. outdoor exercise halted at $AQI > 100$ rather than $AQI > 200$).
-2. **Transit Exposure Scoring:** Walking or two-wheeler travel during morning inversion peaks ($07:00$–$09:30$) receives high particulate intake risk flags, prompting schedule shift or metro substitution advice.
-3. **Indoor Hazard Synthesis:** If the dwelling reports `incenseOrDhoopDaily: true` and `UNVENTED_INDOOR` kitchen, the system flags high indoor particulate concentration and provides practical ventilation timing instead of assuming indoor air is safe.
-4. **Economic Feasibility Check:** Recommendations respect `affordabilityTier`. Users selecting `NO_ADDITIONAL_COST` will never be told to "buy a \$300 HEPA purifier"; they are given behavioral and timing strategies (cross-ventilation during wind dispersal windows, wet mopping, shifting morning walk to afternoon).
+| CPCB AQI Category | Scale | Official CPCB Health Advisory Description | HawaSaathi Recommendation Decision Logic |
+| :--- | :--- | :--- | :--- |
+| **Good** | 0 – 50 | Minimal impact. | Outdoor physical activity encouraged. Natural cross-ventilation recommended. Active mobility (walking/cycling) prioritized. |
+| **Satisfactory** | 51 – 100 | Minor breathing discomfort to sensitive people. | Sensitive household members (infants, self-reported respiratory sensitivity) advised to monitor prolonged outdoor exertion; general population normal activity. |
+| **Moderate** | 101 – 200 | Breathing discomfort to people with lungs, asthma and heart diseases. | Strenuous outdoor physical labor or vigorous exercise for sensitive members shifted indoors or retimed outside diurnal traffic peaks ($07:00$–$09:30$). |
+| **Poor** | 201 – 300 | Breathing discomfort to most people on prolonged exposure. | Vigorous outdoor workouts discouraged for all members; recommend indoor alternative. Shifting commute to enclosed transit (Metro/AC bus) advised. N95 mask guidance surfaced for two-wheeler / pedestrian transit. |
+| **Very Poor** | 301 – 400 | Respiratory illness on prolonged exposure. | All outdoor exercise suspended; essential outdoor travel requires well-fitted particulate respirators (N95/FFP2). Windows kept closed; exhaust used during cooking; wet mopping recommended. |
+| **Severe** | 401 – 500 | Affects healthy people and seriously impacts those with existing diseases. | Strict outdoor exposure minimization for all household members. Sustainable travel alternatives (walking/cycling) are explicitly deferred in favor of personal safety until air quality improves. |
