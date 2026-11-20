@@ -1,28 +1,50 @@
 import { CpcbAqiResult, CpcbSubIndex, CpcbCategory } from "@/schemas/cpcb.schema";
-import { RawPollutantMeasurement, CpcbPollutantId } from "@/schemas/pollutant.schema";
+import { ValidatedAggregatedMeasurement, CpcbPollutantId } from "@/schemas/pollutant.schema";
 import { calculatePollutantSubIndex, getCategoryFromAqi } from "./sub-index-calculator";
 
 export interface StationAqiCalculationInput {
   stationId: string;
-  measurements: (RawPollutantMeasurement & { stationId?: string })[];
+  measurements: ValidatedAggregatedMeasurement[];
   calculatedAtUtc?: string;
 }
 
 /**
  * Official CPCB Station AQI Sufficiency Engine:
- * 1. Monitored station isolation: Rejects combining readings across multiple monitoring stations.
- * 2. Channel deduplication: Resolves multiple telemetry streams; rejects contradictory measurements for the same pollutant.
- * 3. Minimum 3 distinct pollutants rule: Data must be available for at least 3 distinct chemical species (unique count >= 3).
- * 4. Mandatory particulate rule: At least one monitored parameter must be PM2.5 or PM10.
- * 5. Worst-pollutant rule: The highest valid sub-index determines the overall station AQI.
- * 6. Provenance invariant: Tagged strictly as TYPE_B_CALCULATED_CPCB_AQI; never represented as Type A official bulletin AQI.
+ * 1. Trusted Aggregation Boundary: Accepts ONLY ValidatedAggregatedMeasurement instances.
+ *    Rejects raw unaggregated telemetry attempting to bypass rolling-window aggregation.
+ * 2. Monitored station isolation: Rejects combining readings across multiple monitoring stations.
+ * 3. Channel deduplication: Resolves multiple telemetry streams; rejects contradictory measurements for the same pollutant.
+ * 4. Minimum 3 distinct pollutants rule: Data must be available for at least 3 distinct chemical species (unique count >= 3).
+ * 5. Mandatory particulate rule: At least one monitored parameter must be PM2.5 or PM10.
+ * 6. Completeness policy transparency: Explicitly documents whether calculation adheres to the official
+ *    CPCB statutory 16-hour rule (24h) or includes HawaSaathi adapted 6-hour policy (8h).
+ * 7. Worst-pollutant rule: The highest valid sub-index determines the overall station AQI.
+ * 8. Provenance invariant: Tagged strictly as TYPE_B_CALCULATED_CPCB_AQI; never represented as Type A official bulletin AQI.
  */
 export function calculateStationCpcbAqi(
   stationId: string,
-  measurements: (RawPollutantMeasurement & { stationId?: string })[],
+  measurements: ValidatedAggregatedMeasurement[],
   calculatedAtUtc: string = new Date().toISOString()
 ): CpcbAqiResult {
-  // 1. Cross-station rejection: Verify all measurements belong exclusively to stationId
+  // 1. Enforce Trusted Aggregation Boundary: verify all measurements are validated aggregated objects
+  const hasUnvalidated = measurements.some(
+    (m) => m.brand !== "VALIDATED_AGGREGATED_MEASUREMENT" || !m.isAggregationValidated
+  );
+  if (hasUnvalidated) {
+    return {
+      stationId,
+      calculatedAtUtc,
+      overallAqi: null,
+      category: null,
+      prominentPollutant: null,
+      sufficiencyStatus: "INSUFFICIENT_DATA",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
+      subIndices: [],
+      explanation: "Aggregation boundary violation: calculation rejected because caller supplied unvalidated raw data bypassing rolling-window aggregation."
+    };
+  }
+
+  // 2. Cross-station rejection: Verify all measurements belong exclusively to stationId
   const crossStationMismatches = measurements.filter(
     (m) => m.stationId && m.stationId !== stationId
   );
@@ -34,13 +56,14 @@ export function calculateStationCpcbAqi(
       category: null,
       prominentPollutant: null,
       sufficiencyStatus: "INSUFFICIENT_DATA",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: `Cross-station aggregation rejected: found measurements from station(s) '${crossStationMismatches.map((m) => m.stationId).join(", ")}' mixed into station '${stationId}'.`
     };
   }
 
-  // 2. Pollutant grouping and deduplication
-  const pollutantGroups = new Map<CpcbPollutantId, (RawPollutantMeasurement & { stationId?: string })[]>();
+  // 3. Pollutant grouping and deduplication
+  const pollutantGroups = new Map<CpcbPollutantId, ValidatedAggregatedMeasurement[]>();
   for (const m of measurements) {
     const list = pollutantGroups.get(m.pollutant) ?? [];
     list.push(m);
@@ -64,7 +87,8 @@ export function calculateStationCpcbAqi(
         category: null,
         windowHours: group[0]!.averagingWindowHours,
         validHours: group[0]!.validHoursInWindow,
-        qualityFlag: "CONFLICTING_MEASUREMENT"
+        qualityFlag: "CONFLICTING_MEASUREMENT",
+        isReportingCeilingCapped: false
       };
       subIndices.push(conflictSubIndex);
       continue;
@@ -80,7 +104,15 @@ export function calculateStationCpcbAqi(
     }
   }
 
-  // 3. Minimum 3 distinct valid pollutants requirement
+  // Determine completeness policy across contributing valid measurements
+  const hasAdaptedCompleteness = measurements.some(
+    (m) => m.completenessPolicy === "ADAPTED_HAWASAATHI_6H"
+  );
+  const activeCompletenessPolicy = hasAdaptedCompleteness
+    ? "ADAPTED_HAWASAATHI_6H"
+    : "OFFICIAL_CPCB_STATUTORY_16H";
+
+  // 4. Minimum 3 distinct valid pollutants requirement
   const distinctValidPollutants = new Set(validSubIndices.map((s) => s.pollutant));
   const hasPm = distinctValidPollutants.has("PM2.5") || distinctValidPollutants.has("PM10");
   const sufficientCount = distinctValidPollutants.size >= 3;
@@ -102,12 +134,13 @@ export function calculateStationCpcbAqi(
       category: null,
       prominentPollutant: null,
       sufficiencyStatus: "INSUFFICIENT_DATA",
+      completenessPolicy: activeCompletenessPolicy,
       subIndices,
       explanation
     };
   }
 
-  // 4. Identify maximum sub-index as the overall AQI (worst-pollutant rule)
+  // 5. Identify maximum sub-index as the overall AQI (worst-pollutant rule)
   let maxSubIndex = -1;
   let prominent: CpcbPollutantId | null = null;
 
@@ -120,6 +153,13 @@ export function calculateStationCpcbAqi(
 
   const category: CpcbCategory = getCategoryFromAqi(maxSubIndex);
 
+  let explanation = `Type B independently calculated CPCB AQI determined by dominant pollutant ${prominent} with sub-index ${maxSubIndex} (${category}) following MoEFCC 2014 standards.`;
+  if (hasAdaptedCompleteness) {
+    explanation += " [Completeness Note: Calculation incorporates HawaSaathi adapted 6-of-8 hour policy for 8-hour parameters; not an official statutory CPCB figure.]";
+  } else {
+    explanation += " [Completeness Note: Fully compliant with official CPCB statutory 16-hour completeness rule.]";
+  }
+
   return {
     stationId,
     calculatedAtUtc,
@@ -127,7 +167,8 @@ export function calculateStationCpcbAqi(
     category,
     prominentPollutant: prominent,
     sufficiencyStatus: "SUFFICIENT",
+    completenessPolicy: activeCompletenessPolicy,
     subIndices,
-    explanation: `Type B independently calculated CPCB AQI determined by dominant pollutant ${prominent} with sub-index ${maxSubIndex} (${category}) following MoEFCC 2014 standards.`
+    explanation
   };
 }

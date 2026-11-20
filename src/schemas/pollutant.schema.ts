@@ -49,3 +49,28 @@ export const RawPollutantMeasurementSchema = z.object({
 });
 
 export type RawPollutantMeasurement = z.infer<typeof RawPollutantMeasurementSchema>;
+
+/**
+ * Trusted Aggregation Boundary Type:
+ * Ensures only measurements that have passed through the rolling-window aggregator
+ * and satisfied continuity, temporal, and station identity validation can be used
+ * for official station AQI computation. Prevents raw caller-supplied data from
+ * bypassing the rolling-window aggregation boundary.
+ */
+export const ValidatedAggregatedMeasurementSchema = z.object({
+  brand: z.literal("VALIDATED_AGGREGATED_MEASUREMENT"),
+  pollutant: CpcbPollutantIdSchema,
+  concentration: z.number().nonnegative(),
+  unit: PollutantUnitSchema,
+  averagingWindowHours: AveragingWindowHoursSchema,
+  recordedAtUtc: z.string().datetime(),
+  validHoursInWindow: z.number().int().min(0).max(24),
+  stationId: z.string().min(1),
+  isAggregationValidated: z.literal(true),
+  completenessPolicy: z.enum([
+    "OFFICIAL_CPCB_STATUTORY_16H", // 16h of 24h (CPCB 2014)
+    "ADAPTED_HAWASAATHI_6H"         // 6h of 8h (adapted secondary criterion)
+  ])
+});
+
+export type ValidatedAggregatedMeasurement = z.infer<typeof ValidatedAggregatedMeasurementSchema>;

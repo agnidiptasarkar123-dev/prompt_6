@@ -1,6 +1,6 @@
 import { CpcbSubIndex, CpcbCategory } from "@/schemas/cpcb.schema";
 import { RawPollutantMeasurement } from "@/schemas/pollutant.schema";
-import { CPCB_POLLUTANT_CONFIGS, BreakpointRange } from "./cpcb-constants";
+import { CPCB_POLLUTANT_CONFIGS, BreakpointRange, PHYSICAL_ANOMALY_THRESHOLDS } from "./cpcb-constants";
 import { checkRunningWindowSufficiency } from "./running-window";
 
 /**
@@ -8,7 +8,8 @@ import { checkRunningWindowSufficiency } from "./running-window";
  * using piecewise linear interpolation:
  * I_p = ((I_Hi - I_Lo) / (BP_Hi - BP_Lo)) * (C_p - BP_Lo) + I_Lo
  *
- * Grounded in MoEFCC CPCB NAQI (2014) Final Report standard methodology.
+ * Grounded in MoEFCC CPCB NAQI (2014) Final Report standard methodology
+ * and reconciled against the official CPCB calculator (AQI-Calculator.xls).
  */
 export function calculatePollutantSubIndex(
   measurement: RawPollutantMeasurement
@@ -26,11 +27,28 @@ export function calculatePollutantSubIndex(
       category: null,
       windowHours: measurement.averagingWindowHours,
       validHours: measurement.validHoursInWindow,
-      qualityFlag: "INVALID_SENSOR_READING"
+      qualityFlag: "INVALID_SENSOR_READING",
+      isReportingCeilingCapped: false
     };
   }
 
-  // 2. Validate regulatory averaging window compatibility
+  // 2. Reject genuine instrument anomalies exceeding physically possible ambient concentrations
+  const physicalAnomalyLimit = PHYSICAL_ANOMALY_THRESHOLDS[measurement.pollutant];
+  if (cp > physicalAnomalyLimit) {
+    return {
+      pollutant: measurement.pollutant,
+      concentration: cp,
+      unit: measurement.unit,
+      subIndex: null,
+      category: null,
+      windowHours: measurement.averagingWindowHours,
+      validHours: measurement.validHoursInWindow,
+      qualityFlag: "INVALID_SENSOR_READING",
+      isReportingCeilingCapped: false
+    };
+  }
+
+  // 3. Validate regulatory averaging window compatibility
   if (!config.allowedAveragingHours.includes(measurement.averagingWindowHours)) {
     return {
       pollutant: measurement.pollutant,
@@ -40,26 +58,46 @@ export function calculatePollutantSubIndex(
       category: null,
       windowHours: measurement.averagingWindowHours,
       validHours: measurement.validHoursInWindow,
-      qualityFlag: "INCOMPATIBLE_AVERAGING_WINDOW"
+      qualityFlag: "INCOMPATIBLE_AVERAGING_WINDOW",
+      isReportingCeilingCapped: false
     };
   }
 
-  // 3. Special handling for Ozone (CPCB Table 2 footnote)
-  // 1-hourly O3 analysis is only valid when concentration exceeds 208 µg/m³ (Very Poor and Severe)
-  if (measurement.pollutant === "O3" && measurement.averagingWindowHours === 1 && cp <= 208) {
-    return {
-      pollutant: measurement.pollutant,
-      concentration: cp,
-      unit: measurement.unit,
-      subIndex: null,
-      category: null,
-      windowHours: 1,
-      validHours: measurement.validHoursInWindow,
-      qualityFlag: "INCOMPATIBLE_AVERAGING_WINDOW"
-    };
+  // 4. Ozone averaging-window eligibility rules (CPCB CUPS/82/2014-15 Table 3.11 & Section 3.3.4):
+  // - Standard 8-hour measurements are ONLY eligible for the published ordinary range (<= 208 µg/m³).
+  //   An 8-hour measurement above 208 must NOT silently enter the starred 1-hour ranges!
+  // - Special 1-hour measurements are ONLY eligible in the starred upper ranges (> 208 µg/m³).
+  if (measurement.pollutant === "O3") {
+    if (measurement.averagingWindowHours === 8 && cp > 208) {
+      return {
+        pollutant: "O3",
+        concentration: cp,
+        unit: measurement.unit,
+        subIndex: null,
+        category: null,
+        windowHours: 8,
+        validHours: measurement.validHoursInWindow,
+        qualityFlag: "INCOMPATIBLE_AVERAGING_WINDOW",
+        isReportingCeilingCapped: false
+      };
+    }
+
+    if (measurement.averagingWindowHours === 1 && cp <= 208) {
+      return {
+        pollutant: "O3",
+        concentration: cp,
+        unit: measurement.unit,
+        subIndex: null,
+        category: null,
+        windowHours: 1,
+        validHours: measurement.validHoursInWindow,
+        qualityFlag: "INCOMPATIBLE_AVERAGING_WINDOW",
+        isReportingCeilingCapped: false
+      };
+    }
   }
 
-  // 4. Running-window data sufficiency check
+  // 5. Running-window data sufficiency check
   const sufficiency = checkRunningWindowSufficiency(
     measurement.pollutant,
     measurement.validHoursInWindow,
@@ -75,12 +113,15 @@ export function calculatePollutantSubIndex(
       category: null,
       windowHours: measurement.averagingWindowHours,
       validHours: measurement.validHoursInWindow,
-      qualityFlag: "INSUFFICIENT_WINDOW"
+      qualityFlag: "INSUFFICIENT_WINDOW",
+      isReportingCeilingCapped: false
     };
   }
 
-  // 5. Extreme concentration anomaly preservation:
-  // If concentration exceeds the top breakpoint, preserve physical reading, flag as SUSPECT_EXTREME, and cap at 500
+  // 6. Valid Severe-range measurements reaching the AQI reporting ceiling:
+  // If a valid physical concentration exceeds the Severe upper calculation anchor (bpHi),
+  // it represents an extreme atmospheric smog event reaching the CPCB scale ceiling of 500.
+  // The physical concentration is preserved in full, subIndex capped at 500, and flagged as VERIFIED.
   const topBreakpoint = config.breakpoints[config.breakpoints.length - 1] as BreakpointRange;
   if (cp > topBreakpoint.boundaryHi) {
     return {
@@ -91,11 +132,12 @@ export function calculatePollutantSubIndex(
       category: "SEVERE",
       windowHours: measurement.averagingWindowHours,
       validHours: measurement.validHoursInWindow,
-      qualityFlag: "SUSPECT_EXTREME"
+      qualityFlag: "VERIFIED",
+      isReportingCeilingCapped: true
     };
   }
 
-  // 6. Continuous interval lookup without breakpoint gaps
+  // 7. Continuous interval lookup without breakpoint gaps
   // Bracket 1 (GOOD): [0, boundaryHi]
   // Brackets 2..6: (boundaryLo, boundaryHi]
   for (let idx = 0; idx < config.breakpoints.length; idx++) {
@@ -117,12 +159,13 @@ export function calculatePollutantSubIndex(
         category: bp.category,
         windowHours: measurement.averagingWindowHours,
         validHours: measurement.validHoursInWindow,
-        qualityFlag: "VERIFIED"
+        qualityFlag: "VERIFIED",
+        isReportingCeilingCapped: false
       };
     }
   }
 
-  /* v8 ignore next 11 */
+  /* v8 ignore next 12 */
   return {
     pollutant: measurement.pollutant,
     concentration: cp,
@@ -131,7 +174,8 @@ export function calculatePollutantSubIndex(
     category: null,
     windowHours: measurement.averagingWindowHours,
     validHours: measurement.validHoursInWindow,
-    qualityFlag: "PROVISIONAL"
+    qualityFlag: "PROVISIONAL",
+    isReportingCeilingCapped: false
   };
 }
 

@@ -43,21 +43,21 @@ export function determineVentilationStrategy(
     dwelling.indoorSources.indoorSmoking;
 
   // CRITICAL SAFETY OVERRIDE:
-  // If indoor combustion is active, keeping rooms sealed is hazardous due to lethal CO and particle buildup.
+  // If indoor combustion is active, keeping rooms sealed is hazardous due to toxic CO, NO2, and particle buildup.
   if (hasActiveCombustion) {
     return {
       windowAction: "EXHAUST_LOCALIZED_BURST",
       optimalTimeWindow: "Immediate / during and for 30 minutes following any cooking or burning activity",
-      expectedBenefit: "Evacuates hazardous indoor carbon monoxide, nitrogen dioxide, and fine particulate emissions.",
-      practicalMethod: "Run kitchen/bathroom mechanical exhaust fans on maximum. If unvented, crack a courtyard-facing window slightly to establish localized outflow.",
+      expectedBenefit: "Assists in expelling a portion of indoor combustion emissions and moisture, but cannot guarantee prevention of toxic gas accumulation without primary source reduction.",
+      practicalMethod: "Run kitchen/bathroom mechanical exhaust fans on maximum. For make-up air, crack a courtyard- or garden-facing window on the sheltered facade (avoid street-facing openings) to establish localized airflow without drawing in vehicle exhaust.",
       cautions: [
-        "CRITICAL LIFE-SAFETY RULE: Never keep living quarters sealed while biomass, unvented gas, incense, or coils are burning.",
+        "CRITICAL LIFE-SAFETY RULE: Prioritise source reduction. Never keep living quarters sealed while biomass, unvented gas, incense, or coils are burning. Operating exhaust fans reduces buildup but does not guarantee prevention of lethal carbon monoxide accumulation.",
         "Extinguish smoldering mosquito coils and incense sticks immediately after initial prayer/use.",
         "Keep infants, elderly, and pregnant members outside the kitchen during cooking.",
         ...extraCautions
       ],
       indoorCombustionOverrideActive: true,
-      scientificDisclaimer: "Ambient outdoor air quality is evaluated from CAAQMS telemetry. In the absence of an indoor air sensor, this guidance prioritizes source ventilation to prevent toxic combustion gas buildup."
+      scientificDisclaimer: "Ambient outdoor air quality is evaluated from CAAQMS telemetry. In the absence of an indoor air sensor, this guidance prioritizes source reduction and localized exhaust. It does NOT guarantee complete air safety or prevention of toxic gas accumulation without direct indoor sensor monitoring."
     };
   }
 

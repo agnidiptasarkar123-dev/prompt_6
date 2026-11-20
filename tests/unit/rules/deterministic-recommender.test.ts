@@ -76,6 +76,7 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       category: "VERY_POOR",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: "AQI 345 driven by PM2.5"
     };
@@ -119,6 +120,7 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       category: "SEVERE",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: "AQI 450 driven by PM2.5"
     };
@@ -215,6 +217,7 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       category: "POOR",
       prominentPollutant: "PM10",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: "AQI 280 driven by PM10"
     };
@@ -275,6 +278,7 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       category: "MODERATE",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: "AQI 150"
     };
@@ -292,6 +296,7 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       category: "GOOD",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
       explanation: "AQI 35"
     };

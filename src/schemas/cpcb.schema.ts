@@ -27,7 +27,8 @@ export const CpcbSubIndexSchema = z.object({
   category: CpcbCategorySchema.nullable(),
   windowHours: z.union([z.literal(1), z.literal(8), z.literal(24)]),
   validHours: z.number().int().min(0).max(24),
-  qualityFlag: ObservationQualityFlagSchema
+  qualityFlag: ObservationQualityFlagSchema,
+  isReportingCeilingCapped: z.boolean().default(false)
 });
 
 export type CpcbSubIndex = z.infer<typeof CpcbSubIndexSchema>;
@@ -44,6 +45,10 @@ export const CpcbAqiResultSchema = z.object({
   category: CpcbCategorySchema.nullable(),
   prominentPollutant: CpcbPollutantIdSchema.nullable(),
   sufficiencyStatus: z.enum(["SUFFICIENT", "INSUFFICIENT_DATA"]),
+  completenessPolicy: z.enum([
+    "OFFICIAL_CPCB_STATUTORY_16H",
+    "ADAPTED_HAWASAATHI_6H"
+  ]),
   subIndices: z.array(CpcbSubIndexSchema),
   explanation: z.string().min(1)
 });

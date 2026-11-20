@@ -34,7 +34,7 @@ export function evaluateIndoorSources(
   // Mosquito coils
   if (dwelling.indoorSources.mosquitoCoilUsage) {
     sources.push("Smoldering mosquito coil usage");
-    mitigations.push("Replace smoldering coils with window mesh screens or liquid vaporizers in well-ventilated areas.");
+    mitigations.push("Replace smoldering coils with window insect mesh screens (for vector exclusion to prevent coil use; note that insect mesh does not filter fine particulate matter) or electric vaporizers in well-ventilated spaces.");
   }
 
   // Indoor smoking

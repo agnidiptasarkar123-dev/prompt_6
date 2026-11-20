@@ -13,7 +13,13 @@ export default defineConfig({
       customProviderModule: path.resolve(import.meta.dirname, "./node_modules/@vitest/coverage-v8"),
       reporter: ["text", "json", "html"],
       include: ["src/domain/**/*.ts", "src/schemas/**/*.ts"],
-      exclude: ["src/types/**", "node_modules/**"]
+      exclude: ["src/types/**", "node_modules/**"],
+      thresholds: {
+        statements: 100,
+        branches: 100,
+        functions: 100,
+        lines: 100
+      }
     }
   },
   resolve: {

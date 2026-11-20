@@ -1,4 +1,4 @@
-import { CpcbPollutantId, PollutantUnit, RawPollutantMeasurement } from "@/schemas/pollutant.schema";
+import { CpcbPollutantId, PollutantUnit, ValidatedAggregatedMeasurement } from "@/schemas/pollutant.schema";
 import { ObservationQualityFlag } from "@/schemas/freshness.schema";
 import { CPCB_POLLUTANT_CONFIGS } from "./cpcb-constants";
 import { checkRunningWindowSufficiency } from "./running-window";
@@ -25,13 +25,48 @@ export interface AggregationResult {
   latestReadingUtc: string | null;
   ageMinutes: number;
   isStale: boolean;
-  measurement: RawPollutantMeasurement | null;
+  measurement: ValidatedAggregatedMeasurement | null;
   diagnostics: {
     totalInputReadings: number;
     discardedDuplicatesCount: number;
     discardedFaultOrNegativeCount: number;
     conflictingReadingsCount: number;
     isCrossStationRejected: boolean;
+  };
+}
+
+/**
+ * Creates a validated aggregated measurement conforming to the trusted aggregation boundary.
+ */
+export function createValidatedAggregatedMeasurement(
+  input: {
+    stationId: string;
+    pollutant: CpcbPollutantId;
+    concentration: number;
+    unit: PollutantUnit;
+    averagingWindowHours: 1 | 8 | 24;
+    recordedAtUtc: string;
+    validHoursInWindow: number;
+    completenessPolicy?: "OFFICIAL_CPCB_STATUTORY_16H" | "ADAPTED_HAWASAATHI_6H";
+  }
+): ValidatedAggregatedMeasurement {
+  const policy = input.completenessPolicy ?? (
+    input.averagingWindowHours === 24
+      ? "OFFICIAL_CPCB_STATUTORY_16H"
+      : "ADAPTED_HAWASAATHI_6H"
+  );
+
+  return {
+    brand: "VALIDATED_AGGREGATED_MEASUREMENT",
+    stationId: input.stationId,
+    pollutant: input.pollutant,
+    concentration: input.concentration,
+    unit: input.unit,
+    averagingWindowHours: input.averagingWindowHours,
+    recordedAtUtc: input.recordedAtUtc,
+    validHoursInWindow: input.validHoursInWindow,
+    isAggregationValidated: true,
+    completenessPolicy: policy
   };
 }
 
@@ -163,19 +198,27 @@ export function aggregateRollingHourlyWindow(
 
   // 7. Calculate rolling arithmetic mean
   let rollingMean: number | null = null;
-  let measurement: RawPollutantMeasurement | null = null;
+  let measurement: ValidatedAggregatedMeasurement | null = null;
 
   if (sufficiency.isSufficient && conflictingReadingsCount === 0) {
     const sum = inWindowReadings.reduce((acc, curr) => acc + curr.concentration, 0);
     rollingMean = Math.round((sum / validHoursCount) * 100) / 100;
 
+    const completenessPolicy = windowHours === 24
+      ? "OFFICIAL_CPCB_STATUTORY_16H"
+      : "ADAPTED_HAWASAATHI_6H";
+
     measurement = {
+      brand: "VALIDATED_AGGREGATED_MEASUREMENT",
+      stationId,
       pollutant,
       concentration: rollingMean,
       unit: config.unit,
       averagingWindowHours: windowHours,
       recordedAtUtc: latestReading!.timestampUtc,
-      validHoursInWindow: validHoursCount
+      validHoursInWindow: validHoursCount,
+      isAggregationValidated: true,
+      completenessPolicy
     };
   }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   aggregateRollingHourlyWindow,
+  createValidatedAggregatedMeasurement,
   HourlyPollutantReading
 } from "@/domain/cpcb/rolling-window-aggregator";
 
@@ -244,5 +245,49 @@ describe("Trusted Aggregation Boundary (Rolling-Window Aggregator)", () => {
     expect(res.ageMinutes).toBe(Infinity);
     expect(res.isStale).toBe(true);
     expect(res.qualityFlag).toBe("INSUFFICIENT_WINDOW");
+  });
+
+  it("produces a ValidatedAggregatedMeasurement satisfying the trusted boundary", () => {
+    const series = generateHourlySeries(24, 60, "PM2.5");
+    const res = aggregateRollingHourlyWindow(stationId, "PM2.5", series, 24, now);
+    expect(res.measurement).not.toBeNull();
+    expect(res.measurement?.brand).toBe("VALIDATED_AGGREGATED_MEASUREMENT");
+    expect(res.measurement?.isAggregationValidated).toBe(true);
+    expect(res.measurement?.completenessPolicy).toBe("OFFICIAL_CPCB_STATUTORY_16H");
+
+    const manual8h = createValidatedAggregatedMeasurement({
+      stationId,
+      pollutant: "CO",
+      concentration: 1.2,
+      unit: "mg/m³",
+      averagingWindowHours: 8,
+      recordedAtUtc: now,
+      validHoursInWindow: 7
+    });
+    expect(manual8h.brand).toBe("VALIDATED_AGGREGATED_MEASUREMENT");
+    expect(manual8h.completenessPolicy).toBe("ADAPTED_HAWASAATHI_6H");
+
+    const manual24h = createValidatedAggregatedMeasurement({
+      stationId,
+      pollutant: "PM2.5",
+      concentration: 45,
+      unit: "µg/m³",
+      averagingWindowHours: 24,
+      recordedAtUtc: now,
+      validHoursInWindow: 20
+    });
+    expect(manual24h.completenessPolicy).toBe("OFFICIAL_CPCB_STATUTORY_16H");
+
+    const manualExplicit = createValidatedAggregatedMeasurement({
+      stationId,
+      pollutant: "O3",
+      concentration: 50,
+      unit: "µg/m³",
+      averagingWindowHours: 8,
+      recordedAtUtc: now,
+      validHoursInWindow: 8,
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H"
+    });
+    expect(manualExplicit.completenessPolicy).toBe("OFFICIAL_CPCB_STATUTORY_16H");
   });
 });

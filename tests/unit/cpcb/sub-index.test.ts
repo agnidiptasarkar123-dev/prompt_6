@@ -31,6 +31,20 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
     validHoursInWindow: 8
   });
 
+  // Base 1h measurement helper
+  const make1h = (
+    pollutant: RawPollutantMeasurement["pollutant"],
+    concentration: number,
+    unit: RawPollutantMeasurement["unit"] = "µg/m³"
+  ): RawPollutantMeasurement => ({
+    pollutant,
+    concentration,
+    unit,
+    averagingWindowHours: 1,
+    recordedAtUtc: new Date().toISOString(),
+    validHoursInWindow: 1
+  });
+
   describe("PM2.5 (24-hour average, µg/m³)", () => {
     it("interpolates across all categories and boundary decimals", () => {
       // Good: [0, 30] -> [0, 50]
@@ -62,11 +76,12 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make24h("PM2.5", 185)).subIndex).toBe(351);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 250)).subIndex).toBe(400);
 
-      // Severe: (250, 350] -> [401, 500]
+      // Severe: (250, 380] -> [401, 500] (reconciled with AQI-Calculator.xls Delta_VP formula)
       expect(calculatePollutantSubIndex(make24h("PM2.5", 250.1)).subIndex).toBe(401);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 300)).subIndex).toBe(451);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 350)).subIndex).toBe(500);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 350)).category).toBe("SEVERE");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 315)).subIndex).toBe(451);
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).subIndex).toBe(500);
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).category).toBe("SEVERE");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).isReportingCeilingCapped).toBe(false);
     });
   });
 
@@ -93,10 +108,10 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make24h("PM10", 350.1)).subIndex).toBe(301);
       expect(calculatePollutantSubIndex(make24h("PM10", 430)).subIndex).toBe(400);
 
-      // Severe: (430, 500] -> [401, 500]
+      // Severe: (430, 510] -> [401, 500] (reconciled with AQI-Calculator.xls Delta_VP formula)
       expect(calculatePollutantSubIndex(make24h("PM10", 430.1)).subIndex).toBe(401);
-      expect(calculatePollutantSubIndex(make24h("PM10", 500)).subIndex).toBe(500);
-      expect(calculatePollutantSubIndex(make24h("PM10", 500)).category).toBe("SEVERE");
+      expect(calculatePollutantSubIndex(make24h("PM10", 510)).subIndex).toBe(500);
+      expect(calculatePollutantSubIndex(make24h("PM10", 510)).category).toBe("SEVERE");
     });
   });
 
@@ -113,8 +128,8 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make24h("NO2", 280)).subIndex).toBe(300);
       // Very Poor: (280, 400] -> [301, 400]
       expect(calculatePollutantSubIndex(make24h("NO2", 400)).subIndex).toBe(400);
-      // Severe: (400, 600] -> [401, 500]
-      expect(calculatePollutantSubIndex(make24h("NO2", 600)).subIndex).toBe(500);
+      // Severe: (400, 520] -> [401, 500]
+      expect(calculatePollutantSubIndex(make24h("NO2", 520)).subIndex).toBe(500);
     });
   });
 
@@ -130,8 +145,8 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make24h("SO2", 800)).subIndex).toBe(300);
       // Very Poor: (800, 1600] -> [301, 400]
       expect(calculatePollutantSubIndex(make24h("SO2", 1600)).subIndex).toBe(400);
-      // Severe: (1600, 2000] -> [401, 500]
-      expect(calculatePollutantSubIndex(make24h("SO2", 2000)).subIndex).toBe(500);
+      // Severe: (1600, 2400] -> [401, 500]
+      expect(calculatePollutantSubIndex(make24h("SO2", 2400)).subIndex).toBe(500);
     });
   });
 
@@ -147,8 +162,8 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make24h("NH3", 1200)).subIndex).toBe(300);
       // Very Poor: (1200, 1800] -> [301, 400]
       expect(calculatePollutantSubIndex(make24h("NH3", 1800)).subIndex).toBe(400);
-      // Severe: (1800, 2500] -> [401, 500]
-      expect(calculatePollutantSubIndex(make24h("NH3", 2500)).subIndex).toBe(500);
+      // Severe: (1800, 2400] -> [401, 500]
+      expect(calculatePollutantSubIndex(make24h("NH3", 2400)).subIndex).toBe(500);
     });
   });
 
@@ -182,13 +197,13 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make8h("CO", 17.0, "mg/m³")).subIndex).toBe(300);
       // Very Poor: (17.0, 34.0] -> [301, 400]
       expect(calculatePollutantSubIndex(make8h("CO", 34.0, "mg/m³")).subIndex).toBe(400);
-      // Severe: (34.0, 50.0] -> [401, 500]
-      expect(calculatePollutantSubIndex(make8h("CO", 50.0, "mg/m³")).subIndex).toBe(500);
+      // Severe: (34.0, 51.0] -> [401, 500]
+      expect(calculatePollutantSubIndex(make8h("CO", 51.0, "mg/m³")).subIndex).toBe(500);
     });
   });
 
-  describe("O3 (Ozone - 8-hour and 1-hour special rules, µg/m³)", () => {
-    it("handles 8-hour ozone across all breakpoints", () => {
+  describe("O3 (Ozone - CPCB Table 3.11 & Section 3.3.4 Dual Averaging Windows)", () => {
+    it("handles 8-hour ozone in published ordinary range (<= 208 µg/m³)", () => {
       // Good: [0, 50] -> [0, 50]
       expect(calculatePollutantSubIndex(make8h("O3", 50)).subIndex).toBe(50);
       // Satisfactory: (50, 100] -> [51, 100]
@@ -197,56 +212,95 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(calculatePollutantSubIndex(make8h("O3", 168)).subIndex).toBe(200);
       // Poor: (168, 208] -> [201, 300]
       expect(calculatePollutantSubIndex(make8h("O3", 208)).subIndex).toBe(300);
-      // Very Poor: (208, 748] -> [301, 400]
-      expect(calculatePollutantSubIndex(make8h("O3", 748)).subIndex).toBe(400);
-      // Severe: (748, 1000] -> [401, 500]
-      expect(calculatePollutantSubIndex(make8h("O3", 1000)).subIndex).toBe(500);
     });
 
-    it("enforces statutory 1-hour ozone restriction (CPCB Table 2 footnote)", () => {
-      // 1-hour ozone with concentration <= 208 µg/m³ is INCOMPATIBLE
-      const lowO3_1h: RawPollutantMeasurement = {
-        pollutant: "O3",
-        concentration: 150,
-        unit: "µg/m³",
-        averagingWindowHours: 1,
-        recordedAtUtc: new Date().toISOString(),
-        validHoursInWindow: 1
-      };
-      const resLow = calculatePollutantSubIndex(lowO3_1h);
-      expect(resLow.subIndex).toBeNull();
-      expect(resLow.category).toBeNull();
-      expect(resLow.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+    it("verifies test values 208, 208.1, 748, 748.1 against statutory 8-hour and 1-hour rules", () => {
+      // 1. Test value 208 µg/m³:
+      // 8-hour: VALID -> subIndex 300 (POOR)
+      const res208_8h = calculatePollutantSubIndex(make8h("O3", 208));
+      expect(res208_8h.subIndex).toBe(300);
+      expect(res208_8h.category).toBe("POOR");
+      expect(res208_8h.qualityFlag).toBe("VERIFIED");
 
-      // Boundary condition: exactly 208 µg/m³ is also rejected for 1h
-      const boundO3_1h: RawPollutantMeasurement = {
-        ...lowO3_1h,
-        concentration: 208
-      };
-      expect(calculatePollutantSubIndex(boundO3_1h).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+      // 1-hour: REJECTED (<= 208 µg/m³ not eligible for 1h window per Table 3.11 footnote)
+      const res208_1h = calculatePollutantSubIndex(make1h("O3", 208));
+      expect(res208_1h.subIndex).toBeNull();
+      expect(res208_1h.category).toBeNull();
+      expect(res208_1h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
 
-      // 1-hour ozone with concentration > 208 µg/m³ is valid (Very Poor & Severe range)
-      const highO3_1h: RawPollutantMeasurement = {
-        pollutant: "O3",
-        concentration: 500,
-        unit: "µg/m³",
-        averagingWindowHours: 1,
-        recordedAtUtc: new Date().toISOString(),
-        validHoursInWindow: 1
-      };
-      const resHigh = calculatePollutantSubIndex(highO3_1h);
-      expect(resHigh.subIndex).not.toBeNull();
-      expect(resHigh.category).toBe("VERY_POOR");
-      expect(resHigh.qualityFlag).toBe("VERIFIED");
+      // 2. Test value 208.1 µg/m³:
+      // 8-hour: REJECTED (8-hour measurement above 208 must NOT silently enter starred 1-hour ranges)
+      const res208_1_8h = calculatePollutantSubIndex(make8h("O3", 208.1));
+      expect(res208_1_8h.subIndex).toBeNull();
+      expect(res208_1_8h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
 
-      // 1-hour ozone in Severe range
-      const severeO3_1h: RawPollutantMeasurement = {
-        ...highO3_1h,
-        concentration: 850
-      };
-      const resSevere = calculatePollutantSubIndex(severeO3_1h);
-      expect(resSevere.subIndex).toBeGreaterThan(400);
-      expect(resSevere.category).toBe("SEVERE");
+      // 1-hour: VALID (> 208 µg/m³ eligible for acute 1h window -> VERY POOR, subIndex 301)
+      const res208_1_1h = calculatePollutantSubIndex(make1h("O3", 208.1));
+      expect(res208_1_1h.subIndex).toBe(301);
+      expect(res208_1_1h.category).toBe("VERY_POOR");
+      expect(res208_1_1h.qualityFlag).toBe("VERIFIED");
+
+      // 3. Test value 748 µg/m³:
+      // 8-hour: REJECTED (> 208)
+      expect(calculatePollutantSubIndex(make8h("O3", 748)).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+
+      // 1-hour: VALID (boundary of Very Poor -> subIndex 400)
+      const res748_1h = calculatePollutantSubIndex(make1h("O3", 748));
+      expect(res748_1h.subIndex).toBe(400);
+      expect(res748_1h.category).toBe("VERY_POOR");
+      expect(res748_1h.qualityFlag).toBe("VERIFIED");
+
+      // 4. Test value 748.1 µg/m³:
+      // 8-hour: REJECTED (> 208)
+      expect(calculatePollutantSubIndex(make8h("O3", 748.1)).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+
+      // 1-hour: VALID (Severe range -> subIndex 401)
+      const res748_1_1h = calculatePollutantSubIndex(make1h("O3", 748.1));
+      expect(res748_1_1h.subIndex).toBe(401);
+      expect(res748_1_1h.category).toBe("SEVERE");
+      expect(res748_1_1h.qualityFlag).toBe("VERIFIED");
+
+      // 5. Test value 1288 µg/m³ (1h Severe top anchor):
+      const res1288_1h = calculatePollutantSubIndex(make1h("O3", 1288));
+      expect(res1288_1h.subIndex).toBe(500);
+      expect(res1288_1h.category).toBe("SEVERE");
+      expect(res1288_1h.isReportingCeilingCapped).toBe(false);
+    });
+  });
+
+  describe("Reporting Ceiling vs Genuine Instrument Anomalies", () => {
+    it("distinguishes valid severe measurements reaching AQI ceiling from sensor faults", () => {
+      // 1. Valid Severe measurement reaching 500 reporting ceiling (e.g. PM2.5 = 500 during crop residue burning)
+      const mCeilingPm25 = make24h("PM2.5", 500);
+      const resCeiling = calculatePollutantSubIndex(mCeilingPm25);
+      expect(resCeiling.subIndex).toBe(500);
+      expect(resCeiling.category).toBe("SEVERE");
+      expect(resCeiling.qualityFlag).toBe("VERIFIED"); // Real measurement, NOT sensor fault!
+      expect(resCeiling.isReportingCeilingCapped).toBe(true);
+      expect(resCeiling.concentration).toBe(500); // Raw concentration preserved
+
+      // 2. Valid Severe CO reaching reporting ceiling (e.g. 75 mg/m³ near industrial kiln)
+      const mCeilingCo = make8h("CO", 75, "mg/m³");
+      const resCeilingCo = calculatePollutantSubIndex(mCeilingCo);
+      expect(resCeilingCo.subIndex).toBe(500);
+      expect(resCeilingCo.category).toBe("SEVERE");
+      expect(resCeilingCo.qualityFlag).toBe("VERIFIED");
+      expect(resCeilingCo.isReportingCeilingCapped).toBe(true);
+      expect(resCeilingCo.concentration).toBe(75);
+
+      // 3. Genuine instrument anomaly exceeding physically possible ambient concentrations
+      // (PM2.5 > 2500 µg/m³ represents stuck register or shorted analyzer)
+      const mFaultPm25 = make24h("PM2.5", 3000);
+      const resFault = calculatePollutantSubIndex(mFaultPm25);
+      expect(resFault.subIndex).toBeNull();
+      expect(resFault.category).toBeNull();
+      expect(resFault.qualityFlag).toBe("INVALID_SENSOR_READING");
+
+      // CO > 150 mg/m³ represents sensor hardware malfunction
+      const mFaultCo = make8h("CO", 200, "mg/m³");
+      const resFaultCo = calculatePollutantSubIndex(mFaultCo);
+      expect(resFaultCo.subIndex).toBeNull();
+      expect(resFaultCo.qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
@@ -302,23 +356,6 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       const res5 = calculatePollutantSubIndex(m5);
       expect(res5.subIndex).toBeNull();
       expect(res5.qualityFlag).toBe("INSUFFICIENT_WINDOW");
-    });
-
-    it("preserves extreme high values above top breakpoint as SUSPECT_EXTREME capped at 500", () => {
-      // Extreme PM2.5 (e.g. 850 µg/m³ during severe crop residue burning)
-      const mExtremePm25 = make24h("PM2.5", 850);
-      const resExtreme = calculatePollutantSubIndex(mExtremePm25);
-      expect(resExtreme.subIndex).toBe(500);
-      expect(resExtreme.category).toBe("SEVERE");
-      expect(resExtreme.qualityFlag).toBe("SUSPECT_EXTREME");
-      expect(resExtreme.concentration).toBe(850);
-
-      // Extreme CO (e.g. 75 mg/m³ near industrial kiln)
-      const mExtremeCo = make8h("CO", 75, "mg/m³");
-      const resCo = calculatePollutantSubIndex(mExtremeCo);
-      expect(resCo.subIndex).toBe(500);
-      expect(resCo.qualityFlag).toBe("SUSPECT_EXTREME");
-      expect(resCo.concentration).toBe(75);
     });
   });
 

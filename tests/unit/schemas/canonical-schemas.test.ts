@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { RawPollutantMeasurementSchema, CpcbPollutantIdSchema } from "@/schemas/pollutant.schema";
+import {
+  RawPollutantMeasurementSchema,
+  ValidatedAggregatedMeasurementSchema,
+  CpcbPollutantIdSchema
+} from "@/schemas/pollutant.schema";
 import { ObservationQualityFlagSchema, ObservationFreshnessSchema } from "@/schemas/freshness.schema";
 import { DataTypologySchema, DataSourceProviderSchema, DataProvenanceRecordSchema } from "@/schemas/provenance.schema";
 import { CpcbCategorySchema, CpcbSubIndexSchema, CpcbAqiResultSchema } from "@/schemas/cpcb.schema";
@@ -35,6 +39,26 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
       recordedAtUtc: new Date().toISOString()
     };
     expect(RawPollutantMeasurementSchema.safeParse(invalidMeasurement).success).toBe(false);
+
+    const validAgg = {
+      brand: "VALIDATED_AGGREGATED_MEASUREMENT",
+      pollutant: "PM2.5",
+      concentration: 55,
+      unit: "µg/m³",
+      averagingWindowHours: 24,
+      recordedAtUtc: new Date().toISOString(),
+      validHoursInWindow: 20,
+      stationId: "DELHI-001",
+      isAggregationValidated: true,
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H"
+    };
+    expect(ValidatedAggregatedMeasurementSchema.safeParse(validAgg).success).toBe(true);
+
+    const invalidAgg = {
+      ...validAgg,
+      brand: "RAW_UNVALIDATED"
+    };
+    expect(ValidatedAggregatedMeasurementSchema.safeParse(invalidAgg).success).toBe(false);
   });
 
   it("validates freshness and quality flag schemas", () => {
@@ -109,6 +133,7 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
       category: "VERY_POOR",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
+      completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [subIndexSample],
       explanation: "AQI 312 driven by PM2.5 sub-index."
     };
@@ -150,6 +175,7 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
         category: "VERY_POOR",
         prominentPollutant: "PM2.5",
         sufficiencyStatus: "SUFFICIENT",
+        completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
         subIndices: [subIndexSample],
         explanation: "AQI 323"
       },
