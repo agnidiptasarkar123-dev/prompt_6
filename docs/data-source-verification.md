@@ -91,25 +91,28 @@ Every candidate data source is audited against live requests or official technic
 
 ## 3. OpenStreetMap Tile Policy, Licensing & Alternative Providers
 
-### 3.1 OpenStreetMap Licensing Separation
-- **Geodata Licensing:** The OpenStreetMap database is licensed under the **Open Database License (ODbL) 1.0**. Any derivation of the database is governed by ODbL share-alike provisions.
-- **Cartography / Tile Licensing:** Standard OpenStreetMap Carto tile images (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`) are licensed under the **Creative Commons Attribution-ShareAlike 2.0 (CC BY-SA 2.0)** license.
+### 3.1 OpenStreetMap Licensing Separation & July 1, 2020 Produced Work Policy
+- **Geodata Licensing:** The OpenStreetMap database is licensed under the **Open Database License (ODbL) 1.0**. Any derivation or adaptation of the database itself is governed by ODbL share-alike provisions.
+- **Cartography / Standard Tile Licensing (Produced Work):**
+  - **Effective July 1, 2020:** The OpenStreetMap Foundation officially transitioned standard map style tiles (`tile.openstreetmap.org`) to be published as a **Produced Work under ODbL 1.0**.
+  - The previous Creative Commons Attribution-ShareAlike 2.0 (CC BY-SA 2.0) license is **NO LONGER APPLIED** to standard OSMF tile renderings.
+  - As a Produced Work, displaying standard OSM tiles in HawaSaathi does NOT trigger copyleft / share-alike obligations on the host application code, provided mandatory attribution is displayed.
 - **Mandatory Attribution:** All UI views rendering OSM tiles must display: `© OpenStreetMap contributors` linking to `https://www.openstreetmap.org/copyright`.
 
-### 3.2 OSM Foundation (OSMF) Tile Usage Policy
+### 3.2 OSM Foundation (OSMF) Tile Usage Policy Restrictions
 The standard tile server (`tile.openstreetmap.org`) is a free community service operated by volunteer donations. In accordance with official OSMF policy:
 - **No Universal 2 req/s Rule:** The OSMF tile policy does not define a universal "2 req/s" numeric cap; rather, it states that **heavy usage, bulk scraping, and commercial high-volume traffic are strictly prohibited**.
-- **Caching Mandatory:** Applications must strictly respect HTTP caching headers (`Cache-Control`, `Expires`). Standard browser tile loading via Leaflet honors browser cache (7-day default cache).
-- **Request Headers:**
-  - Browser-initiated `<img>` or canvas tile requests cannot override the browser's standard `User-Agent` (restricted by browser specifications). Standard browser requests carry standard browser headers.
-  - Server-side tile proxies or tile download scripts MUST provide a valid, contactable `User-Agent`.
+- **Referer Header Requirement:** Browser-initiated tile requests must supply a valid, intact `Referer` header identifying the originating application domain. Missing or spoofed Referers are subject to automated IP blocking.
+- **User-Agent Requirement:** Browser requests carry standard browser headers. Any automated scripts, service workers, or server-side proxies MUST supply a specific, contactable `User-Agent`.
+- **Caching Mandatory:** Applications must strictly respect HTTP caching headers (`Cache-Control`, `Expires`). Client-side HTTP caching (7-day default cache) must be strictly honored.
+- **Bulk Downloading Prohibited:** Systematic pre-downloading or mass tile caching across geographic bounding boxes is forbidden.
 - **Reliability & SLA:** The community tile servers offer **zero uptime SLA**.
 
-### 3.3 Production Alternative Tile Providers
-If HawaSaathi's traffic exceeds OSMF acceptable usage limits, the platform seamlessly switches to:
-1. **Stadia Maps (Alidade Smooth):** Dedicated commercial tile provider offering up to 200,000 free tile requests/month with high-availability CDN.
-2. **CARTO Basemaps (Positron):** Global cloud-hosted basemap tiles with explicit commercial terms.
-3. **Self-Hosted Vector Tiles (Protomaps / PMTiles):** Serving static PMTiles directly from Cloudflare R2 / AWS S3 with MapLibre GL. Zero tile-server compute costs, unlimited scale, and total operational autonomy.
+### 3.3 Production Alternative Tile Providers (Evaluation Status)
+If HawaSaathi's traffic exceeds OSMF acceptable usage limits, the platform evaluates the following options:
+1. **Stadia Maps (Alidade Smooth):** Dedicated map tile provider. Free tier is restricted to non-commercial/development with request limits. Commercial production deployment requires an active commercial subscription plan. (*Status: Planned evaluation candidate; not contracted.*)
+2. **CARTO Basemaps (Positron):** Cloud-hosted basemap tiles. Subject to CARTO terms of service; commercial embedding requires a commercial agreement. (*Status: Planned evaluation candidate; not contracted.*)
+3. **Self-Hosted Vector Tiles (Protomaps / PMTiles):** Serving static PMTiles directly from Cloudflare R2 / AWS S3 with MapLibre GL. Zero tile-server compute costs, unlimited scale, and total operational autonomy. (*Status: Recommended production architecture.*)
 
 ---
 
@@ -218,4 +221,47 @@ From these exact formulas, the physical concentrations where the sub-index evalu
 - Aggregation results are registered in a module-private in-process `WeakMap` metadata registry (`TRUSTED_METADATA_REGISTRY`).
 - Objects returned by `createValidatedAggregatedMeasurement` are deeply frozen (`Object.freeze`).
 - Plain object literals, serialized/deserialized JSON (`JSON.parse`), or spread copies cannot forge trusted status and are rejected at the station AQI calculation boundary.
+
+---
+
+### 6.7 Independently Reproducible Numerical Trace for Ozone ($O_3$)
+
+The following trace validates the mathematical and eligibility behavior of ground-level Ozone ($O_3$) across all regulatory transition points:
+
+| Concentration ($C_p$) | Eligible Averaging Window | Ineligible Window Behavior | Interpolation Formula Applied | Full-Precision Float (`rawMathematicalSubIndex`) | Display Integer (`subIndex`) | Category Assigned | Methodological Limitation / Note |
+| :---: | :---: | :--- | :--- | :---: | :---: | :---: | :--- |
+| **$208.0\,\mu\text{g/m}^3$** | **8-Hour** | 1-Hour rejected (`INCOMPATIBLE_AVERAGING_WINDOW`) | $200 + \frac{300 - 200}{208 - 168} \times (208 - 168)$ | `300.0` | `300` | `POOR` | Maximum permissible concentration for 8-hour regulatory window. |
+| **$208.1\,\mu\text{g/m}^3$** | **1-Hour** | 8-Hour rejected (`INCOMPATIBLE_AVERAGING_WINDOW`) | $300 + \frac{400 - 300}{748 - 208} \times (208.1 - 208)$ | `300.0185185185185` | `300` | `VERY_POOR` | Transition to 1h acute spike window. Continuous interval $(208, 748]$ assigns `VERY_POOR`; display integer rounds to 300 without jump discontinuity. |
+| **$748.0\,\mu\text{g/m}^3$** | **1-Hour** | 8-Hour rejected (`INCOMPATIBLE_AVERAGING_WINDOW`) | $300 + \frac{400 - 300}{748 - 208} \times (748 - 208)$ | `400.0` | `400` | `VERY_POOR` | Upper boundary of Very Poor 1-hour acute monitoring window. |
+| **$748.1\,\mu\text{g/m}^3$** | **1-Hour** | 8-Hour rejected (`INCOMPATIBLE_AVERAGING_WINDOW`) | $400 + \frac{500 - 400}{1288 - 748} \times (748.1 - 748)$ | `400.0185185185185` | `400` | `SEVERE` | Transition to Severe 1h acute spike. Continuous interval $(748, 1288]$ assigns `SEVERE`; display integer rounds to 400 without jump discontinuity. |
+| **$1288.0\,\mu\text{g/m}^3$** | **1-Hour** | 8-Hour rejected (`INCOMPATIBLE_AVERAGING_WINDOW`) | $400 + \frac{500 - 400}{1288 - 748} \times (1288 - 748)$ | `500.0` | `500` | `SEVERE` | Nominal Severe calculation anchor evaluating to 500. Concentrations $>1288$ continue linearly (e.g. $1300 \implies 502$), flagged `isBeyondNominalScale = true`. |
+
+#### Rounding Policy Discrepancy Resolution (300/301 and 400/401)
+In Table 3.11, categories are tabulated with integer gaps (Poor: 201–300; Very Poor: 301–400; Severe: 401–500). If integer rounding were applied prior to category lookup, or if integer truncation were applied to concentrations, boundary readings like $208.1\,\mu\text{g/m}^3$ would either evaluate to AQI 300 (which naive integer lookup maps to Poor, conflicting with the concentration) or artificially jump to 301.
+
+HawaSaathi resolves this rigorously:
+1. **Category Assignment is Governed by Real Concentration Intervals:** Breakpoint intervals are matched continuously as $(\text{boundaryLo}, \text{boundaryHi}]$. Because $208.1 > 208.0$, it unambiguously belongs to the `VERY_POOR` interval.
+2. **Numeric Precision is Preserved:** The exact scientific float ($300.0185...$) is preserved in `rawMathematicalSubIndex`.
+3. **Display Rounding is Non-Destructive:** Integer `Math.round()` produces $300$ solely for integer visual display, while the underlying object maintains category `VERY_POOR` and raw mathematical precision.
+4. **Values Above 500 are Severe Extrapolations:** Readings resulting in sub-indices $> 500$ are classified as `category: "SEVERE"` with `isBeyondNominalScale: true`. They represent mathematical extrapolations of the Severe formula, **NOT** new or invented AQI categories.
+5. **Reconciliation of CPCB Formula Verification:** When stating that CPCB formulas are verified, it applies to all 7 parameters ($PM_{10}, PM_{2.5}, NO_2, SO_2, CO, O_3, NH_3$) across all categories. For Lead ($Pb$), statutory formulas are verified for categories Good through Very Poor ($0$ to $3.5\,\mu\text{g/m}^3$); for Severe ($> 3.5\,\mu\text{g/m}^3$), Lead has no formula in CPCB NAQI methodology and is explicitly marked with `qualityFlag: "NO_DEFENSIBLE_SUBINDEX_FORMULA"`.
+
+---
+
+### 6.8 Physical Anomaly Hard Rejection Limits & Telemetry Evidence
+
+HawaSaathi enforces physical upper sanity limits strictly to reject instrument diagnostic test loops, telemetry corruption (e.g. stuck `9999` registers), or transmission bit flips. These thresholds are grounded in continuous ambient air monitoring station (CAAQMS) analyzer specifications:
+
+| Pollutant | Rejection Limit | Unit | Standard Analyzer Technology | Full-Scale Measurement Span & Evidence | Rationale Regarding Genuine Ambient Peaks |
+| :--- | :---: | :---: | :--- | :--- | :--- |
+| **$PM_{2.5}$** | `2500` | $\mu\text{g/m}^3$ | Beta Attenuation Monitor (BAM-1020) / TEOM | BAM-1020 detector operational range is configured to $0 - 1000\,\mu\text{g/m}^3$ or $0 - 2000\,\mu\text{g/m}^3$. | Historical severe post-Diwali ambient peaks in Delhi reach $1200 - 1800\,\mu\text{g/m}^3$. A 24-hr average exceeding $2500\,\mu\text{g/m}^3$ exceeds ambient analyzer saturation and represents filter tape jamming or stuck sensor error codes. |
+| **$PM_{10}$** | `4000` | $\mu\text{g/m}^3$ | Beta Attenuation / Optical Particle Counter | Standard ambient inlet PM10 detector saturation ceiling is $0 - 2000$ to $0 - 5000\,\mu\text{g/m}^3$. | Accommodates extreme dust storm episodes ($2000 - 3000\,\mu\text{g/m}^3$) while rejecting instrument sensor error values ($9999$). |
+| **$NO_2$** | `2000` | $\mu\text{g/m}^3$ | Chemiluminescence Analyzer | Standard full scale: $0 - 500\,\text{ppb}$ or $0 - 1000\,\text{ppb}$ ($\approx 1880\,\mu\text{g/m}^3$). | Ambient urban NO2 rarely exceeds $400 - 600\,\mu\text{g/m}^3$ even near major traffic corridors. $2000\,\mu\text{g/m}^3$ represents detector ceiling. |
+| **$SO_2$** | `4000` | $\mu\text{g/m}^3$ | Pulsed UV Fluorescence | Standard full scale: $0 - 1000\,\text{ppb}$ to $0 - 2000\,\text{ppb}$ ($\approx 5240\,\mu\text{g/m}^3$). | Ambient industrial plume max readings remain well below $2000\,\mu\text{g/m}^3$. $4000\,\mu\text{g/m}^3$ prevents corrupted integer feeds. |
+| **$CO$** | `150` | $\text{mg/m}^3$ | Non-Dispersive Infrared (NDIR) Gas Filter | Standard NDIR ambient full scale: $0 - 50\,\text{ppm}$ or $0 - 100\,\text{ppm}$ ($\approx 115\,\text{mg/m}^3$). | 8-hr NAAQS standard is $2\,\text{mg/m}^3$; Severe threshold begins at $34\,\text{mg/m}^3$. $150\,\text{mg/m}^3$ represents ambient detector saturation. |
+| **$O_3$** | `2500` | $\mu\text{g/m}^3$ | UV Photometric Analyzer | Standard ambient full scale: $0 - 500\,\text{ppb}$ to $0 - 1000\,\text{ppb}$ ($\approx 1960\,\mu\text{g/m}^3$). | Acute photolytic ambient ozone peaks rarely exceed $600 - 800\,\mu\text{g/m}^3$. $2500\,\mu\text{g/m}^3$ prevents baseline drift faults. |
+| **$NH_3$** | `5000` | $\mu\text{g/m}^3$ | Chemiluminescent with Molybdenum Converter | Analyzer full scale: $0 - 2000\,\text{ppb}$ to $0 - 5000\,\text{ppb}$. | Severe threshold begins at $1800\,\mu\text{g/m}^3$. $5000\,\mu\text{g/m}^3$ rejects sensor converter failure. |
+| **$Pb$** | `50` | $\mu\text{g/m}^3$ | ICP-MS / ED-XRF Laboratory Filter Analysis | Ambient urban lead typically ranges between $0.05 - 1.5\,\mu\text{g/m}^3$. | Very Poor upper breakpoint is $3.5\,\mu\text{g/m}^3$. $50\,\mu\text{g/m}^3$ represents analytical extraction ceiling. |
+
+**Safeguard Guarantee:** These thresholds are set strictly at or above the physical saturation limits of ambient regulatory monitoring instruments. Genuine extreme atmospheric pollution events—including northern Indian winter smog episodes where PM2.5 reaches $1000 - 1500\,\mu\text{g/m}^3$—fall comfortably within the valid measurement envelope and are calculated with full mathematical Severe continuation.
 

@@ -158,7 +158,7 @@ This document provides complete, line-item traceability for all 147 unit and dom
 | `IND-003` | Good ambient air cross-ventilation | Indoor IAQ Flushing | Advises `OPEN_CROSS_VENTILATION` between 12:00 and 16:00 | PASS |
 | `IND-004` | Air purifier CADR and ACH sizing calculation | ISHRAE / AHAM Standard | Calculates required CADR (m³/h) to achieve target 4 ACH for room volume | PASS |
 | `IND-005` | Wire insect mesh filtration limitation | Physics of Particle Filtration | Explicitly disclaims mesh as particulate filter (mesh $> 1000\ \mu\text{m}$) | PASS |
-| `IND-006` | HEPA H13 filtration efficiency specification | EN 1822 Standard | Cites $99.97\%$ efficiency at $0.3\ \mu\text{m}$ for true HEPA filter | PASS |
+| `IND-006` | HEPA filtration standards distinction | EN 1822 & IEST RP-CC001 | Distinguishes EN 1822 H13 ($\ge 99.95\%$ at MPPS) vs IEST Type A ($\ge 99.97\%$ at $0.3\ \mu\text{m}$) | PASS |
 | `IND-007` | Incense / mosquito coil source control | Indoor Source Control | Recommends substituting burning coils with non-combustion repellents | PASS |
 | `IND-008` | High ambient humidity / monsoon ventilation check | Mold Prevention | Adds mold caution when indoor humidity $> 70\%$ during sealed conditions | PASS |
 
