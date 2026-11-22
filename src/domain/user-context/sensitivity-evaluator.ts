@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { HouseholdMember } from "@/schemas/household.schema";
 
 export interface MemberVulnerabilityAssessment {

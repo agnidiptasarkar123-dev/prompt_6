@@ -171,3 +171,51 @@ Piecewise linear interpolation:
 $$I_p = \frac{I_{Hi} - I_{Lo}}{BPHi - BPLo} \times (C_p - BPLo) + I_{Lo}$$
 $$AQI = \max(I_1, I_2, \dots, I_n)$$
 The pollutant corresponding to $\max(I_p)$ is the **Dominant / Prominent Pollutant**.
+
+---
+
+## 6. Official CPCB Workbook Reconciliation & Mathematical Contracts
+
+### 6.1 Cryptographic Provenance of CPCB Calculator
+- **Workbook URL:** `https://cpcb.gov.in/upload/national-air-quality-index/AQI-Calculator.xls`
+- **File Format:** Microsoft Excel 97-2004 Workbook (BIFF8 OLE2 Binary)
+- **Local Location:** `docs/references/AQI-Calculator.xls`
+- **File Size:** 46,080 bytes
+- **SHA-256 Checksum:** `92eb788f7f61bd46edea1814a9e1b8f5dd75d05dfb88f34a460905bc07bd151a`
+
+### 6.2 Severe Extension Anchors Derived from Official Formulas
+In CUPS/82/2014-15 Table 3.11, the Severe concentration ranges are published as open-ended ($> 430$, $> 250$, etc.). In the official CPCB `AQI-Calculator.xls` workbook, the actual formulas continue the linear slope of the Very Poor interval:
+$$\text{SubIndex}_{\text{Severe}} = 400 + (C_p - BP_{Lo}) \times \frac{100}{\Delta_{VP}}$$
+
+From these exact formulas, the physical concentrations where the sub-index evaluates to nominal 500 are:
+- **$\text{PM}_{10}$ (24h):** $430 + 80 = 510\,\mu\text{g/m}^3$ (Cell `D8`)
+- **$\text{PM}_{2.5}$ (24h):** $250 + 130 = 380\,\mu\text{g/m}^3$ (Cell `D10`)
+- **$\text{NO}_2$ (24h):** $400 + 120 = 520\,\mu\text{g/m}^3$ (Cell `D14`)
+- **$\text{SO}_2$ (24h):** $1600 + 800 = 2400\,\mu\text{g/m}^3$ (Cell `D12`)
+- **$\text{CO}$ (8h):** $34.0 + 17.0 = 51.0\,\text{mg/m}^3$ (Cell `D16`)
+- **$\text{NH}_3$ (24h):** $1800 + 600 = 2400\,\mu\text{g/m}^3$ (Cell `D20`)
+
+### 6.3 Lead (Pb) Methodology Limitation & Absence
+- **Workbook Absence:** Lead is completely absent from `AQI-Calculator.xls` (no row, formula, or cell).
+- **Statutory Gap:** Table 3.11 provides an open-ended breakpoint ($> 3.5\,\mu\text{g/m}^3$) with zero mathematical interpolation anchors.
+- **HawaSaathi Rigorous Handling:**
+  - Concentrations $\le 3.5\,\mu\text{g/m}^3$ are calculated according to Table 3.11.
+  - Concentrations $> 3.5\,\mu\text{g/m}^3$ are classified as category `SEVERE`, but `subIndex` is returned as `null` with `qualityFlag: "NO_DEFENSIBLE_SUBINDEX_FORMULA"`.
+  - Lead Severe readings with `null` sub-index are strictly excluded from the station AQI maximum and do NOT count toward the 3-pollutant sufficiency requirement. An explicit explanatory note is appended.
+
+### 6.4 Atmospheric Concentrations Exceeding AQI 500
+- During extreme episodic smog events in northern India, particulate concentrations can exceed $380\,\mu\text{g/m}^3$ ($\text{PM}_{2.5}$) or $510\,\mu\text{g/m}^3$ ($\text{PM}_{10}$).
+- Clamping scientific calculations to 500 silently conceals life-threatening air toxicity.
+- HawaSaathi continues the official linear formula slope, preserves the true unrounded float in `rawMathematicalSubIndex`, computes integer `subIndex` (which can legitimately exceed 500), flags `isBeyondNominalScale = true`, and provides `reportingCeilingCappedAqi = 500` for visual UI gauges.
+
+### 6.5 Ground-Level Ozone ($O_3$) Dual-Window Calculation
+- **8-Hour Running Average:** Valid strictly for concentrations up to $208\,\mu\text{g/m}^3$ (sub-index up to 300, Very Poor threshold). Concentrations $> 208\,\mu\text{g/m}^3$ are rejected on the 8-hour window because photochemical ozone exhibits acute diurnal spikes.
+- **1-Hour Acute Spike Average:** Valid strictly for acute concentrations $> 208\,\mu\text{g/m}^3$. Concentrations $\le 208\,\mu\text{g/m}^3$ are rejected on the 1-hour window.
+- **CPCB Workbook Typo Correction:** In cell `D18`, the spreadsheet subtracted 400 instead of 748 and divided by 539. HawaSaathi implements the corrected linear continuation:
+  $$I_{O_3,\text{Severe}} = 400 + (C - 748) \times \frac{100}{540}$$
+
+### 6.6 Non-Forgeable In-Memory Aggregation Boundary
+- Aggregation results are registered in a module-private in-process `WeakMap` metadata registry (`TRUSTED_METADATA_REGISTRY`).
+- Objects returned by `createValidatedAggregatedMeasurement` are deeply frozen (`Object.freeze`).
+- Plain object literals, serialized/deserialized JSON (`JSON.parse`), or spread copies cannot forge trusted status and are rejected at the station AQI calculation boundary.
+

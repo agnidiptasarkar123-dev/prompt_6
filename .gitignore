@@ -48,4 +48,19 @@ Thumbs.db
 
 # IDE files
 .vscode/
+
+# Local agent & development tooling metadata
+.agent/
+.agents/
+.gemini/
+.gsd/
+GSD-STYLE.md
+PROJECT_RULES.md
+VERSION
+adapters/
+model_capabilities.yaml
+scripts/validate-*
+scripts/search_*
+scripts/setup_*
+
 .idea/

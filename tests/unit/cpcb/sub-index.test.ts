@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
 import { describe, it, expect } from "vitest";
 import { calculatePollutantSubIndex, getCategoryFromAqi } from "@/domain/cpcb/sub-index-calculator";
 import { RawPollutantMeasurement } from "@/schemas/pollutant.schema";
 
 describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory NAQI 2014)", () => {
-  // Base 24h measurement helper
   const make24h = (
     pollutant: RawPollutantMeasurement["pollutant"],
     concentration: number,
@@ -17,7 +17,6 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
     validHoursInWindow: 24
   });
 
-  // Base 8h measurement helper
   const make8h = (
     pollutant: RawPollutantMeasurement["pollutant"],
     concentration: number,
@@ -31,7 +30,6 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
     validHoursInWindow: 8
   });
 
-  // Base 1h measurement helper
   const make1h = (
     pollutant: RawPollutantMeasurement["pollutant"],
     concentration: number,
@@ -46,312 +44,425 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
   });
 
   describe("PM2.5 (24-hour average, µg/m³)", () => {
-    it("interpolates across all categories and boundary decimals", () => {
-      // Good: [0, 30] -> [0, 50]
+    it("PM2.5: interpolates Good category [0, 30] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make24h("PM2.5", 0)).subIndex).toBe(0);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 15)).subIndex).toBe(25);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 30)).subIndex).toBe(50);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 30)).category).toBe("GOOD");
+      const res30 = calculatePollutantSubIndex(make24h("PM2.5", 30));
+      expect(res30.subIndex).toBe(50);
+      expect(res30.category).toBe("GOOD");
+    });
 
-      // Satisfactory: (30, 60] -> [51, 100]
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 30.1)).subIndex).toBe(51);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 30.1)).category).toBe("SATISFACTORY");
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 45)).subIndex).toBe(76);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 60)).subIndex).toBe(100);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 60)).category).toBe("SATISFACTORY");
+    it("PM2.5: interpolates Satisfactory category (30, 60] -> [50, 100]", () => {
+      const res30_1 = calculatePollutantSubIndex(make24h("PM2.5", 30.1));
+      expect(res30_1.rawMathematicalSubIndex).toBeCloseTo(50.1667, 3);
+      expect(res30_1.subIndex).toBe(50);
+      expect(res30_1.category).toBe("SATISFACTORY");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 45)).subIndex).toBe(75);
+      const res60 = calculatePollutantSubIndex(make24h("PM2.5", 60));
+      expect(res60.subIndex).toBe(100);
+      expect(res60.category).toBe("SATISFACTORY");
+    });
 
-      // Moderate: (60, 90] -> [101, 200]
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 60.1)).subIndex).toBe(101);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 60.1)).category).toBe("MODERATE");
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 75)).subIndex).toBe(151);
+    it("PM2.5: interpolates Moderate category (60, 90] -> [100, 200]", () => {
+      const res60_1 = calculatePollutantSubIndex(make24h("PM2.5", 60.1));
+      expect(res60_1.rawMathematicalSubIndex).toBeCloseTo(100.3333, 3);
+      expect(res60_1.subIndex).toBe(100);
+      expect(res60_1.category).toBe("MODERATE");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 75)).subIndex).toBe(150);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 90)).subIndex).toBe(200);
+    });
 
-      // Poor: (90, 120] -> [201, 300]
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 90.1)).subIndex).toBe(201);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 105)).subIndex).toBe(251);
+    it("PM2.5: interpolates Poor category (90, 120] -> [200, 300]", () => {
+      const res90_1 = calculatePollutantSubIndex(make24h("PM2.5", 90.1));
+      expect(res90_1.rawMathematicalSubIndex).toBeCloseTo(200.3333, 3);
+      expect(res90_1.subIndex).toBe(200);
+      expect(res90_1.category).toBe("POOR");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 105)).subIndex).toBe(250);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 120)).subIndex).toBe(300);
+    });
 
-      // Very Poor: (120, 250] -> [301, 400]
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 120.1)).subIndex).toBe(301);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 185)).subIndex).toBe(351);
+    it("PM2.5: interpolates Very Poor category (120, 250] -> [300, 400]", () => {
+      const res120_1 = calculatePollutantSubIndex(make24h("PM2.5", 120.1));
+      expect(res120_1.rawMathematicalSubIndex).toBeCloseTo(300.0769, 3);
+      expect(res120_1.subIndex).toBe(300);
+      expect(res120_1.category).toBe("VERY_POOR");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 185)).subIndex).toBe(350);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 250)).subIndex).toBe(400);
+    });
 
-      // Severe: (250, 380] -> [401, 500] (reconciled with AQI-Calculator.xls Delta_VP formula)
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 250.1)).subIndex).toBe(401);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 315)).subIndex).toBe(451);
+    it("PM2.5: interpolates Severe nominal range (250, 380] -> [400, 500]", () => {
+      const res250_1 = calculatePollutantSubIndex(make24h("PM2.5", 250.1));
+      expect(res250_1.rawMathematicalSubIndex).toBeCloseTo(400.0769, 3);
+      expect(res250_1.subIndex).toBe(400);
+      expect(res250_1.category).toBe("SEVERE");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 315)).subIndex).toBe(450);
+      const res380 = calculatePollutantSubIndex(make24h("PM2.5", 380));
+      expect(res380.subIndex).toBe(500);
+      expect(res380.category).toBe("SEVERE");
+      expect(res380.isBeyondNominalScale).toBe(false);
+      expect(res380.reportingCeilingCappedAqi).toBe(500);
+    });
+
+    it("PM2.5: verifies mandatory test values 250, 300, 350, 380", () => {
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 250)).subIndex).toBe(400);
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 300)).subIndex).toBe(438);
+      expect(calculatePollutantSubIndex(make24h("PM2.5", 350)).subIndex).toBe(477);
       expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).subIndex).toBe(500);
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).category).toBe("SEVERE");
-      expect(calculatePollutantSubIndex(make24h("PM2.5", 380)).isReportingCeilingCapped).toBe(false);
+    });
+
+    it("PM2.5: extrapolates formula linearly beyond 500 at concentrations 500 and 1000", () => {
+      const res500 = calculatePollutantSubIndex(make24h("PM2.5", 500));
+      expect(res500.subIndex).toBe(592);
+      expect(res500.rawMathematicalSubIndex).toBeCloseTo(592.3077, 3);
+      expect(res500.isBeyondNominalScale).toBe(true);
+      expect(res500.reportingCeilingCappedAqi).toBe(500);
+      expect(res500.qualityFlag).toBe("EXCEEDS_SEVERE_FORMULA_ANCHOR");
+
+      const res1000 = calculatePollutantSubIndex(make24h("PM2.5", 1000));
+      expect(res1000.subIndex).toBe(977);
+      expect(res1000.rawMathematicalSubIndex).toBeCloseTo(976.9231, 3);
+      expect(res1000.isBeyondNominalScale).toBe(true);
+      expect(res1000.reportingCeilingCappedAqi).toBe(500);
+      expect(res1000.qualityFlag).toBe("EXCEEDS_SEVERE_FORMULA_ANCHOR");
+    });
+
+    it("PM2.5: rejects concentrations beyond extreme physical ceiling (>2500 µg/m³)", () => {
+      const res = calculatePollutantSubIndex(make24h("PM2.5", 2501));
+      expect(res.subIndex).toBeNull();
+      expect(res.qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("PM10 (24-hour average, µg/m³)", () => {
-    it("interpolates across all categories and boundaries", () => {
-      // Good: [0, 50] -> [0, 50]
+    it("PM10: interpolates Good [0, 50] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make24h("PM10", 0)).subIndex).toBe(0);
       expect(calculatePollutantSubIndex(make24h("PM10", 50)).subIndex).toBe(50);
-      expect(calculatePollutantSubIndex(make24h("PM10", 50)).category).toBe("GOOD");
+    });
 
-      // Satisfactory: (50, 100] -> [51, 100]
-      expect(calculatePollutantSubIndex(make24h("PM10", 50.1)).subIndex).toBe(51);
+    it("PM10: interpolates Satisfactory (50, 100] -> [50, 100]", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 50.1)).subIndex).toBe(50);
       expect(calculatePollutantSubIndex(make24h("PM10", 100)).subIndex).toBe(100);
+    });
 
-      // Moderate: (100, 250] -> [101, 200]
-      expect(calculatePollutantSubIndex(make24h("PM10", 100.1)).subIndex).toBe(101);
+    it("PM10: interpolates Moderate (100, 250] -> [100, 200]", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 100.1)).subIndex).toBe(100);
       expect(calculatePollutantSubIndex(make24h("PM10", 250)).subIndex).toBe(200);
+    });
 
-      // Poor: (250, 350] -> [201, 300]
-      expect(calculatePollutantSubIndex(make24h("PM10", 250.1)).subIndex).toBe(201);
+    it("PM10: interpolates Poor (250, 350] -> [200, 300]", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 250.1)).subIndex).toBe(200);
       expect(calculatePollutantSubIndex(make24h("PM10", 350)).subIndex).toBe(300);
+    });
 
-      // Very Poor: (350, 430] -> [301, 400]
-      expect(calculatePollutantSubIndex(make24h("PM10", 350.1)).subIndex).toBe(301);
+    it("PM10: interpolates Very Poor (350, 430] -> [300, 400]", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 350.1)).subIndex).toBe(300);
       expect(calculatePollutantSubIndex(make24h("PM10", 430)).subIndex).toBe(400);
+    });
 
-      // Severe: (430, 510] -> [401, 500] (reconciled with AQI-Calculator.xls Delta_VP formula)
-      expect(calculatePollutantSubIndex(make24h("PM10", 430.1)).subIndex).toBe(401);
+    it("PM10: interpolates Severe (430, 510] -> [400, 500] and extrapolates at 600", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 430.1)).subIndex).toBe(400);
       expect(calculatePollutantSubIndex(make24h("PM10", 510)).subIndex).toBe(500);
-      expect(calculatePollutantSubIndex(make24h("PM10", 510)).category).toBe("SEVERE");
+
+      const res600 = calculatePollutantSubIndex(make24h("PM10", 600));
+      expect(res600.subIndex).toBe(613);
+      expect(res600.isBeyondNominalScale).toBe(true);
+      expect(res600.reportingCeilingCappedAqi).toBe(500);
+    });
+
+    it("PM10: rejects concentrations beyond extreme physical ceiling (>4000 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make24h("PM10", 4001)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("NO2 (24-hour average, µg/m³)", () => {
-    it("interpolates across all categories", () => {
-      // Good: [0, 40] -> [0, 50]
+    it("NO2: interpolates Good [0, 40] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make24h("NO2", 40)).subIndex).toBe(50);
-      // Satisfactory: (40, 80] -> [51, 100]
-      expect(calculatePollutantSubIndex(make24h("NO2", 40.1)).subIndex).toBe(51);
+    });
+
+    it("NO2: interpolates Satisfactory (40, 80] -> [50, 100]", () => {
+      expect(calculatePollutantSubIndex(make24h("NO2", 40.1)).subIndex).toBe(50);
       expect(calculatePollutantSubIndex(make24h("NO2", 80)).subIndex).toBe(100);
-      // Moderate: (80, 180] -> [101, 200]
+    });
+
+    it("NO2: interpolates Moderate (80, 180] -> [100, 200]", () => {
       expect(calculatePollutantSubIndex(make24h("NO2", 180)).subIndex).toBe(200);
-      // Poor: (180, 280] -> [201, 300]
+    });
+
+    it("NO2: interpolates Poor (180, 280] -> [200, 300]", () => {
       expect(calculatePollutantSubIndex(make24h("NO2", 280)).subIndex).toBe(300);
-      // Very Poor: (280, 400] -> [301, 400]
+    });
+
+    it("NO2: interpolates Very Poor (280, 400] -> [300, 400]", () => {
       expect(calculatePollutantSubIndex(make24h("NO2", 400)).subIndex).toBe(400);
-      // Severe: (400, 520] -> [401, 500]
+    });
+
+    it("NO2: interpolates Severe (400, 520] -> [400, 500] and extrapolates at 640", () => {
       expect(calculatePollutantSubIndex(make24h("NO2", 520)).subIndex).toBe(500);
+      const res640 = calculatePollutantSubIndex(make24h("NO2", 640));
+      expect(res640.subIndex).toBe(600);
+      expect(res640.isBeyondNominalScale).toBe(true);
+    });
+
+    it("NO2: rejects concentrations beyond physical ceiling (>2000 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make24h("NO2", 2001)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("SO2 (24-hour average, µg/m³)", () => {
-    it("interpolates across all categories", () => {
-      // Good: [0, 40] -> [0, 50]
+    it("SO2: interpolates Good [0, 40] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 40)).subIndex).toBe(50);
-      // Satisfactory: (40, 80] -> [51, 100]
+    });
+
+    it("SO2: interpolates Satisfactory (40, 80] -> [50, 100]", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 80)).subIndex).toBe(100);
-      // Moderate: (80, 380] -> [101, 200]
+    });
+
+    it("SO2: interpolates Moderate (80, 380] -> [100, 200]", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 380)).subIndex).toBe(200);
-      // Poor: (380, 800] -> [201, 300]
+    });
+
+    it("SO2: interpolates Poor (380, 800] -> [200, 300]", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 800)).subIndex).toBe(300);
-      // Very Poor: (800, 1600] -> [301, 400]
+    });
+
+    it("SO2: interpolates Very Poor (800, 1600] -> [300, 400]", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 1600)).subIndex).toBe(400);
-      // Severe: (1600, 2400] -> [401, 500]
+    });
+
+    it("SO2: interpolates Severe (1600, 2400] -> [400, 500] and extrapolates at 3200", () => {
       expect(calculatePollutantSubIndex(make24h("SO2", 2400)).subIndex).toBe(500);
+      const res3200 = calculatePollutantSubIndex(make24h("SO2", 3200));
+      expect(res3200.subIndex).toBe(600);
+      expect(res3200.isBeyondNominalScale).toBe(true);
+    });
+
+    it("SO2: rejects concentrations beyond physical ceiling (>4000 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make24h("SO2", 4001)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("NH3 (24-hour average, µg/m³)", () => {
-    it("interpolates across all categories", () => {
-      // Good: [0, 200] -> [0, 50]
+    it("NH3: interpolates Good [0, 200] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make24h("NH3", 200)).subIndex).toBe(50);
-      // Satisfactory: (200, 400] -> [51, 100]
-      expect(calculatePollutantSubIndex(make24h("NH3", 400)).subIndex).toBe(100);
-      // Moderate: (400, 800] -> [101, 200]
-      expect(calculatePollutantSubIndex(make24h("NH3", 800)).subIndex).toBe(200);
-      // Poor: (800, 1200] -> [201, 300]
-      expect(calculatePollutantSubIndex(make24h("NH3", 1200)).subIndex).toBe(300);
-      // Very Poor: (1200, 1800] -> [301, 400]
-      expect(calculatePollutantSubIndex(make24h("NH3", 1800)).subIndex).toBe(400);
-      // Severe: (1800, 2400] -> [401, 500]
-      expect(calculatePollutantSubIndex(make24h("NH3", 2400)).subIndex).toBe(500);
     });
-  });
 
-  describe("Pb (Lead - 24-hour average, µg/m³)", () => {
-    it("interpolates across all categories", () => {
-      // Good: [0, 0.5] -> [0, 50]
-      expect(calculatePollutantSubIndex(make24h("Pb", 0.5)).subIndex).toBe(50);
-      // Satisfactory: (0.5, 1.0] -> [51, 100]
-      expect(calculatePollutantSubIndex(make24h("Pb", 1.0)).subIndex).toBe(100);
-      // Moderate: (1.0, 2.0] -> [101, 200]
-      expect(calculatePollutantSubIndex(make24h("Pb", 2.0)).subIndex).toBe(200);
-      // Poor: (2.0, 3.0] -> [201, 300]
-      expect(calculatePollutantSubIndex(make24h("Pb", 3.0)).subIndex).toBe(300);
-      // Very Poor: (3.0, 3.5] -> [301, 400]
-      expect(calculatePollutantSubIndex(make24h("Pb", 3.5)).subIndex).toBe(400);
-      // Severe: (3.5, 5.0] -> [401, 500]
-      expect(calculatePollutantSubIndex(make24h("Pb", 5.0)).subIndex).toBe(500);
+    it("NH3: interpolates Satisfactory (200, 400] -> [50, 100]", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 400)).subIndex).toBe(100);
+    });
+
+    it("NH3: interpolates Moderate (400, 800] -> [100, 200]", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 800)).subIndex).toBe(200);
+    });
+
+    it("NH3: interpolates Poor (800, 1200] -> [200, 300]", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 1200)).subIndex).toBe(300);
+    });
+
+    it("NH3: interpolates Very Poor (1200, 1800] -> [300, 400]", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 1800)).subIndex).toBe(400);
+    });
+
+    it("NH3: interpolates Severe (1800, 2400] -> [400, 500] and extrapolates at 3000", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 2400)).subIndex).toBe(500);
+      const res3000 = calculatePollutantSubIndex(make24h("NH3", 3000));
+      expect(res3000.subIndex).toBe(600);
+      expect(res3000.isBeyondNominalScale).toBe(true);
+    });
+
+    it("NH3: rejects concentrations beyond physical ceiling (>5000 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make24h("NH3", 5001)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("CO (Carbon Monoxide - 8-hour average, mg/m³)", () => {
-    it("interpolates across all categories", () => {
-      // Good: [0, 1.0] -> [0, 50]
+    it("CO: interpolates Good [0, 1.0] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make8h("CO", 1.0, "mg/m³")).subIndex).toBe(50);
-      // Satisfactory: (1.0, 2.0] -> [51, 100]
-      expect(calculatePollutantSubIndex(make8h("CO", 1.05, "mg/m³")).subIndex).toBe(53);
+    });
+
+    it("CO: interpolates Satisfactory (1.0, 2.0] -> [50, 100]", () => {
+      expect(calculatePollutantSubIndex(make8h("CO", 1.5, "mg/m³")).subIndex).toBe(75);
       expect(calculatePollutantSubIndex(make8h("CO", 2.0, "mg/m³")).subIndex).toBe(100);
-      // Moderate: (2.0, 10.0] -> [101, 200]
+    });
+
+    it("CO: interpolates Moderate (2.0, 10.0] -> [100, 200]", () => {
       expect(calculatePollutantSubIndex(make8h("CO", 10.0, "mg/m³")).subIndex).toBe(200);
-      // Poor: (10.0, 17.0] -> [201, 300]
+    });
+
+    it("CO: interpolates Poor (10.0, 17.0] -> [200, 300]", () => {
       expect(calculatePollutantSubIndex(make8h("CO", 17.0, "mg/m³")).subIndex).toBe(300);
-      // Very Poor: (17.0, 34.0] -> [301, 400]
+    });
+
+    it("CO: interpolates Very Poor (17.0, 34.0] -> [300, 400]", () => {
       expect(calculatePollutantSubIndex(make8h("CO", 34.0, "mg/m³")).subIndex).toBe(400);
-      // Severe: (34.0, 51.0] -> [401, 500]
+    });
+
+    it("CO: interpolates Severe (34.0, 51.0] -> [400, 500] and extrapolates at 68.0", () => {
       expect(calculatePollutantSubIndex(make8h("CO", 51.0, "mg/m³")).subIndex).toBe(500);
+      const res68 = calculatePollutantSubIndex(make8h("CO", 68.0, "mg/m³"));
+      expect(res68.subIndex).toBe(600);
+      expect(res68.isBeyondNominalScale).toBe(true);
+    });
+
+    it("CO: rejects concentrations beyond physical ceiling (>150 mg/m³)", () => {
+      expect(calculatePollutantSubIndex(make8h("CO", 151.0, "mg/m³")).qualityFlag).toBe("INVALID_SENSOR_READING");
+    });
+  });
+
+  describe("Pb (Lead - 24-hour average, µg/m³)", () => {
+    it("Pb: interpolates Good [0, 0.5] -> [0, 50]", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 0)).subIndex).toBe(0);
+      expect(calculatePollutantSubIndex(make24h("Pb", 0.5)).subIndex).toBe(50);
+    });
+
+    it("Pb: interpolates Satisfactory (0.5, 1.0] -> [50, 100]", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 0.75)).subIndex).toBe(75);
+      expect(calculatePollutantSubIndex(make24h("Pb", 1.0)).subIndex).toBe(100);
+    });
+
+    it("Pb: interpolates Moderate (1.0, 2.0] -> [100, 200]", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 1.5)).subIndex).toBe(150);
+      expect(calculatePollutantSubIndex(make24h("Pb", 2.0)).subIndex).toBe(200);
+    });
+
+    it("Pb: interpolates Poor (2.0, 3.0] -> [200, 300]", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 2.5)).subIndex).toBe(250);
+      expect(calculatePollutantSubIndex(make24h("Pb", 3.0)).subIndex).toBe(300);
+    });
+
+    it("Pb: interpolates Very Poor (3.0, 3.5] -> [300, 400]", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 3.25)).subIndex).toBe(350);
+      expect(calculatePollutantSubIndex(make24h("Pb", 3.5)).subIndex).toBe(400);
+    });
+
+    it("Pb: classifies Pb > 3.5 µg/m³ as category SEVERE with subIndex null (no fabricated formula)", () => {
+      const res36 = calculatePollutantSubIndex(make24h("Pb", 3.6));
+      expect(res36.subIndex).toBeNull();
+      expect(res36.rawMathematicalSubIndex).toBeNull();
+      expect(res36.category).toBe("SEVERE");
+      expect(res36.qualityFlag).toBe("NO_DEFENSIBLE_SUBINDEX_FORMULA");
+
+      const res50 = calculatePollutantSubIndex(make24h("Pb", 5.0));
+      expect(res50.subIndex).toBeNull();
+      expect(res50.category).toBe("SEVERE");
+      expect(res50.qualityFlag).toBe("NO_DEFENSIBLE_SUBINDEX_FORMULA");
+    });
+
+    it("Pb: rejects concentrations beyond physical ceiling (>50 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make24h("Pb", 51.0)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("O3 (Ozone - CPCB Table 3.11 & Section 3.3.4 Dual Averaging Windows)", () => {
-    it("handles 8-hour ozone in published ordinary range (<= 208 µg/m³)", () => {
-      // Good: [0, 50] -> [0, 50]
+    it("O3 8h: handles Good [0, 50] -> [0, 50]", () => {
       expect(calculatePollutantSubIndex(make8h("O3", 50)).subIndex).toBe(50);
-      // Satisfactory: (50, 100] -> [51, 100]
+    });
+
+    it("O3 8h: handles Satisfactory (50, 100] -> [50, 100]", () => {
       expect(calculatePollutantSubIndex(make8h("O3", 100)).subIndex).toBe(100);
-      // Moderate: (100, 168] -> [101, 200]
+    });
+
+    it("O3 8h: handles Moderate (100, 168] -> [100, 200]", () => {
       expect(calculatePollutantSubIndex(make8h("O3", 168)).subIndex).toBe(200);
-      // Poor: (168, 208] -> [201, 300]
+    });
+
+    it("O3 8h: handles Poor (168, 208] -> [200, 300]", () => {
       expect(calculatePollutantSubIndex(make8h("O3", 208)).subIndex).toBe(300);
     });
 
-    it("verifies test values 208, 208.1, 748, 748.1 against statutory 8-hour and 1-hour rules", () => {
-      // 1. Test value 208 µg/m³:
-      // 8-hour: VALID -> subIndex 300 (POOR)
-      const res208_8h = calculatePollutantSubIndex(make8h("O3", 208));
-      expect(res208_8h.subIndex).toBe(300);
-      expect(res208_8h.category).toBe("POOR");
-      expect(res208_8h.qualityFlag).toBe("VERIFIED");
-
-      // 1-hour: REJECTED (<= 208 µg/m³ not eligible for 1h window per Table 3.11 footnote)
-      const res208_1h = calculatePollutantSubIndex(make1h("O3", 208));
-      expect(res208_1h.subIndex).toBeNull();
-      expect(res208_1h.category).toBeNull();
-      expect(res208_1h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
-
-      // 2. Test value 208.1 µg/m³:
-      // 8-hour: REJECTED (8-hour measurement above 208 must NOT silently enter starred 1-hour ranges)
+    it("O3 8h: rejects 8h measurement above 208 µg/m³ (must not silently enter 1h starred range)", () => {
       const res208_1_8h = calculatePollutantSubIndex(make8h("O3", 208.1));
       expect(res208_1_8h.subIndex).toBeNull();
       expect(res208_1_8h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
 
-      // 1-hour: VALID (> 208 µg/m³ eligible for acute 1h window -> VERY POOR, subIndex 301)
+      const res748_8h = calculatePollutantSubIndex(make8h("O3", 748));
+      expect(res748_8h.subIndex).toBeNull();
+      expect(res748_8h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+    });
+
+    it("O3 1h: rejects 1h measurement at or below 208 µg/m³ (must not enter 8h ranges)", () => {
+      const res208_1h = calculatePollutantSubIndex(make1h("O3", 208.0));
+      expect(res208_1h.subIndex).toBeNull();
+      expect(res208_1h.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+    });
+
+    it("O3 1h: calculates Very Poor acute photolytic spike at 208.1 and 209.0 µg/m³", () => {
       const res208_1_1h = calculatePollutantSubIndex(make1h("O3", 208.1));
-      expect(res208_1_1h.subIndex).toBe(301);
+      expect(res208_1_1h.rawMathematicalSubIndex).toBeCloseTo(300.0185, 4);
+      expect(res208_1_1h.subIndex).toBe(300);
       expect(res208_1_1h.category).toBe("VERY_POOR");
       expect(res208_1_1h.qualityFlag).toBe("VERIFIED");
 
-      // 3. Test value 748 µg/m³:
-      // 8-hour: REJECTED (> 208)
-      expect(calculatePollutantSubIndex(make8h("O3", 748)).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
-
-      // 1-hour: VALID (boundary of Very Poor -> subIndex 400)
-      const res748_1h = calculatePollutantSubIndex(make1h("O3", 748));
-      expect(res748_1h.subIndex).toBe(400);
-      expect(res748_1h.category).toBe("VERY_POOR");
-      expect(res748_1h.qualityFlag).toBe("VERIFIED");
-
-      // 4. Test value 748.1 µg/m³:
-      // 8-hour: REJECTED (> 208)
-      expect(calculatePollutantSubIndex(make8h("O3", 748.1)).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
-
-      // 1-hour: VALID (Severe range -> subIndex 401)
-      const res748_1_1h = calculatePollutantSubIndex(make1h("O3", 748.1));
-      expect(res748_1_1h.subIndex).toBe(401);
-      expect(res748_1_1h.category).toBe("SEVERE");
-      expect(res748_1_1h.qualityFlag).toBe("VERIFIED");
-
-      // 5. Test value 1288 µg/m³ (1h Severe top anchor):
-      const res1288_1h = calculatePollutantSubIndex(make1h("O3", 1288));
-      expect(res1288_1h.subIndex).toBe(500);
-      expect(res1288_1h.category).toBe("SEVERE");
-      expect(res1288_1h.isReportingCeilingCapped).toBe(false);
+      const res209_1h = calculatePollutantSubIndex(make1h("O3", 209.0));
+      expect(res209_1h.rawMathematicalSubIndex).toBeCloseTo(300.1852, 4);
+      expect(res209_1h.subIndex).toBe(300);
+      expect(res209_1h.category).toBe("VERY_POOR");
     });
-  });
 
-  describe("Reporting Ceiling vs Genuine Instrument Anomalies", () => {
-    it("distinguishes valid severe measurements reaching AQI ceiling from sensor faults", () => {
-      // 1. Valid Severe measurement reaching 500 reporting ceiling (e.g. PM2.5 = 500 during crop residue burning)
-      const mCeilingPm25 = make24h("PM2.5", 500);
-      const resCeiling = calculatePollutantSubIndex(mCeilingPm25);
-      expect(resCeiling.subIndex).toBe(500);
-      expect(resCeiling.category).toBe("SEVERE");
-      expect(resCeiling.qualityFlag).toBe("VERIFIED"); // Real measurement, NOT sensor fault!
-      expect(resCeiling.isReportingCeilingCapped).toBe(true);
-      expect(resCeiling.concentration).toBe(500); // Raw concentration preserved
+    it("O3 1h: evaluates boundary at 748.0 (Very Poor, 400) and 748.1 (Severe, 400)", () => {
+      const res748 = calculatePollutantSubIndex(make1h("O3", 748.0));
+      expect(res748.subIndex).toBe(400);
+      expect(res748.category).toBe("VERY_POOR");
 
-      // 2. Valid Severe CO reaching reporting ceiling (e.g. 75 mg/m³ near industrial kiln)
-      const mCeilingCo = make8h("CO", 75, "mg/m³");
-      const resCeilingCo = calculatePollutantSubIndex(mCeilingCo);
-      expect(resCeilingCo.subIndex).toBe(500);
-      expect(resCeilingCo.category).toBe("SEVERE");
-      expect(resCeilingCo.qualityFlag).toBe("VERIFIED");
-      expect(resCeilingCo.isReportingCeilingCapped).toBe(true);
-      expect(resCeilingCo.concentration).toBe(75);
+      const res748_1 = calculatePollutantSubIndex(make1h("O3", 748.1));
+      expect(res748_1.rawMathematicalSubIndex).toBeCloseTo(400.0185, 4);
+      expect(res748_1.subIndex).toBe(400);
+      expect(res748_1.category).toBe("SEVERE");
+    });
 
-      // 3. Genuine instrument anomaly exceeding physically possible ambient concentrations
-      // (PM2.5 > 2500 µg/m³ represents stuck register or shorted analyzer)
-      const mFaultPm25 = make24h("PM2.5", 3000);
-      const resFault = calculatePollutantSubIndex(mFaultPm25);
-      expect(resFault.subIndex).toBeNull();
-      expect(resFault.category).toBeNull();
-      expect(resFault.qualityFlag).toBe("INVALID_SENSOR_READING");
+    it("O3 1h: evaluates Severe continuation at 1000.0, 1288.0, and 1350.0 µg/m³", () => {
+      const res1000 = calculatePollutantSubIndex(make1h("O3", 1000.0));
+      expect(res1000.rawMathematicalSubIndex).toBeCloseTo(446.6667, 3);
+      expect(res1000.subIndex).toBe(447);
+      expect(res1000.category).toBe("SEVERE");
 
-      // CO > 150 mg/m³ represents sensor hardware malfunction
-      const mFaultCo = make8h("CO", 200, "mg/m³");
-      const resFaultCo = calculatePollutantSubIndex(mFaultCo);
-      expect(resFaultCo.subIndex).toBeNull();
-      expect(resFaultCo.qualityFlag).toBe("INVALID_SENSOR_READING");
+      const res1288 = calculatePollutantSubIndex(make1h("O3", 1288.0));
+      expect(res1288.subIndex).toBe(500);
+      expect(res1288.category).toBe("SEVERE");
+      expect(res1288.isBeyondNominalScale).toBe(false);
+
+      const res1350 = calculatePollutantSubIndex(make1h("O3", 1350.0));
+      expect(res1350.rawMathematicalSubIndex).toBeCloseTo(511.4815, 3);
+      expect(res1350.subIndex).toBe(511);
+      expect(res1350.isBeyondNominalScale).toBe(true);
+      expect(res1350.reportingCeilingCappedAqi).toBe(500);
+      expect(res1350.qualityFlag).toBe("EXCEEDS_SEVERE_FORMULA_ANCHOR");
+    });
+
+    it("O3 1h: rejects concentrations beyond physical ceiling (>2500 µg/m³)", () => {
+      expect(calculatePollutantSubIndex(make1h("O3", 2501.0)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
   });
 
   describe("Invalid & Fault Readings Handling", () => {
     it("strictly rejects negative concentrations, NaN, Infinity, null, and undefined", () => {
-      // Negative concentrations (e.g. sensor error -999, -1)
-      const mNeg = make24h("PM2.5", -999);
-      const resNeg = calculatePollutantSubIndex(mNeg);
-      expect(resNeg.subIndex).toBeNull();
-      expect(resNeg.category).toBeNull();
-      expect(resNeg.qualityFlag).toBe("INVALID_SENSOR_READING");
-
-      const mNegSmall = make24h("PM2.5", -0.01);
-      expect(calculatePollutantSubIndex(mNegSmall).qualityFlag).toBe("INVALID_SENSOR_READING");
-
-      // NaN
-      const mNan = make24h("PM10", NaN);
-      expect(calculatePollutantSubIndex(mNan).qualityFlag).toBe("INVALID_SENSOR_READING");
-
-      // Infinity
-      const mInf = make24h("NO2", Infinity);
-      expect(calculatePollutantSubIndex(mInf).qualityFlag).toBe("INVALID_SENSOR_READING");
-
-      // Null / Undefined
-      const mNull = make24h("SO2", null as unknown as number);
-      expect(calculatePollutantSubIndex(mNull).qualityFlag).toBe("INVALID_SENSOR_READING");
+      // @ts-expect-error testing null
+      expect(calculatePollutantSubIndex(make24h("PM2.5", null)).qualityFlag).toBe("INVALID_SENSOR_READING");
+      // @ts-expect-error testing undefined
+      expect(calculatePollutantSubIndex(make24h("PM2.5", undefined)).qualityFlag).toBe("INVALID_SENSOR_READING");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", NaN)).qualityFlag).toBe("INVALID_SENSOR_READING");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", Infinity)).qualityFlag).toBe("INVALID_SENSOR_READING");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", -1)).qualityFlag).toBe("INVALID_SENSOR_READING");
+      expect(calculatePollutantSubIndex(make24h("PM2.5", -999)).qualityFlag).toBe("INVALID_SENSOR_READING");
     });
 
     it("rejects incompatible averaging windows for pollutants", () => {
-      // PM2.5 requires 24h; passing 8h must fail
-      const mBadWindow: RawPollutantMeasurement = {
+      const pm25_8h: RawPollutantMeasurement = {
         pollutant: "PM2.5",
-        concentration: 55,
+        concentration: 60,
         unit: "µg/m³",
-        averagingWindowHours: 8 as 24, // invalid for PM2.5
+        averagingWindowHours: 8,
         recordedAtUtc: new Date().toISOString(),
         validHoursInWindow: 8
       };
-      const res = calculatePollutantSubIndex(mBadWindow);
-      expect(res.subIndex).toBeNull();
-      expect(res.qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
+      expect(calculatePollutantSubIndex(pm25_8h).qualityFlag).toBe("INCOMPATIBLE_AVERAGING_WINDOW");
     });
 
     it("flags INSUFFICIENT_WINDOW when valid hours fail statutory requirement", () => {
-      // 15 hours for 24h window (< 16h requirement)
       const m15 = { ...make24h("PM2.5", 55), validHoursInWindow: 15 };
       const res15 = calculatePollutantSubIndex(m15);
       expect(res15.subIndex).toBeNull();
       expect(res15.qualityFlag).toBe("INSUFFICIENT_WINDOW");
 
-      // 5 hours for 8h window (< 6h requirement)
       const m5 = { ...make8h("CO", 1.5, "mg/m³"), validHoursInWindow: 5 };
       const res5 = calculatePollutantSubIndex(m5);
       expect(res5.subIndex).toBeNull();
@@ -360,7 +471,7 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
   });
 
   describe("getCategoryFromAqi", () => {
-    it("correctly maps numeric AQI to CPCB NAQI categories", () => {
+    it("correctly maps numeric AQI to CPCB NAQI categories across all bands", () => {
       expect(getCategoryFromAqi(0)).toBe("GOOD");
       expect(getCategoryFromAqi(50)).toBe("GOOD");
       expect(getCategoryFromAqi(51)).toBe("SATISFACTORY");
@@ -373,6 +484,7 @@ describe("CPCB Sub-Index Calculator (Piecewise Linear Interpolation & Statutory 
       expect(getCategoryFromAqi(400)).toBe("VERY_POOR");
       expect(getCategoryFromAqi(401)).toBe("SEVERE");
       expect(getCategoryFromAqi(500)).toBe("SEVERE");
+      expect(getCategoryFromAqi(650)).toBe("SEVERE");
     });
   });
 });

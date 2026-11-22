@@ -290,4 +290,120 @@ describe("Trusted Aggregation Boundary (Rolling-Window Aggregator)", () => {
     });
     expect(manualExplicit.completenessPolicy).toBe("OFFICIAL_CPCB_STATUTORY_16H");
   });
+
+  it("correctly sorts out-of-order timestamp readings chronologically", () => {
+    const unordered: HourlyPollutantReading[] = [
+      {
+        readingId: "u3",
+        stationId,
+        pollutant: "PM2.5",
+        concentration: 60,
+        unit: "µg/m³",
+        timestampUtc: new Date(nowMs - 2 * 3600 * 1000).toISOString()
+      },
+      {
+        readingId: "u1",
+        stationId,
+        pollutant: "PM2.5",
+        concentration: 80,
+        unit: "µg/m³",
+        timestampUtc: now
+      },
+      {
+        readingId: "u2",
+        stationId,
+        pollutant: "PM2.5",
+        concentration: 70,
+        unit: "µg/m³",
+        timestampUtc: new Date(nowMs - 3600 * 1000).toISOString()
+      }
+    ];
+
+    const res = aggregateRollingHourlyWindow(stationId, "PM2.5", unordered, 24, now);
+    expect(res.earliestReadingUtc).toBe(new Date(nowMs - 2 * 3600 * 1000).toISOString());
+    expect(res.latestReadingUtc).toBe(now);
+    expect(res.validHoursCount).toBe(3);
+  });
+
+  it("enforces window boundary inclusivity: discards readings strictly older than the window", () => {
+    // 24-hr window: readings older than 24 hours must be excluded
+    const readings: HourlyPollutantReading[] = [
+      ...generateHourlySeries(24, 75, "PM2.5"), // 0h to 23h ago (within 24h)
+      {
+        readingId: "too-old",
+        stationId,
+        pollutant: "PM2.5",
+        concentration: 90,
+        unit: "µg/m³",
+        timestampUtc: new Date(nowMs - 25 * 3600 * 1000).toISOString() // 25 hours old
+      }
+    ];
+
+    const res = aggregateRollingHourlyWindow(stationId, "PM2.5", readings, 24, now);
+    expect(res.validHoursCount).toBe(24);
+  });
+
+  it("handles ISO-8601 timestamps with Indian Standard Time (IST +05:30) offset seamlessly", () => {
+    const istTime = "2026-11-20T17:30:00+05:30"; // equivalent to 12:00:00Z
+    const readings: HourlyPollutantReading[] = [
+      {
+        readingId: "ist-1",
+        stationId,
+        pollutant: "PM2.5",
+        concentration: 65,
+        unit: "µg/m³",
+        timestampUtc: istTime
+      }
+    ];
+
+    const res = aggregateRollingHourlyWindow(stationId, "PM2.5", readings, 24, now);
+    expect(res.latestReadingUtc).toBe(istTime);
+    expect(res.ageMinutes).toBeCloseTo(0, 0);
+  });
+
+  it("supports 1-hour acute ozone window aggregation requiring at least 1 valid hour", () => {
+    const reading1h: HourlyPollutantReading[] = [
+      {
+        readingId: "o3-acute",
+        stationId,
+        pollutant: "O3",
+        concentration: 250,
+        unit: "µg/m³",
+        timestampUtc: now
+      }
+    ];
+
+    const res = aggregateRollingHourlyWindow(stationId, "O3", reading1h, 1, now);
+    expect(res.isSufficient).toBe(true);
+    expect(res.validHoursCount).toBe(1);
+    expect(res.averagingWindowHours).toBe(1);
+    expect(res.rollingAverageConcentration).toBe(250);
+  });
+
+  it("handles missing hourly readings without silently fabricating or zeroing unmeasured hours", () => {
+    // Only 17 readings across 24h (7 hours missing). Average must be computed across the 17 valid hours only!
+    const series17 = generateHourlySeries(17, 100, "PM10");
+    const res = aggregateRollingHourlyWindow(stationId, "PM10", series17, 24, now);
+    expect(res.isSufficient).toBe(true);
+    expect(res.validHoursCount).toBe(17);
+    // Arithmetic average of 100 + (i % 5) for i=0..16 is ~101.9, NOT diluted by 7 imaginary zero-hours
+    expect(res.rollingAverageConcentration).toBeGreaterThan(95);
+  });
+
+  it("guarantees that created validated measurements are immutable and frozen", () => {
+    const measurement = createValidatedAggregatedMeasurement({
+      stationId,
+      pollutant: "PM2.5",
+      concentration: 50,
+      unit: "µg/m³",
+      averagingWindowHours: 24,
+      recordedAtUtc: now,
+      validHoursInWindow: 20
+    });
+
+    expect(Object.isFrozen(measurement)).toBe(true);
+    expect(() => {
+      (measurement as { concentration: number }).concentration = 100;
+    }).toThrow();
+  });
 });

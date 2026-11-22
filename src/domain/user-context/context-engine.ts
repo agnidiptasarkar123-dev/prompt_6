@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { HouseholdContext } from "@/schemas/user-context.schema";
 import { assessMemberVulnerabilities, MemberVulnerabilityAssessment } from "./sensitivity-evaluator";
 import { evaluateRoutineExposureWindows, DiurnalExposureWindow } from "./routine-calculator";

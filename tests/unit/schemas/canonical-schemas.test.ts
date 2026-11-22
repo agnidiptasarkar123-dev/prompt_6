@@ -119,10 +119,13 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
       concentration: 135,
       unit: "µg/m³",
       subIndex: 312,
+      rawMathematicalSubIndex: 311.54,
       category: "VERY_POOR",
       windowHours: 24,
       validHours: 20,
-      qualityFlag: "VERIFIED"
+      qualityFlag: "VERIFIED",
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 312
     };
     expect(CpcbSubIndexSchema.safeParse(subIndexSample).success).toBe(true);
 
@@ -130,11 +133,14 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
       stationId: "site_301",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 312,
+      rawMathematicalAqi: 311.54,
       category: "VERY_POOR",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [subIndexSample],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 312,
       explanation: "AQI 312 driven by PM2.5 sub-index."
     };
     expect(CpcbAqiResultSchema.safeParse(validResult).success).toBe(true);
@@ -146,10 +152,13 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
       concentration: 150,
       unit: "µg/m³",
       subIndex: 323,
+      rawMathematicalSubIndex: 323.08,
       category: "VERY_POOR",
       windowHours: 24,
       validHours: 20,
-      qualityFlag: "VERIFIED"
+      qualityFlag: "VERIFIED",
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 323
     };
 
     const snapshot = {
@@ -172,11 +181,14 @@ describe("Canonical Domain Schemas (Zod Boundary Validation)", () => {
         stationId: "site_301",
         calculatedAtUtc: new Date().toISOString(),
         overallAqi: 323,
+        rawMathematicalAqi: 323.08,
         category: "VERY_POOR",
         prominentPollutant: "PM2.5",
         sufficiencyStatus: "SUFFICIENT",
         completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
         subIndices: [subIndexSample],
+        isBeyondNominalScale: false,
+        reportingCeilingCappedAqi: 323,
         explanation: "AQI 323"
       },
       rawMeasurements: [

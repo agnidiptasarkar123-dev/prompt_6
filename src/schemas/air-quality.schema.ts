@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { z } from "zod";
 import { DataProvenanceRecordSchema } from "./provenance.schema";
 import { CpcbAqiResultSchema } from "./cpcb.schema";

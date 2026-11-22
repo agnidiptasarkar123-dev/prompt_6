@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { RecommendationResponse, RecommendationAction } from "@/schemas/recommendation.schema";
 import { HouseholdContext } from "@/schemas/user-context.schema";
 import { CpcbAqiResult } from "@/schemas/cpcb.schema";
@@ -11,7 +12,9 @@ import { determineVentilationStrategy } from "../indoor/ventilation-decision";
  * Generates transparent, category-aware, evidence-grounded recommendations without AI.
  * 
  * CRITICAL RULE: NEVER invents air quality measurements.
- * If measurements are unavailable, it generates safe precautionary advice and states data is unobserved.
+ * If measurements are unavailable or insufficient, current AQI remains unobserved
+ * and the engine NEVER defaults to "MODERATE". It generates general precautionary
+ * advice and explicitly states that air quality has not been verified.
  */
 export function generateDeterministicRecommendations(
   context: HouseholdContext,
@@ -19,20 +22,96 @@ export function generateDeterministicRecommendations(
   nowUtc: string = new Date().toISOString()
 ): RecommendationResponse {
   const isDataAvailable = cpcbResult !== null && cpcbResult.overallAqi !== null && cpcbResult.category !== null;
-  const category = isDataAvailable ? cpcbResult.category! : "MODERATE";
-  const aqiValue = isDataAvailable ? cpcbResult.overallAqi : "Unobserved";
-  const advisory = CPCB_HEALTH_ADVISORIES[category];
-
   const actions: RecommendationAction[] = [];
 
-  // Evidence citation base
-  const evidenceId = isDataAvailable
-    ? `EVID-STATION-${cpcbResult.stationId}-AQI-${cpcbResult.overallAqi}`
-    : "EVID-SEASONAL-CLIMATOLOGY";
+  if (!isDataAvailable) {
+    // Unobserved air quality path: never default to MODERATE or fabricate evidence
+    const unobservedEvidenceId = "EVID-UNOBSERVED-STATION-DATA";
+    const unobservedSource = "Notice: Real-time air quality observation unavailable or insufficient at this location";
 
-  const evidenceSource = isDataAvailable
-    ? `Station ${cpcbResult.stationId} CPCB Sub-Index Engine (Type B Calculated AQI)`
-    : "Seasonal Atmospheric Climatology Guidance (Unobserved Baseline)";
+    // 1. General Precautionary Ventilation Guidance
+    actions.push({
+      actionId: crypto.randomUUID(),
+      category: "VENTILATION_WINDOW",
+      urgency: "SCHEDULED",
+      actionSummary: "Ventilate cautiously during midday if outdoor air appears clear; keep windows closed during early morning haze.",
+      reasoning: "Without real-time monitoring, follow general precautions: avoid morning and late evening winter ventilation when surface temperature inversions trap emissions.",
+      implementationMethod: "Inspect outdoor visibility; if no visible haze or smoke is present, open windows briefly during early afternoon (12:00–15:00) for cross-ventilation.",
+      expectedExposureReduction: "Provides fresh air while minimizing unverified outdoor particulate ingress.",
+      applicableConstraintsOrLimits: "Precautionary guidance: verify local visual conditions before ventilating.",
+      evidenceReferences: [
+        {
+          evidenceId: unobservedEvidenceId,
+          source: unobservedSource,
+          measuredValue: "UNOBSERVED (No verified station data)",
+          timestamp: nowUtc
+        }
+      ]
+    });
+
+    // 2. Sensitive Member Precaution
+    const hasSensitiveMember = context.members.some(
+      (m) => m.sensitivities.respiratorySensitivity || m.sensitivities.cardiovascularSensitivity || m.sensitivities.pregnancy
+    );
+    if (hasSensitiveMember) {
+      actions.push({
+        actionId: crypto.randomUUID(),
+        category: "EXERCISE_ADAPTATION",
+        urgency: "SCHEDULED",
+        actionSummary: "Sensitive household members should keep prescribed medication accessible when outdoors.",
+        reasoning: "Because ambient air quality is unverified, individuals with asthma, respiratory illness, or cardiac conditions should maintain standard medical precautions.",
+        implementationMethod: "Carry quick-relief inhalers and avoid prolonged strenuous exertion outdoors until verified air quality data is available.",
+        expectedExposureReduction: "Reduces risk of acute respiratory exacerbation during unmonitored pollution spikes.",
+        applicableConstraintsOrLimits: "Precautionary advice; non-diagnostic guidance.",
+        evidenceReferences: [
+          {
+            evidenceId: unobservedEvidenceId,
+            source: unobservedSource,
+            measuredValue: "UNOBSERVED (Sensitive member precaution)",
+            timestamp: nowUtc
+          }
+        ]
+      });
+    }
+
+    // 3. Indoor Source Control
+    if (context.dwelling.indoorSources.incenseOrDhoopDaily) {
+      actions.push({
+        actionId: crypto.randomUUID(),
+        category: "SOURCE_CONTROL_INDOOR",
+        urgency: "SCHEDULED",
+        actionSummary: "Reduce or substitute daily incense (agarbatti/dhoop) burning.",
+        reasoning: "Burning incense indoors generates high concentrations of PM2.5, benzene, and polycyclic aromatic hydrocarbons.",
+        implementationMethod: "Substitute with LED lights, electric diffusers without combustion, or ventilate immediately following brief prayer rituals.",
+        expectedExposureReduction: "Removes up to 80% of localized indoor particulate spikes.",
+        applicableConstraintsOrLimits: "Cultural practice adaptation; non-judgmental guidance.",
+        evidenceReferences: [
+          {
+            evidenceId: unobservedEvidenceId,
+            source: unobservedSource,
+            measuredValue: "Indoor Source Combustion Profile",
+            timestamp: nowUtc
+          }
+        ]
+      });
+    }
+
+    return {
+      recommendationId: crypto.randomUUID(),
+      generatedAtUtc: nowUtc,
+      generator: "RULE_ENGINE",
+      overallRiskSummary: "Current local air quality has not been verified: monitoring station data is unavailable or has insufficient hourly readings. Providing precautionary guidance without assumed pollution levels.",
+      actions
+    };
+  }
+
+  // Verified Data Path:
+  const category = cpcbResult.category!;
+  const aqiValue = cpcbResult.overallAqi!;
+  const advisory = CPCB_HEALTH_ADVISORIES[category];
+
+  const evidenceId = `EVID-STATION-${cpcbResult.stationId}-AQI-${cpcbResult.overallAqi}`;
+  const evidenceSource = `Station ${cpcbResult.stationId} CPCB Sub-Index Engine (Type B Calculated AQI)`;
 
   // 1. Ventilation Guidance Action (Integrated with Indoor Combustion Hazard Check)
   const ventDecision = determineVentilationStrategy(category, context.dwelling);
@@ -51,7 +130,7 @@ export function generateDeterministicRecommendations(
       {
         evidenceId,
         source: evidenceSource,
-        measuredValue: isDataAvailable ? `AQI ${aqiValue} (${category})` : "Unobserved ambient air",
+        measuredValue: `AQI ${aqiValue} (${category})`,
         timestamp: nowUtc
       }
     ]
@@ -76,7 +155,7 @@ export function generateDeterministicRecommendations(
           {
             evidenceId,
             source: evidenceSource,
-            measuredValue: isDataAvailable ? `AQI ${aqiValue} (${category})` : "Unobserved ambient air",
+            measuredValue: `AQI ${aqiValue} (${category})`,
             timestamp: nowUtc
           }
         ]
@@ -130,9 +209,7 @@ export function generateDeterministicRecommendations(
     });
   }
 
-  const overallRiskSummary = isDataAvailable
-    ? `Current air quality is ${category} (AQI ${aqiValue}). ${advisory.generalPublicAdvisory} ${advisory.sensitivePopulationAdvisory}`
-    : `Ambient air quality is currently unobserved. Precautionary health guidance is provided based on seasonal baseline climatology.`;
+  const overallRiskSummary = `Current air quality is ${category} (AQI ${aqiValue}). ${advisory.generalPublicAdvisory} ${advisory.sensitivePopulationAdvisory}`;
 
   return {
     recommendationId: crypto.randomUUID(),

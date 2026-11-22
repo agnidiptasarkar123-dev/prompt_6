@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CpcbCategory } from "@/schemas/cpcb.schema";
 import { RoutineActivity } from "@/schemas/routine.schema";
 import { HouseholdMember } from "@/schemas/household.schema";

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CpcbPollutantId, PollutantUnit, ValidatedAggregatedMeasurement } from "@/schemas/pollutant.schema";
 import { ObservationQualityFlag } from "@/schemas/freshness.schema";
 import { CPCB_POLLUTANT_CONFIGS } from "./cpcb-constants";
@@ -35,8 +36,43 @@ export interface AggregationResult {
   };
 }
 
+// Module-private unforgeable runtime registry for validated aggregated measurements
+const TRUSTED_METADATA_REGISTRY = new WeakMap<
+  object,
+  {
+    stationId: string;
+    pollutant: CpcbPollutantId;
+    concentration: number;
+    recordedAtUtc: string;
+  }
+>();
+
+/**
+ * Validates that an object was constructed directly by this trusted aggregation factory.
+ * Cannot be forged by JSON deserialization, object spreading, or property tampering.
+ */
+export function isTrustedAggregatedMeasurement(
+  obj: unknown
+): obj is ValidatedAggregatedMeasurement {
+  if (typeof obj !== "object" || obj === null) {
+    return false;
+  }
+  const meta = TRUSTED_METADATA_REGISTRY.get(obj);
+  if (!meta) {
+    return false;
+  }
+  const m = obj as ValidatedAggregatedMeasurement;
+  return (
+    m.stationId === meta.stationId &&
+    m.pollutant === meta.pollutant &&
+    Math.abs(m.concentration - meta.concentration) < 0.0001 &&
+    m.recordedAtUtc === meta.recordedAtUtc
+  );
+}
+
 /**
  * Creates a validated aggregated measurement conforming to the trusted aggregation boundary.
+ * Freezes the instance and registers it in the module-private registry.
  */
 export function createValidatedAggregatedMeasurement(
   input: {
@@ -56,7 +92,7 @@ export function createValidatedAggregatedMeasurement(
       : "ADAPTED_HAWASAATHI_6H"
   );
 
-  return {
+  const measurement: ValidatedAggregatedMeasurement = Object.freeze({
     brand: "VALIDATED_AGGREGATED_MEASUREMENT",
     stationId: input.stationId,
     pollutant: input.pollutant,
@@ -67,7 +103,16 @@ export function createValidatedAggregatedMeasurement(
     validHoursInWindow: input.validHoursInWindow,
     isAggregationValidated: true,
     completenessPolicy: policy
-  };
+  });
+
+  TRUSTED_METADATA_REGISTRY.set(measurement, {
+    stationId: input.stationId,
+    pollutant: input.pollutant,
+    concentration: input.concentration,
+    recordedAtUtc: input.recordedAtUtc
+  });
+
+  return measurement;
 }
 
 /**

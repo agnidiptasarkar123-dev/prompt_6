@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { DwellingContext } from "@/schemas/user-context.schema";
 
 export interface IndoorHazardAssessment {

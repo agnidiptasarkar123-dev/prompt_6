@@ -73,11 +73,14 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       stationId: "ANAND-VIHAR-01",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 345,
+      rawMathematicalAqi: 345.2,
       category: "VERY_POOR",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 345,
       explanation: "AQI 345 driven by PM2.5"
     };
 
@@ -117,11 +120,14 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       stationId: "SITE-01",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 450,
+      rawMathematicalAqi: 450,
       category: "SEVERE",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 450,
       explanation: "AQI 450 driven by PM2.5"
     };
 
@@ -167,16 +173,16 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
 
     expect(recommendation.generator).toBe("RULE_ENGINE");
     expect(recommendation.actions.length).toBeGreaterThanOrEqual(1);
-    expect(recommendation.overallRiskSummary).toContain("unobserved");
+    expect(recommendation.overallRiskSummary).toContain("not been verified");
 
     const ventAction = recommendation.actions.find((a) => a.category === "VENTILATION_WINDOW");
     expect(ventAction).toBeDefined();
-    expect(ventAction!.evidenceReferences[0]!.evidenceId).toBe("EVID-SEASONAL-CLIMATOLOGY");
-    expect(ventAction!.evidenceReferences[0]!.measuredValue).toBe("Unobserved ambient air");
+    expect(ventAction!.evidenceReferences[0]!.evidenceId).toBe("EVID-UNOBSERVED-STATION-DATA");
+    expect(ventAction!.evidenceReferences[0]!.measuredValue).toContain("UNOBSERVED");
 
     const exerciseAction = recommendation.actions.find((a) => a.category === "EXERCISE_ADAPTATION");
     expect(exerciseAction).toBeDefined();
-    expect(exerciseAction!.evidenceReferences[0]!.measuredValue).toBe("Unobserved ambient air");
+    expect(exerciseAction!.evidenceReferences[0]!.measuredValue).toContain("UNOBSERVED");
   });
 
   it("recommends commute timing shifts and indoor source control when applicable", () => {
@@ -214,11 +220,14 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       stationId: "SITE-02",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 280,
+      rawMathematicalAqi: 280,
       category: "POOR",
       prominentPollutant: "PM10",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 280,
       explanation: "AQI 280 driven by PM10"
     };
 
@@ -275,11 +284,14 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       stationId: "SITE-MOD",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 150,
+      rawMathematicalAqi: 150,
       category: "MODERATE",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 150,
       explanation: "AQI 150"
     };
 
@@ -293,11 +305,14 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
       stationId: "SITE-GOOD",
       calculatedAtUtc: new Date().toISOString(),
       overallAqi: 35,
+      rawMathematicalAqi: 35,
       category: "GOOD",
       prominentPollutant: "PM2.5",
       sufficiencyStatus: "SUFFICIENT",
       completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
       subIndices: [],
+      isBeyondNominalScale: false,
+      reportingCeilingCappedAqi: 35,
       explanation: "AQI 35"
     };
 
@@ -306,5 +321,129 @@ describe("Deterministic Recommendation Engine (Transparent, Evidence-Grounded)",
     expect(ventGood).toBeDefined();
     expect(ventGood!.urgency).toBe("SCHEDULED");
     expect(ventGood!.actionSummary).toContain("Open opposite windows");
+  });
+
+  describe("Missing / Unobserved Data Handling (Section 9.1 Invariant)", () => {
+    it("handles null cpcbResult by stating unobserved and NEVER defaulting to MODERATE", () => {
+      const rec = generateDeterministicRecommendations(sampleContext, null);
+      expect(rec.generator).toBe("RULE_ENGINE");
+      expect(rec.overallRiskSummary).toContain("Current local air quality has not been verified");
+      expect(rec.overallRiskSummary).not.toContain("MODERATE");
+
+      // Actions must be general precautions
+      expect(rec.actions.length).toBeGreaterThanOrEqual(1);
+      const vent = rec.actions.find((a) => a.category === "VENTILATION_WINDOW");
+      expect(vent).toBeDefined();
+      expect(vent!.actionSummary).toContain("Ventilate cautiously");
+      expect(vent!.evidenceReferences[0]!.evidenceId).toBe("EVID-UNOBSERVED-STATION-DATA");
+      expect(vent!.evidenceReferences[0]!.measuredValue).toContain("UNOBSERVED");
+    });
+
+    it("handles cpcbResult with null overallAqi (insufficient stations) without inventing measurements", () => {
+      const insufficientResult: CpcbAqiResult = {
+        stationId: "SITE-INSUFFICIENT",
+        calculatedAtUtc: new Date().toISOString(),
+        overallAqi: null,
+        rawMathematicalAqi: null,
+        category: null,
+        prominentPollutant: null,
+        sufficiencyStatus: "INSUFFICIENT_DATA",
+        completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
+        subIndices: [],
+        isBeyondNominalScale: false,
+        reportingCeilingCappedAqi: null,
+        explanation: "Fewer than 3 pollutants"
+      };
+
+      const rec = generateDeterministicRecommendations(sampleContext, insufficientResult);
+      expect(rec.overallRiskSummary).toContain("Current local air quality has not been verified");
+      expect(rec.overallRiskSummary).not.toContain("MODERATE");
+      for (const a of rec.actions) {
+        expect(a.evidenceReferences[0]!.evidenceId).toBe("EVID-UNOBSERVED-STATION-DATA");
+      }
+    });
+
+    it("generates sensitive member precautionary advice when AQI is unobserved", () => {
+      const sensitiveContext: HouseholdContext = {
+        ...sampleContext,
+        members: [
+          {
+            id: "mem-asthma-only",
+            nickname: "Meera",
+            ageBracket: "ADULT_18_59",
+            sensitivities: {
+              respiratorySensitivity: true,
+              cardiovascularSensitivity: false,
+              pregnancy: false,
+              allergiesOrSinusitis: false
+            },
+            dailyOutdoorHoursEstimate: 1
+          }
+        ]
+      };
+
+      const rec = generateDeterministicRecommendations(sensitiveContext, null);
+      const medAction = rec.actions.find((a) => a.category === "EXERCISE_ADAPTATION");
+      expect(medAction).toBeDefined();
+      expect(medAction!.actionSummary).toContain("prescribed medication accessible");
+      expect(medAction!.evidenceReferences[0]!.measuredValue).toContain("UNOBSERVED");
+    });
+  });
+
+  describe("Indoor Combustion Override & Source Control", () => {
+    it("triggers IMMEDIATE ventilation override during Severe smog when unvented combustion is present", () => {
+      const combustionContext: HouseholdContext = {
+        ...sampleContext,
+        dwelling: {
+          ...sampleContext.dwelling,
+          cooking: {
+            primaryFuel: "BIOMASS_KEROSENE", // Solid biomass/kerosene fuel!
+            kitchenVentilation: "OPEN_WINDOW_ONLY",
+            averageDailyCookingHours: 2.0
+          }
+        }
+      };
+
+      const severeResult: CpcbAqiResult = {
+        stationId: "SITE-SEVERE",
+        calculatedAtUtc: new Date().toISOString(),
+        overallAqi: 480,
+        rawMathematicalAqi: 480,
+        category: "SEVERE",
+        prominentPollutant: "PM2.5",
+        sufficiencyStatus: "SUFFICIENT",
+        completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
+        subIndices: [],
+        isBeyondNominalScale: false,
+        reportingCeilingCappedAqi: 480,
+        explanation: "AQI 480"
+      };
+
+      const rec = generateDeterministicRecommendations(combustionContext, severeResult);
+      const ventAction = rec.actions.find((a) => a.category === "VENTILATION_WINDOW");
+      expect(ventAction).toBeDefined();
+      expect(ventAction!.urgency).toBe("IMMEDIATE");
+      // Must not advise keeping room sealed while combustion is active!
+      expect(ventAction!.actionSummary).toContain("exhaust fans");
+    });
+
+    it("advises incense substitution during unobserved AQI when daily incense combustion is reported", () => {
+      const incenseContext = {
+        ...sampleContext,
+        dwelling: {
+          ...sampleContext.dwelling,
+          indoorSources: {
+            ...sampleContext.dwelling.indoorSources,
+            incenseOrDhoopDaily: true
+          }
+        }
+      };
+
+      const result = generateDeterministicRecommendations(incenseContext, null);
+      const incenseAction = result.actions.find((a) => a.actionSummary.includes("incense"));
+      expect(incenseAction).toBeDefined();
+      expect(incenseAction!.category).toBe("SOURCE_CONTROL_INDOOR");
+      expect(incenseAction!.evidenceReferences[0]?.evidenceId).toBe("EVID-UNOBSERVED-STATION-DATA");
+    });
   });
 });

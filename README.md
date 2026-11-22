@@ -1,7 +1,7 @@
 # HawaSaathi (हवासार्थी / হাভাসাথী)
 ### Personalised Urban Air Quality Intelligence Platform for Indian Cities
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Branch: main](https://img.shields.io/badge/Branch-main_only-success.svg)]()
 [![Repository Size](https://img.shields.io/badge/Repo_Size-%3C10MB-brightgreen.svg)]()
 [![Security: OWASP ASVS 5.0.0](https://img.shields.io/badge/Security-ASVS_5.0.0_L2-blueviolet.svg)]()
@@ -124,6 +124,9 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 | [Testing Strategy](docs/testing-strategy.md) | Unit, integration, E2E, accessibility, and automated security test suite |
 | [Phase-Wise Development Plan](docs/phase-plan.md) | Milestone roadmap from Phase 0 to Phase 7 and release gates |
 | [Privacy & Authentication](docs/privacy-and-authentication.md) | Local guest mode, Firebase Auth, Firebase Admin SDK BFF pattern, and DPDP Act compliance |
+| [Phase 1 Test Matrix](docs/testing/phase-1-test-matrix.md) | Complete traceability matrix for 147 unit tests and 20 targeted domain mutants |
+| [CPCB Workbook Verification](docs/references/cpcb-calculator-verification.md) | Extraction, formula audits, Severe slope derivations, and Pb omission analysis |
+| [Licensing Architecture](docs/licensing/README.md) | Open-source licensing compliance, data source terms, and third-party notices |
 
 ---
 
@@ -144,14 +147,32 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 
 ## 6. Repository Size & Metrics Transparency
 
-As of the Phase 0 Final Architecture Audit:
-- **Working Tree (Files on Disk):** **528 KB** (includes 252 KB of `.git` metadata and 276 KB of workspace documentation).
-- **Git Loose Objects Database:** **252 KiB** (as reported by `git count-objects -vH`).
+As of Phase 1 Final Closure:
+- **Git Loose Objects Database:** **968 KB** (as reported by `git count-objects -vH`).
+- **Tracked Working Tree Files:** **583 KB**.
 - **Maximum Ceiling:** **10,240 KB (10 MB)**.
 - **Safeguard Enforcement:** Verified continuously via [scripts/check-repo-size.sh](scripts/check-repo-size.sh).
 
 ---
 
-## 7. Project Status & Roadmap
+## 7. Project Status & Implementation Boundary
 
-We are currently in the **Architecture & Planning Phase (Phase 0 Complete, Phase 1 Ready)**. Application feature implementation and package installations are locked, awaiting explicit architecture approval.
+- **Phase 0 (Architecture & Feasibility):** Complete and approved.
+- **Phase 1 (Domain Core & Standards Engine):** Complete and closed with:
+  - **147 distinct unit & domain tests passed (147/147)** across 9 test suites.
+  - **100% Code Coverage** strictly enforced (100% Statements, 100% Branches, 100% Functions, 100% Lines via Vitest V8).
+  - **20 Targeted Domain Mutants Killed (20/20, 100% kill rate)** in isolated OS temp sandbox.
+  - **Non-Forgeable In-Memory Aggregation** enforced via module-private `WeakMap` metadata registry.
+  - Complete, verifiable provenance separation across Types A, B, C, and D data streams.
+- **Phase 2 (Live API Integration):** **STRICTLY LOCKED**. Live API integrations (data.gov.in, OpenAQ, Open-Meteo), Firebase Authentication, Gemini AI client endpoints, and production BFF routes remain strictly locked pending explicit Phase 2 authorization.
+
+---
+
+## 8. Licensing & Third-Party Compliance
+
+- **First-Party Code:** Licensed under the [Apache License 2.0](LICENSE) (`Apache-2.0`).
+- **Data Source Terms & Register:** See [docs/licensing/DATA_SOURCE_REGISTER.md](docs/licensing/DATA_SOURCE_REGISTER.md).
+- **Third-Party Notices:** See [docs/licensing/THIRD_PARTY_NOTICES.md](docs/licensing/THIRD_PARTY_NOTICES.md).
+- **Dependency Inventory (SBOM):** See [docs/licensing/DEPENDENCY_LICENSES.md](docs/licensing/DEPENDENCY_LICENSES.md).
+- **Asset Register:** See [docs/licensing/ASSET_REGISTER.md](docs/licensing/ASSET_REGISTER.md).
+

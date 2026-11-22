@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 import { CpcbPollutantId } from "@/schemas/pollutant.schema";
 import { CPCB_POLLUTANT_CONFIGS } from "./cpcb-constants";
 
