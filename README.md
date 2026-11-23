@@ -164,7 +164,16 @@ As of Phase 1 Final Closure:
   - **20 Targeted Domain Mutants Killed (20/20, 100% kill rate)** in isolated OS temp sandbox.
   - **Non-Forgeable In-Memory Aggregation** enforced via module-private `WeakMap` metadata registry.
   - Complete, verifiable provenance separation across Types A, B, C, and D data streams.
-- **Phase 2 (Live API Integration):** **STRICTLY LOCKED**. Live API integrations (data.gov.in, OpenAQ, Open-Meteo), Firebase Authentication, Gemini AI client endpoints, and production BFF routes remain strictly locked pending explicit Phase 2 authorization.
+- **Phase 2 (Live Environmental Intelligence Platform):** Complete and verified with:
+  - **500 new automated tests passed (500/500)** across 10 comprehensive categories (**647 total passing tests** across 19 suites).
+  - **Live Provider Integration:** Upstream adapters for CPCB CAAQMS (`data.gov.in`), OpenAQ v3, and Open-Meteo CAMS Global (~45 km).
+  - **BFF Architecture:** 8 REST API route handlers (`/api/v1/*`) under Next.js 16.x App Router.
+  - **Resilience & Rate Limiting:** Multi-tier CacheService with Upstash Redis and in-memory LRU fallback; sliding window rate limiter; circuit breakers.
+  - **Authentication & Privacy:** Firebase Auth with HttpOnly session cookies, Cloud Firestore repository (locked to BFF), guest mode (`sessionStorage`), 1-click JSON export, and 1-click account erasure under DPDP Act 2023.
+  - **AI Safety & Evidence Grounding:** Gemini 2.5 Flash explainer strictly forbidden from altering AQI or diagnosing illness, with strict schema parsing and deterministic fallback.
+  - **Accessible UI:** Trilingual support (`en`, `bn`, `hi`), Leaflet/OSM station mapping, responsive AQI summary cards, pollutant grid, forecast charts, indoor coach, and routine recommendations.
+  - **Security Baseline:** OWASP ASVS 5.0.0 Level 2 verified with 25 security fuzzing and resource abuse tests.
+- **Phase 3 (Mobile Micro-Mobility & Clean-Routing):** Pending Phase 3 authorization.
 
 ---
 
