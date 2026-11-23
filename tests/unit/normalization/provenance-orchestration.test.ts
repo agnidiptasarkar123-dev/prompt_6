@@ -511,7 +511,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
   });
 
   // SourceOrchestrator Air Quality & CPCB Sufficiency
-  it("NORM-021: returns AVAILABLE and valid calculatedAqi when 3 pollutants including PM2.5 are present", async () => {
+  it("NORM-021: returns AVAILABLE and valid calculatedAqi when 3 pollutants including PM2.5 are present with verified 24h averaging", async () => {
     const stationId = "cpcb_dl_delhi_ito";
     const observations: NormalizedObservation[] = [
       {
@@ -522,7 +522,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "PM2.5",
         value: 120.0,
         unit: "µg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "24h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -539,7 +539,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "PM10",
         value: 200.0,
         unit: "µg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "24h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -556,7 +556,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "NO2",
         value: 65.0,
         unit: "µg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "24h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -588,7 +588,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
     expect(result.statusMessage).toContain("Independently calculated CPCB-methodology AQI");
   });
 
-  it("NORM-022: returns valid calculatedAqi when 3 pollutants including PM10 are present", async () => {
+  it("NORM-022: returns valid calculatedAqi when 3 pollutants including PM10 are present with verified averaging", async () => {
     const stationId = "cpcb_mh_mumbai_bandra";
     const observations: NormalizedObservation[] = [
       {
@@ -599,7 +599,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "PM10",
         value: 150.0,
         unit: "µg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "24h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -616,7 +616,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "SO2",
         value: 25.0,
         unit: "µg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "24h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -633,7 +633,7 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
         pollutant: "CO",
         value: 1.5,
         unit: "mg/m³",
-        averagingPeriod: "UNKNOWN",
+        averagingPeriod: "8h",
         typology: "TYPE_C_RAW_MEASUREMENT",
         observationTime: "2026-11-22T08:00:00Z",
         sourceUpdateTime: null,
@@ -822,14 +822,14 @@ describe("Normalization, Provenance & Orchestration Tests", () => {
   it("NORM-026: calculates correct overall AQI across all 8 CPCB parameters", async () => {
     const stationId = "cpcb_full_station";
     const observations: NormalizedObservation[] = [
-      { id: "o1", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "PM2.5", value: 180.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o2", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "PM10", value: 310.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o3", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "NO2", value: 75.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o4", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "SO2", value: 30.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o5", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "CO", value: 3.2, unit: "mg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o6", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "O3", value: 85.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o7", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "NH3", value: 120.0, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
-      { id: "o8", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "Pb", value: 0.8, unit: "µg/m³", averagingPeriod: "UNKNOWN", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" }
+      { id: "o1", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "PM2.5", value: 180.0, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o2", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "PM10", value: 310.0, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o3", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "NO2", value: 75.0, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o4", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "SO2", value: 30.0, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o5", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "CO", value: 3.2, unit: "mg/m³", averagingPeriod: "8h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o6", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "O3", value: 85.0, unit: "µg/m³", averagingPeriod: "8h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o7", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "NH3", value: 120.0, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" },
+      { id: "o8", stationId, stationName: "Full", providerId: "CPCB_CAAQMS", pollutant: "Pb", value: 0.8, unit: "µg/m³", averagingPeriod: "24h", typology: "TYPE_C_RAW_MEASUREMENT", observationTime: "2026-11-22T08:00:00Z", sourceUpdateTime: null, retrievalTime: "2026-11-22T08:05:00Z", qualityFlag: "VERIFIED", license: "L", attribution: "A" }
     ];
 
     mockCpcbProvider.getObservations = vi.fn().mockResolvedValue({

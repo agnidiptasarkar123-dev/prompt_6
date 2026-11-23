@@ -48,7 +48,10 @@ export const NormalizedObservationSchema = z.object({
   providerId: z.string().min(1),
   pollutant: PollutantTypeSchema,
   value: z.number().nonnegative(),
-  unit: z.string().min(1),
+  unit: z.string().nullable(), // Nullable when source unit is unverified or missing (never invented)
+  rawUnit: z.string().nullable().optional(),
+  rawValue: z.number().nullable().optional(),
+  rawRecord: z.record(z.string(), z.unknown()).optional(),
   averagingPeriod: AveragingPeriodSchema,
   typology: DataTypologySchema,
   observationTime: z.string().datetime(),

@@ -97,6 +97,42 @@ export class CpcbAdapter implements AirQualityProvider {
     return null;
   }
 
+  public static normalizePollutantUnit(
+    rawUnit: string | null | undefined,
+    pollutant: PollutantType
+  ): {
+    verifiedUnit: "µg/m³" | "mg/m³" | null;
+    rawUnit: string | null;
+    isVerified: boolean;
+    convertedValueMultiplier: number;
+  } {
+    if (!rawUnit || typeof rawUnit !== "string") {
+      return { verifiedUnit: null, rawUnit: null, isVerified: false, convertedValueMultiplier: 1.0 };
+    }
+    const trimmed = rawUnit.trim();
+    if (!trimmed || trimmed === "NA" || trimmed === "None") {
+      return { verifiedUnit: null, rawUnit: null, isVerified: false, convertedValueMultiplier: 1.0 };
+    }
+
+    const norm = trimmed.toLowerCase().replace(/[\s\-_]/g, "");
+    if (norm === "µg/m3" || norm === "ug/m3" || norm === "µg/m³" || norm === "microgram/m3") {
+      return { verifiedUnit: "µg/m³", rawUnit: trimmed, isVerified: true, convertedValueMultiplier: 1.0 };
+    }
+    if (norm === "mg/m3" || norm === "mg/m³" || norm === "milligram/m3") {
+      return { verifiedUnit: "mg/m³", rawUnit: trimmed, isVerified: true, convertedValueMultiplier: 1.0 };
+    }
+    if (norm === "ppm" && pollutant === "CO") {
+      // Verified source unit conversion: 1 ppm CO ≈ 1.145 mg/m³ at 25°C 1 atm
+      return { verifiedUnit: "mg/m³", rawUnit: trimmed, isVerified: true, convertedValueMultiplier: 1.145 };
+    }
+    if (norm === "ppb" && pollutant === "NO2") {
+      // Verified source unit conversion: 1 ppb NO2 ≈ 1.88 µg/m³ at 25°C 1 atm
+      return { verifiedUnit: "µg/m³", rawUnit: trimmed, isVerified: true, convertedValueMultiplier: 1.88 };
+    }
+
+    return { verifiedUnit: null, rawUnit: trimmed, isVerified: false, convertedValueMultiplier: 1.0 };
+  }
+
   public static computeHaversineDistanceKm(
     lat1: number,
     lon1: number,
@@ -182,7 +218,15 @@ export class CpcbAdapter implements AirQualityProvider {
 
       const obsTime = CpcbAdapter.parseCpcbTimestamp(record.last_update);
       const rawAvg = record.pollutant_avg?.trim();
-      const numValue = rawAvg && rawAvg !== "NA" && rawAvg !== "None" ? parseFloat(rawAvg) : NaN;
+      const rawNum = rawAvg && rawAvg !== "NA" && rawAvg !== "None" ? parseFloat(rawAvg) : NaN;
+      const rawValue: number | null = isNaN(rawNum) ? null : rawNum;
+
+      // Extract and verify pollutant unit without inventing missing units
+      const unitInfo = CpcbAdapter.normalizePollutantUnit(record.pollutant_unit, pollutant);
+      let numValue = rawNum;
+      if (!isNaN(numValue) && unitInfo.convertedValueMultiplier !== 1.0) {
+        numValue = Math.round(numValue * unitInfo.convertedValueMultiplier * 100) / 100;
+      }
 
       let entry = stationMap.get(stationId);
       if (!entry) {
@@ -205,6 +249,21 @@ export class CpcbAdapter implements AirQualityProvider {
       }
 
       if (!isNaN(numValue) && numValue >= 0 && obsTime) {
+        const obsDate = new Date(obsTime).getTime();
+        const retDate = new Date(retrievalTime).getTime();
+        const ageHours = !isNaN(obsDate) && !isNaN(retDate) ? (retDate - obsDate) / (1000 * 60 * 60) : NaN;
+
+        let qualityFlag: "VERIFIED" | "PROVISIONAL" | "SUSPICIOUS" | "STALE" = "VERIFIED";
+        if (numValue > 2500) {
+          qualityFlag = "SUSPICIOUS";
+        } else if (!unitInfo.isVerified) {
+          qualityFlag = "PROVISIONAL";
+        } else if (!isNaN(ageHours) && ageHours > 24) {
+          qualityFlag = "STALE";
+        } else if (!isNaN(ageHours) && ageHours > 4) {
+          qualityFlag = "PROVISIONAL";
+        }
+
         observations.push({
           id: `${stationId}_${pollutant}_${obsTime}`,
           stationId,
@@ -212,13 +271,16 @@ export class CpcbAdapter implements AirQualityProvider {
           providerId: this.providerId,
           pollutant,
           value: numValue,
-          unit: pollutant === "CO" ? "mg/m³" : "µg/m³",
+          unit: unitInfo.verifiedUnit, // Null if missing/unverified - never invented
+          rawUnit: unitInfo.rawUnit,
+          rawValue,
+          rawRecord: record as unknown as Record<string, unknown>,
           averagingPeriod: "UNKNOWN", // Strictly UNKNOWN per CPCB telemetry restrictions
           typology: "TYPE_C_RAW_MEASUREMENT",
           observationTime: obsTime,
           sourceUpdateTime: record.last_update || null,
           retrievalTime,
-          qualityFlag: numValue > 2500 ? "SUSPICIOUS" : "VERIFIED",
+          qualityFlag,
           license: CPCB_LICENSE,
           attribution: CPCB_ATTRIBUTION
         });

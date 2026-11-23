@@ -43,9 +43,16 @@ export async function GET(req: NextRequest) {
     return errorResponse(404, "PROFILE_NOT_FOUND", "User profile has not been created yet.");
   }
 
-  return successResponse({
+  const isExport = req.nextUrl.searchParams.get("export") === "json";
+  const res = successResponse({
     data: profile
   });
+
+  if (isExport) {
+    res.headers.set("Content-Disposition", `attachment; filename="hawasaathi-profile-${authUser.uid}.json"`);
+  }
+
+  return res;
 }
 
 export async function PUT(req: NextRequest) {
@@ -88,12 +95,34 @@ export async function DELETE(req: NextRequest) {
     return errorResponse(401, "UNAUTHORIZED", "Valid authentication session cookie is required.");
   }
 
+  // 1. Cascading hard delete: delete profile document and household context from Firestore
   const deleted = await globalProfileRepository.deleteProfile(authUser.uid);
-  return successResponse({
+
+  // 2. Revoke Firebase refresh tokens if Firebase Admin is configured
+  if (globalFirebaseAuth.isConfigured()) {
+    try {
+      await globalFirebaseAuth.revokeRefreshTokens(authUser.uid);
+    } catch (err: unknown) {
+      console.warn("Could not revoke refresh tokens during account deletion:", err);
+    }
+  }
+
+  // 3. Clear HttpOnly session cookie
+  const res = successResponse({
     data: {
       deleted,
       uid: authUser.uid,
-      message: "User profile and all associated context permanently deleted."
+      message: "User profile, associated context, and active sessions permanently deleted."
     }
   });
+
+  res.cookies.set(SESSION_COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 0
+  });
+
+  return res;
 }

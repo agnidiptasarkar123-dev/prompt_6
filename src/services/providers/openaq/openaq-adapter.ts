@@ -222,20 +222,30 @@ export class OpenAQAdapter implements AirQualityProvider {
             if (m.value >= 0) {
               const obsDate = new Date(obsTime).getTime();
               const isStale = !isNaN(obsDate) && Date.now() - obsDate > 24 * 3600 * 1000;
+              const rawUnit = sensor.parameter.units?.trim() || null;
+              const unitInfo = CpcbAdapter.normalizePollutantUnit(rawUnit, pollutant);
+              let val = m.value;
+              if (unitInfo.convertedValueMultiplier !== 1.0) {
+                val = Math.round(val * unitInfo.convertedValueMultiplier * 100) / 100;
+              }
+
               observations.push({
                 id: `openaq_${locIdNum}_${sensor.id}_${obsTime}`,
                 stationId: `openaq_${locIdNum}`,
                 stationName: matched.name,
                 providerId: this.providerId,
                 pollutant,
-                value: m.value,
-                unit: pollutant === "CO" ? "mg/m³" : "µg/m³",
+                value: val,
+                unit: unitInfo.verifiedUnit,
+                rawUnit,
+                rawValue: m.value,
+                rawRecord: m as unknown as Record<string, unknown>,
                 averagingPeriod: "1h",
                 typology: "TYPE_C_RAW_MEASUREMENT",
                 observationTime: obsTime,
                 sourceUpdateTime: null,
                 retrievalTime: retrievedAt,
-                qualityFlag: isStale ? "STALE" : m.value > 2500 ? "SUSPICIOUS" : "VERIFIED",
+                qualityFlag: isStale ? "STALE" : !unitInfo.isVerified ? "PROVISIONAL" : val > 2500 ? "SUSPICIOUS" : "VERIFIED",
                 license: matched.licenses?.[0]?.name || "OpenAQ Contributor License",
                 attribution: `OpenAQ / ${matched.provider?.name || "Community"}`
               });

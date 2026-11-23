@@ -160,6 +160,20 @@ export class SourceOrchestrator {
     let aqiStatus: "AVAILABLE" | "AQI_UNAVAILABLE" | "STALE" = "AQI_UNAVAILABLE";
     let statusMessage = "Overall CPCB AQI unavailable: fewer than 3 valid pollutants monitored or missing particulate parameters.";
 
+    // 1. Enforce strict station and provider isolation
+    for (const obs of observations) {
+      if (obs.stationId !== stationId) {
+        throw new Error(
+          `Station isolation violation: observation stationId '${obs.stationId}' does not match target '${stationId}'`
+        );
+      }
+      if (obs.typology === "TYPE_D_MODEL_FORECAST") {
+        throw new Error(
+          "Typology isolation violation: atmospheric forecast cannot enter measured station observations"
+        );
+      }
+    }
+
     // Group observations by pollutant
     const pollutantGroups = new Map<PollutantType, NormalizedObservation[]>();
     for (const obs of observations) {
@@ -181,14 +195,25 @@ export class SourceOrchestrator {
           const minRequiredHours = pol === "CO" || pol === "O3" ? 6 : 16;
           const baseObs = obsList[0]!;
 
+          // An observation must have a verified physical unit (µg/m³ or mg/m³)
+          if (!baseObs.unit || (baseObs.unit !== "µg/m³" && baseObs.unit !== "mg/m³")) {
+            warnings.push(`Skipping sub-index for ${pol}: unverified or missing unit.`);
+            continue;
+          }
+
+          // Strict sufficiency: a single snapshot observation with averagingPeriod !== "24h" (or "8h")
+          // has validHoursInWindow = obsList.length (e.g. 1), which correctly reflects lack of 16h/6h data sufficiency.
+          const isVerifiedStatutory = baseObs.averagingPeriod === "24h" || (windowHours === 8 && baseObs.averagingPeriod === "8h");
+          const validHoursInWindow = isVerifiedStatutory ? minRequiredHours : obsList.length;
+
           const measurement = createValidatedAggregatedMeasurement({
             stationId,
             pollutant: pol,
             concentration: baseObs.value,
-            unit: baseObs.unit as "µg/m³" | "mg/m³",
-            averagingWindowHours: windowHours as 8 | 24,
+            unit: baseObs.unit,
+            averagingWindowHours: windowHours,
             recordedAtUtc: baseObs.observationTime,
-            validHoursInWindow: minRequiredHours
+            validHoursInWindow
           });
 
           validatedMeasurements.push(measurement);
@@ -200,6 +225,8 @@ export class SourceOrchestrator {
             calculatedAqi = stationResult;
             aqiStatus = "AVAILABLE";
             statusMessage = `Independently calculated CPCB-methodology AQI: ${stationResult.overallAqi} (${stationResult.category}). Prominent: ${stationResult.prominentPollutant}`;
+          } else {
+            statusMessage = stationResult.explanation;
           }
         }
       } catch (err: unknown) {

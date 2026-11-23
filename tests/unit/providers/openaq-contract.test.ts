@@ -428,56 +428,62 @@ describe("OpenAQ v3 Provider Contract Tests", () => {
   });
 
   it("PRV-OAQ-036: getObservations parses measurements and returns NormalizedObservation array", async () => {
-    // First call: location details
-    // Second call: sensor measurements
-    global.fetch = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          results: [
-            {
-              id: 501,
-              name: "Jadavpur, Kolkata",
-              locality: "Kolkata",
-              country: { code: "IN", name: "India" },
-              coordinates: { latitude: 22.49, longitude: 88.37 },
-              sensors: [
-                { id: 9001, parameter: { id: 2, name: "pm25", units: "µg/m³", displayName: "PM2.5" } }
-              ]
-            }
-          ]
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-22T10:00:00Z"));
+    try {
+      // First call: location details
+      // Second call: sensor measurements
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                id: 501,
+                name: "Jadavpur, Kolkata",
+                locality: "Kolkata",
+                country: { code: "IN", name: "India" },
+                coordinates: { latitude: 22.49, longitude: 88.37 },
+                sensors: [
+                  { id: 9001, parameter: { id: 2, name: "pm25", units: "µg/m³", displayName: "PM2.5" } }
+                ]
+              }
+            ]
+          })
         })
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          results: [
-            {
-              period: {
-                datetimeFrom: { utc: "2026-11-22T06:00:00Z", local: "2026-11-22T11:30:00+05:30" },
-                datetimeTo: { utc: "2026-11-22T07:00:00Z", local: "2026-11-22T12:30:00+05:30" }
-              },
-              value: 78.5,
-              parameter: { id: 2, name: "pm25", units: "µg/m³", displayName: "PM2.5" }
-            }
-          ]
-        })
-      });
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            results: [
+              {
+                period: {
+                  datetimeFrom: { utc: "2026-11-22T06:00:00Z", local: "2026-11-22T11:30:00+05:30" },
+                  datetimeTo: { utc: "2026-11-22T07:00:00Z", local: "2026-11-22T12:30:00+05:30" }
+                },
+                value: 78.5,
+                parameter: { id: 2, name: "pm25", units: "µg/m³", displayName: "PM2.5" }
+              }
+            ]
+          })
+        });
 
-    const adapter = new OpenAQAdapter({ apiKey: "key" });
-    const res = await adapter.getObservations({ stationId: "openaq_501" });
+      const adapter = new OpenAQAdapter({ apiKey: "key" });
+      const res = await adapter.getObservations({ stationId: "openaq_501" });
 
-    expect(res.status).toBe("CONFIGURED");
-    expect(res.observations).toHaveLength(1);
-    const obs = res.observations[0]!;
-    expect(obs.pollutant).toBe("PM2.5");
-    expect(obs.value).toBe(78.5);
-    expect(obs.unit).toBe("µg/m³");
-    expect(obs.observationTime).toBe("2026-11-22T07:00:00Z");
-    expect(obs.qualityFlag).toBe("VERIFIED");
+      expect(res.status).toBe("CONFIGURED");
+      expect(res.observations).toHaveLength(1);
+      const obs = res.observations[0]!;
+      expect(obs.pollutant).toBe("PM2.5");
+      expect(obs.value).toBe(78.5);
+      expect(obs.unit).toBe("µg/m³");
+      expect(obs.observationTime).toBe("2026-11-22T07:00:00Z");
+      expect(obs.qualityFlag).toBe("VERIFIED");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("PRV-OAQ-037: getObservations filters out negative and NaN values", async () => {

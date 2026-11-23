@@ -402,9 +402,12 @@ describe("Cache, Rate Limiting & Resilience Tests", () => {
     const resLocal = await localLimiter.checkLimit("id_1");
     expect(resLocal.isDistributed).toBe(false);
 
-    const distLimiter = new RateLimiter(
-      new RedisService({ url: "https://redis.io", token: "tok" })
-    );
+    const distRedis = new RedisService({ url: "https://redis.io", token: "tok" });
+    vi.spyOn(distRedis, "incrementRateLimit").mockResolvedValue({
+      count: 1,
+      resetSeconds: 60
+    });
+    const distLimiter = new RateLimiter(distRedis);
     const resDist = await distLimiter.checkLimit("id_2");
     expect(resDist.isDistributed).toBe(true);
   });

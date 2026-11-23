@@ -44,10 +44,10 @@ Every contributor, agent, and subagent working on HawaSaathi MUST abide by these
 - **Boundary Validation (Zod):** Every external ingress and egress boundary MUST be validated with Zod schemas.
 
 ### 2.2 Map Visualization & Tile Policies
-- **Tile Provider:** OpenStreetMap Carto tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
-- **Licensing Separation:** OSM database is licensed under Open Database License (ODbL) 1.0; tile layer cartography is licensed under CC BY-SA 2.0. Mandatory attribution: `© OpenStreetMap contributors`.
-- **Tile Terms:** Complies with OpenStreetMap Foundation (OSMF) Tile Usage Policy: client HTTP caching is strictly honored; automated scraping or bulk pre-downloading is prohibited. Standard browser requests carry standard browser headers (custom User-Agent is not required or feasible on browser `<img>` requests).
-- **Alternative Production Providers:** If production traffic exceeds OSMF acceptable usage, fallback to Stadia Maps or self-hosted vector tiles (Protomaps PMTiles via CDN).
+- **Tile Provider:** OpenStreetMap Standard Tile Layer rendered with OSM Carto style (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
+- **Licensing & Attribution:** OpenStreetMap database is licensed under Open Data Commons Open Database License (ODbL) 1.0. Effective July 1, 2020, standard map style tiles from OSMF tile servers are published as a Produced Work under ODbL 1.0 (the outdated CC BY-SA 2.0 license no longer applies). Mandatory attribution: `© OpenStreetMap contributors` linked to `https://www.openstreetmap.org/copyright`.
+- **Tile Terms:** Complies with OpenStreetMap Foundation (OSMF) Tile Usage Policy: client HTTP caching is strictly honored; automated scraping or bulk pre-downloading is prohibited. Standard browser requests carry standard browser headers (custom User-Agent is not required or feasible on browser `<img>` requests). Standard OSM tiles must NOT be used as an unrestricted production tile service.
+- **Alternative Production Providers:** For production scale exceeding OSMF acceptable usage, use commercial tile services (Stadia Maps, Mapbox, CARTO) or self-hosted vector tiles (Protomaps PMTiles via CDN).
 
 ### 2.3 Exception & Error Handling
 - **No Swallowed Exceptions:** Never write empty `catch` blocks or log-and-continue without structured error states.

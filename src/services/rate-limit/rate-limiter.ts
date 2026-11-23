@@ -23,9 +23,52 @@ export class RateLimiter {
     windowSeconds: number = 60
   ): Promise<RateLimitResult> {
     const key = `hs_rl:${identifier}`;
-    const now = Date.now();
+    const isProduction = process.env.NODE_ENV === "production";
 
-    // In-memory / fallback logic
+    // 1. Production / distributed execution via Redis backend
+    if (this.redis.isDistributed()) {
+      const res = await this.redis.incrementRateLimit(key, windowSeconds);
+      if (res !== null) {
+        const allowed = res.count <= limit;
+        const remaining = Math.max(0, limit - res.count);
+        return {
+          allowed,
+          limit,
+          remaining,
+          resetSeconds: res.resetSeconds,
+          isDistributed: true
+        };
+      }
+
+      // Redis failed during execution
+      if (isProduction) {
+        // In production: DO NOT silently fall back to per-instance memory.
+        // Fail-safe abuse protection policy: reject request safely and alert.
+        console.error(`[CRITICAL] Redis rate limit backend failure in production for key: ${key}`);
+        return {
+          allowed: false,
+          limit,
+          remaining: 0,
+          resetSeconds: windowSeconds,
+          isDistributed: false
+        };
+      }
+    }
+
+    // 2. Unconfigured Redis in production
+    if (isProduction) {
+      console.error("[CRITICAL] Production rate limiting requires a distributed Redis backend (UPSTASH_REDIS_REST_URL/TOKEN).");
+      return {
+        allowed: false,
+        limit,
+        remaining: 0,
+        resetSeconds: windowSeconds,
+        isDistributed: false
+      };
+    }
+
+    // 3. Development / Test environment: in-memory sliding window counters permitted
+    const now = Date.now();
     let current = this.localCounters.get(key);
     if (!current || now > current.resetAt) {
       current = { count: 1, resetAt: now + windowSeconds * 1000 };

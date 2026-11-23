@@ -81,6 +81,31 @@ export class RedisService {
   public async clearMemory(): Promise<void> {
     this.inMemoryStore.clear();
   }
+
+  public async incrementRateLimit(
+    key: string,
+    windowSeconds: number
+  ): Promise<{ count: number; resetSeconds: number } | null> {
+    if (this.client) {
+      try {
+        const pipeline = this.client.pipeline();
+        pipeline.incr(key);
+        pipeline.ttl(key);
+        const results = await pipeline.exec<[number, number]>();
+        const count = results[0];
+        let ttl = results[1];
+        if (count === 1 || ttl === -1) {
+          await this.client.expire(key, windowSeconds);
+          ttl = windowSeconds;
+        }
+        return { count, resetSeconds: ttl > 0 ? ttl : windowSeconds };
+      } catch (err: unknown) {
+        console.error("Redis distributed rate limit error:", err);
+        return null;
+      }
+    }
+    return null;
+  }
 }
 
 export const globalRedisService = new RedisService();

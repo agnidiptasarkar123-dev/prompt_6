@@ -396,7 +396,7 @@ describe("CPCB / data.gov.in Provider Contract Tests (45 Scenarios)", () => {
     expect(result.observations).toHaveLength(0);
   });
 
-  it("PRV-CPCB-039: processRecords assigns correct regulatory units (mg/m³ for CO, µg/m³ for PM2.5)", () => {
+  it("PRV-CPCB-039: processRecords normalizes verified units and never invents missing or NA units", () => {
     const adapter = new CpcbAdapter({});
     const records: CpcbRawRecord[] = [
       {
@@ -408,6 +408,7 @@ describe("CPCB / data.gov.in Provider Contract Tests (45 Scenarios)", () => {
         longitude: "88.3426",
         pollutant_id: "CO",
         pollutant_avg: "1.2",
+        pollutant_unit: "mg/m3",
         last_update: "22-11-2026 12:00:00"
       },
       {
@@ -419,6 +420,19 @@ describe("CPCB / data.gov.in Provider Contract Tests (45 Scenarios)", () => {
         longitude: "88.3426",
         pollutant_id: "PM2.5",
         pollutant_avg: "45",
+        pollutant_unit: "µg/m3",
+        last_update: "22-11-2026 12:00:00"
+      },
+      {
+        country: "India",
+        state: "West Bengal",
+        city: "Kolkata",
+        station: "Victoria",
+        latitude: "22.5448",
+        longitude: "88.3426",
+        pollutant_id: "NO2",
+        pollutant_avg: "30",
+        pollutant_unit: "NA",
         last_update: "22-11-2026 12:00:00"
       }
     ];
@@ -426,8 +440,11 @@ describe("CPCB / data.gov.in Provider Contract Tests (45 Scenarios)", () => {
     const result = adapter.processRecords(records, "2026-11-22T06:30:00.000Z");
     const coObs = result.observations.find((o) => o.pollutant === "CO");
     const pm25Obs = result.observations.find((o) => o.pollutant === "PM2.5");
+    const no2Obs = result.observations.find((o) => o.pollutant === "NO2");
     expect(coObs?.unit).toBe("mg/m³");
     expect(pm25Obs?.unit).toBe("µg/m³");
+    expect(no2Obs?.unit).toBeNull(); // Never invented!
+    expect(no2Obs?.qualityFlag).toBe("PROVISIONAL");
   });
 
   it("PRV-CPCB-040: processRecords flags readings above 2500 µg/m³ as SUSPICIOUS", () => {

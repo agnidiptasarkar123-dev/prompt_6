@@ -23,7 +23,7 @@ Every candidate data source is audited against live requests or official technic
 | **Open-Meteo Air Quality (CAMS)** | Atmospheric dispersion model | `https://air-quality-api.open-meteo.com/v1/air-quality?domains=cams_global` | Live HTTP GET via curl (2026-11-20T16:10:06 GMT) | **HTTP 200 OK**<br>120 hourly steps (5 days)<br>Latency: 0.13ms generation | 600 req/min, 10,000 req/day; CC BY 4.0 Non-commercial | **LIVE ACCESS VERIFIED** *(Modelled forecast only)* |
 | **Open-Meteo Weather API** | Meteorological parameters | `https://api.open-meteo.com/v1/forecast` | Documentation & parameter schema verified | Verified free endpoint; 10,000 req/day | CC BY 4.0 Attribution mandatory | **DOCUMENTATION VERIFIED** |
 | **WAQI (aqicn.org)** | Ground sensor feeds aggregator | `https://api.waqi.info/feed/` | Terms of service review | Integration disabled | Non-commercial individual only; redistribution prohibited; US EPA AQI conflict | **NOT SUITABLE / INTEGRATION DISABLED** |
-| **OpenStreetMap Carto** | Map tile visualization | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Tile usage policy audit | Standard community tile endpoint | ODbL (data) + CC BY-SA 2.0 (tiles); OSMF Tile Usage Policy; Caching required; No SLA | **DOCUMENTATION VERIFIED** |
+| **OpenStreetMap Standard Tiles** | Map tile visualization | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | Tile usage policy audit | Standard community tile endpoint | ODbL 1.0 (data & Produced Work tiles); OSMF Tile Usage Policy; Caching required; No SLA; Not for unrestricted production | **DOCUMENTATION VERIFIED** |
 
 ---
 

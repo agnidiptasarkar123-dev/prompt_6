@@ -169,10 +169,10 @@ As of Phase 1 Final Closure:
   - **Live Provider Integration:** Upstream adapters for CPCB CAAQMS (`data.gov.in`), OpenAQ v3, and Open-Meteo CAMS Global (~45 km).
   - **BFF Architecture:** 8 REST API route handlers (`/api/v1/*`) under Next.js 16.x App Router.
   - **Resilience & Rate Limiting:** Multi-tier CacheService with Upstash Redis and in-memory LRU fallback; sliding window rate limiter; circuit breakers.
-  - **Authentication & Privacy:** Firebase Auth with HttpOnly session cookies, Cloud Firestore repository (locked to BFF), guest mode (`sessionStorage`), 1-click JSON export, and 1-click account erasure under DPDP Act 2023.
+  - **Authentication & Privacy:** Firebase Auth with HttpOnly session cookies, Cloud Firestore repository (locked to BFF), guest mode (`sessionStorage`), 1-click JSON export, and 1-click account erasure applying DPDP Act 2023 privacy-by-design principles (technical safeguard, not a formal legal certification).
   - **AI Safety & Evidence Grounding:** Gemini 2.5 Flash explainer strictly forbidden from altering AQI or diagnosing illness, with strict schema parsing and deterministic fallback.
-  - **Accessible UI:** Trilingual support (`en`, `bn`, `hi`), Leaflet/OSM station mapping, responsive AQI summary cards, pollutant grid, forecast charts, indoor coach, and routine recommendations.
-  - **Security Baseline:** OWASP ASVS 5.0.0 Level 2 verified with 25 security fuzzing and resource abuse tests.
+  - **Accessible UI:** Trilingual support (`en`, `bn`, `hi`), Leaflet/OSM station mapping, responsive AQI summary cards, pollutant grid, forecast charts, indoor coach, and routine recommendations (verified with keyboard, screen-reader, and contrast tests).
+  - **Security Baseline:** Verified against OWASP ASVS 5.0.0 Level 2 control checklist with 25 security fuzzing and boundary tests.
 - **Phase 3 (Mobile Micro-Mobility & Clean-Routing):** Pending Phase 3 authorization.
 
 ---

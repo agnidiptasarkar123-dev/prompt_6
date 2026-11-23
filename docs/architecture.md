@@ -183,11 +183,11 @@ sequenceDiagram
 
 ## 4. Map Integration & Tile Provider Specification
 
-- **Baseline Tile Provider:** OpenStreetMap Carto Standard Tiles (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
-- **Licensing Separation:**
-  - Geodata is licensed under the Open Database License (ODbL) 1.0.
-  - Cartography is licensed under Creative Commons Attribution-ShareAlike 2.0 (CC BY-SA 2.0).
-  - Mandatory Attribution: `© OpenStreetMap contributors` rendered on all map views.
+- **Baseline Tile Provider:** OpenStreetMap Standard Tile Layer rendered with OSM Carto style (`https://tile.openstreetmap.org/{z}/{x}/{y}.png`).
+- **Licensing & Attribution:**
+  - Geodata is licensed under the Open Data Commons Open Database License (ODbL) 1.0.
+  - Cartography / tile images from OSMF tile servers are published as a Produced Work under ODbL 1.0 (effective July 1, 2020; the previous CC BY-SA 2.0 license no longer applies).
+  - Mandatory Attribution: `© OpenStreetMap contributors` rendered on all map views and linked to `https://www.openstreetmap.org/copyright`.
 - **OSMF Tile Policy Compliance:**
   - Standard browser-initiated requests carry standard browser headers (custom User-Agent is not required or feasible on browser `<img>` requests).
   - Client-side HTTP caching is strictly respected (Leaflet leverages browser cache honoring OSMF `Cache-Control` headers).

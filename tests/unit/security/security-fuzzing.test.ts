@@ -391,6 +391,7 @@ describe("Security Fuzzing, Boundary & Resource Abuse Suite", () => {
 
   it("SEC-025: user profile deletion executes cascading hard delete satisfying DPDP Act 2023 1-click right to erasure", async () => {
     vi.spyOn(globalFirebaseAuth, "isConfigured").mockReturnValue(true);
+    const revokeSpy = vi.spyOn(globalFirebaseAuth, "revokeRefreshTokens").mockResolvedValue();
     vi.spyOn(globalFirebaseAuth, "verifySessionCookie").mockResolvedValue({
       uid: "usr-dpdp-delete-123",
       email: "citizen@hawasaathi.org"
@@ -406,6 +407,7 @@ describe("Security Fuzzing, Boundary & Resource Abuse Suite", () => {
     const res = await deleteProfile(req);
     expect(res.status).toBe(200);
     expect(deleteSpy).toHaveBeenCalledWith("usr-dpdp-delete-123");
+    expect(revokeSpy).toHaveBeenCalledWith("usr-dpdp-delete-123");
     const body = await res.json();
     expect(body.status).toBe("SUCCESS");
     expect(body.data.deleted).toBe(true);
