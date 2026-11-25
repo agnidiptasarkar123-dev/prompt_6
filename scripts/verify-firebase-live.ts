@@ -102,7 +102,6 @@ async function run() {
   // Step 3: Remote Firebase Service Authentication & Safe Read-Only Request
   console.log("\n--- STEP 3: REMOTE FIREBASE SERVICE AUTHENTICATION ---");
   const app = !getApps().length ? initializeApp({ credential: cert(saJson), projectId }) : getApps()[0]!;
-\
   // Safe Read-only Firestore Query to a dedicated non-existent probe doc: _healthcheck/ping
   console.log("\n[TEST A: CLOUD FIRESTORE REMOTE READ-ONLY QUERY]");
   console.log("Querying dedicated test document: collection('_healthcheck').doc('probe_audit')");

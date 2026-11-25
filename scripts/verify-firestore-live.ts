@@ -119,7 +119,6 @@ async function main() {
     const edition = meta.databaseEdition;
     const freeTier = meta.freeTier;
     const type = meta.type;
-\
     if (location !== "asia-south1") {
       throw new Error(`Location mismatch: expected asia-south1, received ${location}`);
     }
@@ -484,7 +483,6 @@ async function main() {
     const tRepoDelete = Date.now();
     const deleted = await repo.deleteProfile(synthUid);
     if (!deleted) throw new Error("deleteProfile returned false");
-\
     // Direct Firestore check to confirm physical document removal
     const docCheck = await db.collection("users").doc(synthUid).get();
     if (docCheck.exists) {
@@ -546,7 +544,6 @@ async function main() {
     "| " + "Test Step".padEnd(42) + " | Status | " + "Duration".padStart(9) + " | Details"
   );
   console.log("|-" + "".padEnd(42, "-") + "-|--------|-" + "".padEnd(9, "-") + "-|-" + "".padEnd(30, "-"));
-\
   let allPassed = true;
   for (const r of results) {
     if (r.status !== "PASS") allPassed = false;
