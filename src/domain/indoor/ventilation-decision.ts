@@ -24,7 +24,7 @@ export interface VentilationWindowDecision {
  *    as Carbon Monoxide and toxic VOC accumulation can be lethal.
  */
 export function determineVentilationStrategy(
-  ambientCategory: CpcbCategory,
+  ambientCategory: CpcbCategory | null,
   dwelling: DwellingContext
 ): VentilationWindowDecision {
   const extraCautions: string[] = [];
@@ -93,6 +93,22 @@ export function determineVentilationStrategy(
       ],
       indoorCombustionOverrideActive: false,
       scientificDisclaimer: "Good ambient air allows natural indoor-outdoor air exchange without mechanical filtration penalties."
+    };
+  }
+
+  // If ambient air quality category is unavailable/unverified, provide cautious precautionary guidance
+  if (ambientCategory === null) {
+    return {
+      windowAction: "EXHAUST_ONLY",
+      optimalTimeWindow: "12:00 PM to 3:00 PM only if outdoor air appears visually clear",
+      expectedBenefit: "Balances essential indoor air exchange with precaution while ambient CPCB AQI is unverified.",
+      practicalMethod: "Operate kitchen/bathroom exhaust fans during cooking. Avoid prolonged wide window opening during early morning or evening haze.",
+      cautions: [
+        "Overall CPCB AQI is currently UNAVAILABLE at the selected station. Verify local visibility and raw pollutant readings before cross-ventilating.",
+        ...extraCautions
+      ],
+      indoorCombustionOverrideActive: false,
+      scientificDisclaimer: "Ambient CPCB AQI is currently unverified. Guidance relies on precautionary diurnal dispersion patterns rather than a verified outdoor AQI category."
     };
   }
 

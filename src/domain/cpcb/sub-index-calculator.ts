@@ -213,7 +213,7 @@ export function calculatePollutantSubIndex(
     }
   }
 
-  /* v8 ignore next 14 */
+  // Defensive fallback if breakpoints do not cover the concentration
   return {
     pollutant: measurement.pollutant,
     concentration: cp,

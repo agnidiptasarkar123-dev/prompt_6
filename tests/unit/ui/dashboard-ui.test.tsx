@@ -432,7 +432,8 @@ describe("UI, Accessibility & Localization Suite", () => {
       />
     );
     expect(html).toContain("Overall CPCB AQI Unavailable");
-    expect(html).toContain("Type C: Raw Monitored");
+    expect(html).toContain("No verified observation available");
+    expect(html).not.toContain("Type C: Raw Monitored");
   });
 
   // 3. Pollutant Grid & Parameter Breakdown (UI-021 to UI-030)

@@ -15,7 +15,7 @@ export class CpcbClient {
   constructor(options: CpcbClientOptions = {}) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl || "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69";
-    this.timeoutMs = options.timeoutMs || 8000;
+    this.timeoutMs = options.timeoutMs || 15000;
   }
 
   public isConfigured(): boolean {

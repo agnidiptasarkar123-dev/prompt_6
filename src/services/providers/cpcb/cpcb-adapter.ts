@@ -84,9 +84,7 @@ export class CpcbAdapter implements AirQualityProvider {
       const sec = parseInt(ddmmyyyy[6], 10);
       // Indian Standard Time (IST) is UTC+05:30. CPCB feeds publish local time.
       const dateUtc = new Date(Date.UTC(year, month, day, hour - 5, min - 30, sec));
-      if (!isNaN(dateUtc.getTime())) {
-        return dateUtc.toISOString();
-      }
+      return dateUtc.toISOString();
     }
 
     // Try standard ISO
@@ -217,7 +215,8 @@ export class CpcbAdapter implements AirQualityProvider {
       }
 
       const obsTime = CpcbAdapter.parseCpcbTimestamp(record.last_update);
-      const rawAvg = record.pollutant_avg?.trim();
+      const rawAvgField = record.avg_value ?? record.pollutant_avg;
+      const rawAvg = rawAvgField !== null && rawAvgField !== undefined ? String(rawAvgField).trim() : undefined;
       const rawNum = rawAvg && rawAvg !== "NA" && rawAvg !== "None" ? parseFloat(rawAvg) : NaN;
       const rawValue: number | null = isNaN(rawNum) ? null : rawNum;
 
@@ -243,18 +242,20 @@ export class CpcbAdapter implements AirQualityProvider {
         stationMap.set(stationId, entry);
       }
 
-      entry.availablePollutants.add(pollutant);
       if (obsTime && (!entry.lastReportedAt || obsTime > entry.lastReportedAt)) {
         entry.lastReportedAt = obsTime;
       }
 
       if (!isNaN(numValue) && numValue >= 0 && obsTime) {
+        entry.availablePollutants.add(pollutant);
         const obsDate = new Date(obsTime).getTime();
         const retDate = new Date(retrievalTime).getTime();
+        const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+        const isFutureSkewed = !isNaN(obsDate) && !isNaN(retDate) && obsDate - retDate > MAX_CLOCK_SKEW_MS;
         const ageHours = !isNaN(obsDate) && !isNaN(retDate) ? (retDate - obsDate) / (1000 * 60 * 60) : NaN;
 
         let qualityFlag: "VERIFIED" | "PROVISIONAL" | "SUSPICIOUS" | "STALE" = "VERIFIED";
-        if (numValue > 2500) {
+        if (isFutureSkewed || numValue > 2500) {
           qualityFlag = "SUSPICIOUS";
         } else if (!unitInfo.isVerified) {
           qualityFlag = "PROVISIONAL";
@@ -278,7 +279,7 @@ export class CpcbAdapter implements AirQualityProvider {
           averagingPeriod: "UNKNOWN", // Strictly UNKNOWN per CPCB telemetry restrictions
           typology: "TYPE_C_RAW_MEASUREMENT",
           observationTime: obsTime,
-          sourceUpdateTime: record.last_update || null,
+          sourceUpdateTime: record.last_update as string,
           retrievalTime,
           qualityFlag,
           license: CPCB_LICENSE,
@@ -318,7 +319,28 @@ export class CpcbAdapter implements AirQualityProvider {
 
     try {
       const response = await this.client.fetchRawData({ limit: query.limit ?? 1000 });
-      const { stations, warnings } = this.processRecords(response.records, retrievedAt);
+      const allRecords = [...response.records];
+      const totalNum = typeof response.total === "number" ? response.total : parseInt(String(response.total || 0), 10);
+
+      // Paginate through all available records across India (default up to 5000 when unspecified; hard cap 10000)
+      const targetCap = query.limit ?? 5000;
+      if (targetCap > 1000 && totalNum > allRecords.length) {
+        let offset = allRecords.length;
+        const maxFetch = Math.min(totalNum, targetCap, 10000);
+        while (offset < maxFetch) {
+          const pageSize = Math.min(1000, maxFetch - offset);
+          try {
+            const nextResp = await this.client.fetchRawData({ limit: pageSize, offset });
+            if (!nextResp || !nextResp.records || nextResp.records.length === 0) break;
+            allRecords.push(...nextResp.records);
+            offset += Math.max(nextResp.records.length, pageSize);
+          } catch {
+            break;
+          }
+        }
+      }
+
+      const { stations, warnings } = this.processRecords(allRecords, retrievedAt);
 
       let filtered = stations;
       if (query.query) {
@@ -378,12 +400,53 @@ export class CpcbAdapter implements AirQualityProvider {
     }
 
     try {
-      const response = await this.client.fetchRawData({ limit: 1000 });
-      const { observations, warnings } = this.processRecords(response.records, retrievedAt);
+      if (query.stationId && query.stationName) {
+        const directResp = await this.client.fetchRawData({
+          limit: 100,
+          filters: { station: query.stationName }
+        });
+        const directProc = this.processRecords(directResp.records, retrievedAt);
+        const directMatched = directProc.observations.filter((o) => o.stationId === query.stationId);
+        if (directMatched.length > 0) {
+          return {
+            providerId: this.providerId,
+            observations: directMatched,
+            retrievedAt,
+            status: "CONFIGURED",
+            warnings: directProc.warnings
+          };
+        }
+      }
 
-      let filtered = observations;
-      if (query.stationId) {
-        filtered = filtered.filter((o) => o.stationId === query.stationId);
+      const response = await this.client.fetchRawData({ limit: 1000 });
+      const allRecords = [...response.records];
+      const totalNum = typeof response.total === "number" ? response.total : parseInt(String(response.total || 0), 10);
+
+      const { observations, warnings } = this.processRecords(allRecords, retrievedAt);
+      const filtered = query.stationId
+        ? observations.filter((o) => o.stationId === query.stationId)
+        : observations;
+
+      // Scan remaining pages so stations split across page boundaries return ALL pollutant rows
+      if (query.stationId && totalNum > allRecords.length) {
+        let offset = allRecords.length;
+        const maxFetch = Math.min(totalNum, 10000);
+        while (offset < maxFetch) {
+          const pageSize = Math.min(1000, maxFetch - offset);
+          try {
+            const nextResp = await this.client.fetchRawData({ limit: pageSize, offset });
+            if (!nextResp || !nextResp.records || nextResp.records.length === 0) break;
+            const nextProc = this.processRecords(nextResp.records, retrievedAt);
+            for (const obs of nextProc.observations) {
+              if (obs.stationId === query.stationId) {
+                filtered.push(obs);
+              }
+            }
+            offset += nextResp.records.length;
+          } catch {
+            break;
+          }
+        }
       }
 
       return {

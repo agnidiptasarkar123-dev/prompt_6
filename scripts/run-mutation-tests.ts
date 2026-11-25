@@ -279,6 +279,388 @@ export const MUTATIONS: MutationTarget[] = [
     find: "indoorCombustionOverrideActive: true,",
     replace: "indoorCombustionOverrideActive: false,",
     mutantType: "LOGICAL"
+  },
+
+  // ---------------------------------------------------------------------------
+  // 6. Security, Output Guardrails, Rate Limiting & Auth Fail-Closed Gates
+  // ---------------------------------------------------------------------------
+  {
+    id: "MUT-SEC-01",
+    subsystem: "AI Output Guardrails",
+    requirement: "Input Length Ceiling DoS Prevention",
+    file: "src/services/ai/output-guardrails.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Relax sanitizeUserPrompt length ceiling from 1200 to 5000",
+    find: ".slice(0, 1200);",
+    replace: ".slice(0, 5000);",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-02",
+    subsystem: "AI Output Guardrails",
+    requirement: "Unavailable AQI Hallucination Gate",
+    file: "src/services/ai/output-guardrails.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Bypass overallAqi === null check in assertAiOutputConsistency",
+    find: "if (overallAqi === null) {",
+    replace: "if (false && overallAqi === null) {",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-03",
+    subsystem: "AI Output Guardrails",
+    requirement: "Composite AQI Number Anti-Contradiction Guard",
+    file: "src/services/ai/output-guardrails.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Invert claimedAqi !== overallAqi comparison",
+    find: "if (claimedAqi !== overallAqi) {",
+    replace: "if (claimedAqi === overallAqi) {",
+    mutantType: "EQUALITY"
+  },
+  {
+    id: "MUT-SEC-04",
+    subsystem: "AI Output Guardrails",
+    requirement: "Localized Indian-Script Hallucination Guard",
+    file: "src/services/ai/output-guardrails.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Disable multi-script category token matching when AQI is unavailable",
+    find: "if (MULTI_SCRIPT_AIR_NOUNS.test(text) && !hasNegation) {",
+    replace: "if (false && MULTI_SCRIPT_AIR_NOUNS.test(text)) {",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-05",
+    subsystem: "BFF Error Boundary",
+    requirement: "ASVS 500 Stack/Path Redaction",
+    file: "src/lib/http/api-response.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Bypass 500 internal error redaction gate",
+    find: "status >= 500",
+    replace: "status >= 600",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-06",
+    subsystem: "BFF Security Headers",
+    requirement: "Clickjacking X-Frame-Options DENY",
+    file: "src/lib/http/api-response.ts",
+    targetTest: "tests/unit/p4/p4-bff-product-api.test.ts",
+    description: "Weaken X-Frame-Options from DENY to ALLOWALL",
+    find: 'headers.set("X-Frame-Options", "DENY");',
+    replace: 'headers.set("X-Frame-Options", "ALLOWALL");',
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-07",
+    subsystem: "Distributed Rate Limiter",
+    requirement: "Fail-Closed Production Rate Limiting",
+    file: "src/services/rate-limit/rate-limiter.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Allow unconfigured Redis fail-open in production",
+    find: "allowed: false,",
+    replace: "allowed: true,",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-08",
+    subsystem: "Profile Auth Gate",
+    requirement: "Disable Dev Header Auth Outside Dev/Test",
+    file: "src/app/api/v1/profile/route.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Allow x-mock-auth-uid header even in production",
+    find: 'if (devUid && process.env.NODE_ENV !== "production") {',
+    replace: "if (devUid) {",
+    mutantType: "SECURITY"
+  },
+
+  // ---------------------------------------------------------------------------
+  // 7. Station Ranking, Provider Adapters & Source Orchestration Integrity
+  // ---------------------------------------------------------------------------
+  {
+    id: "MUT-RANK-01",
+    subsystem: "Station Ranking Engine",
+    requirement: "Same-Physical-Site 250m Proximity Deduplication",
+    file: "src/domain/air-quality/station-ranking.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Disable proximity threshold in isSamePhysicalSite",
+    find: "return distKm < 0.25;",
+    replace: "return distKm < 0.0;",
+    mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-RANK-02",
+    subsystem: "Station Ranking Engine",
+    requirement: "3-Pollutant AQI Eligibility Filter",
+    file: "src/domain/air-quality/station-ranking.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Relax isAqiEligibleStation pollutant minimum from 3 to 2",
+    find: "station.availablePollutants.length >= 3",
+    replace: "station.availablePollutants.length >= 2",
+    mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-RANK-03",
+    subsystem: "Station Ranking Engine",
+    requirement: "48h Recent Window for Preferred Station",
+    file: "src/domain/air-quality/station-ranking.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Tighten preferred station recency window from 48h to 1s",
+    find: "nowMs - ms <= 48 * 3600 * 1000",
+    replace: "nowMs - ms <= 1000",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-RANK-04",
+    subsystem: "Station Ranking Engine",
+    requirement: "24h Freshness Window for Alternative Station",
+    file: "src/domain/air-quality/station-ranking.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Tighten alternative station freshness window from 24h to 1s",
+    find: "refMs - ms <= 24 * 3600 * 1000",
+    replace: "refMs - ms <= 1000",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-PRV-01",
+    subsystem: "CPCB Adapter",
+    requirement: "CO ppm -> mg/m³ Physical Unit Conversion",
+    file: "src/services/providers/cpcb/cpcb-adapter.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Break CO ppm multiplier from 1.145 to 1.0",
+    find: "convertedValueMultiplier: 1.145",
+    replace: "convertedValueMultiplier: 1.0",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-PRV-02",
+    subsystem: "CPCB Adapter",
+    requirement: "NO2 ppb -> µg/m³ Physical Unit Conversion",
+    file: "src/services/providers/cpcb/cpcb-adapter.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Break NO2 ppb multiplier from 1.88 to 1.0",
+    find: "convertedValueMultiplier: 1.88",
+    replace: "convertedValueMultiplier: 1.0",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-PRV-03",
+    subsystem: "CPCB Adapter",
+    requirement: "IST (UTC+05:30) Timestamp Offset Conversion",
+    file: "src/services/providers/cpcb/cpcb-adapter.ts",
+    targetTest: "tests/unit/providers/cpcb-contract.test.ts",
+    description: "Drop UTC-05:30 offset conversion when parsing CPCB timestamps",
+    find: "hour - 5, min - 30, sec",
+    replace: "hour, min, sec",
+    mutantType: "ARITHMETIC"
+  },
+  {
+    id: "MUT-PRV-04",
+    subsystem: "OpenAQ Adapter",
+    requirement: "Station City Extraction When Locality Null",
+    file: "src/services/providers/openaq/openaq-adapter.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Ignore parsed fallback city and always emit Unknown Locality",
+    find: 'city: resolvedCity || "Unknown Locality",',
+    replace: 'city: "Unknown Locality",',
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-ORCH-01",
+    subsystem: "Source Orchestrator",
+    requirement: "16h Statutory Completeness Gate",
+    file: "src/services/air-quality/source-orchestrator.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Relax minimum hourly completeness threshold from 16 to 4",
+    find: "validHoursInWindow < 16",
+    replace: "validHoursInWindow < 4",
+    mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-ORCH-02",
+    subsystem: "Source Orchestrator",
+    requirement: "24h Observation Staleness Threshold",
+    file: "src/services/air-quality/source-orchestrator.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Relax observation staleness window from 24h to 72h",
+    find: "refTimeMs - latestObsTime > 24 * 60 * 60 * 1000",
+    replace: "refTimeMs - latestObsTime > 72 * 60 * 60 * 1000",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-I18N-01",
+    subsystem: "Multilingual V2 UI",
+    requirement: "23-Locale Script Completeness",
+    file: "src/i18n/v2-translations.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Corrupt Tamil localization entry with English parenthetical fallback",
+    find: 'navOverview: "மேலோட்டம்",',
+    replace: 'navOverview: "Overview (தமிழ்)",',
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-SEC-09",
+    subsystem: "Auth Session Boundary",
+    requirement: "Cross-Origin CSRF Rejection",
+    file: "src/app/api/v1/auth/session/route.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Invert CSRF origin check (originHost === host)",
+    find: "if (originHost !== host) {",
+    replace: "if (false && originHost !== host) {",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-10",
+    subsystem: "Auth Session Boundary",
+    requirement: "HttpOnly Session Cookie Flag",
+    file: "src/app/api/v1/auth/session/route.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Disable httpOnly cookie flag on session token",
+    find: "httpOnly: true,",
+    replace: "httpOnly: false,",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-11",
+    subsystem: "Auth Session Boundary",
+    requirement: "SameSite Session Cookie Protection",
+    file: "src/app/api/v1/auth/session/route.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Downgrade sameSite from lax to none",
+    find: 'sameSite: "lax",',
+    replace: 'sameSite: "none",',
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-12",
+    subsystem: "Auth Session Boundary",
+    requirement: "Secure Cookie Flag in Production",
+    file: "src/app/api/v1/auth/session/route.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Disable Secure cookie flag in production",
+    find: "secure: isProd,",
+    replace: "secure: false,",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-13",
+    subsystem: "Next.js Security Headers",
+    requirement: "Strict CSP object-src 'none'",
+    file: "next.config.mjs",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Allow Flash/object plugins via object-src '*'",
+    find: `"object-src 'none'",`,
+    replace: `"object-src *",`,
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-SEC-14",
+    subsystem: "Next.js Security Headers",
+    requirement: "Anti-Clickjacking frame-ancestors 'none'",
+    file: "next.config.mjs",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Downgrade CSP frame-ancestors from none to *",
+    find: `"frame-ancestors 'none'"`,
+    replace: `"frame-ancestors *"`,
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-CSP-01",
+    subsystem: "CSP Nonce Builder",
+    requirement: "Strictly No unsafe-inline in Script Directive",
+    file: "src/lib/security/csp.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Inject unsafe-inline into script-src when nonce is generated",
+    find: "`script-src 'self' 'nonce-${nonce}' https://apis.google.com`",
+    replace: "`script-src 'self' 'unsafe-inline' 'nonce-${nonce}' https://apis.google.com`",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-CSP-02",
+    subsystem: "CSP Nonce Builder",
+    requirement: "CSP object-src 'none' Enforcement",
+    file: "src/lib/security/csp.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Relax CSP object-src from none to *",
+    find: `"object-src 'none'",`,
+    replace: `"object-src *",`,
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-PROXY-01",
+    subsystem: "Next.js Request Proxy",
+    requirement: "Per-Request Cryptographic CSP Nonce Attachment",
+    file: "src/proxy.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Replace per-request dynamic nonce with static constant",
+    find: "const nonce = generateCspNonce();",
+    replace: 'const nonce = "static-predictable-nonce";',
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-AUTH-01",
+    subsystem: "Shared Session Resolver",
+    requirement: "Block Mock Dev Header in Production",
+    file: "src/lib/http/session-auth.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Bypass production check on x-mock-auth-uid header",
+    find: 'return Boolean(devUid && process.env.NODE_ENV !== "production");',
+    replace: "return Boolean(devUid);",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-AUTH-02",
+    subsystem: "Shared Session Resolver",
+    requirement: "Strict Cookie Revocation Check",
+    file: "src/lib/http/session-auth.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Return true on invalid/expired session cookie",
+    find: "} catch {\n      return false;",
+    replace: "} catch {\n      return true;",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-AGT-01",
+    subsystem: "Agent Tool Authorization",
+    requirement: "Deny Cloud Plan Write Without Session & DPDP Consent",
+    file: "src/services/ai/agent-tools.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Bypass authenticated session requirement on create_daily_plan persistToCloud",
+    find: "if (parsed.data.persistToCloud && (!ctx.isAuthenticated || !ctx.hasCloudConsent)) {",
+    replace: "if (false && parsed.data.persistToCloud) {",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-ALT-01",
+    subsystem: "Smart Alert Engine",
+    requirement: "5-Point AQI Hysteresis Buffer",
+    file: "src/domain/alerts/smart-alert-engine.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Disable 5-point hysteresis buffer when hysteresisEnabled is true",
+    find: "const buffer = rules.hysteresisEnabled ? 5 : 0;",
+    replace: "const buffer = rules.hysteresisEnabled ? 0 : 0;",
+    mutantType: "CONSTANT"
+  },
+  {
+    id: "MUT-ALT-02",
+    subsystem: "Smart Alert Engine",
+    requirement: "SEVERE Quiet-Hours Life-Safety Bypass",
+    file: "src/domain/alerts/smart-alert-engine.ts",
+    targetTest: "tests/unit/v2/v2-domain-planner-alerts-i18n-theme.test.ts",
+    description: "Suppress SEVERE emergency AQI alerts during quiet hours",
+    find: '(!inQuiet || aqiResult.category === "SEVERE")',
+    replace: "(!inQuiet)",
+    mutantType: "LOGICAL"
+  },
+  {
+    id: "MUT-PLN-01",
+    subsystem: "Daily Schedule Planner",
+    requirement: "Schedule Overlap Conflict Boundary",
+    file: "src/domain/planner/schedule-planner.ts",
+    targetTest: "tests/unit/v2/v2-domain-planner-alerts-i18n-theme.test.ts",
+    description: "Break schedule conflict overlap boundary check",
+    find: "if (overlapEnd > overlapStart) {",
+    replace: "if (overlapEnd < overlapStart) {",
+    mutantType: "BOUNDARY"
   }
 ];
 
@@ -321,7 +703,7 @@ function setupSignalHandlers() {
 function runMutations() {
   console.log("================================================================================");
   console.log("  HAWASAATHI TARGETED DOMAIN MUTATION VERIFICATION SUITE (ISOLATED RUNNER)");
-  console.log("  (Verification of 20 Selected Critical Domain Mutations, Not Full AST Score)");
+  console.log(`  (Verification of ${MUTATIONS.length} Selected Critical Domain & Security Mutations)`);
   console.log("================================================================================\n");
 
   setupSignalHandlers();
@@ -346,6 +728,7 @@ function runMutations() {
   fs.cpSync(path.resolve(process.cwd(), "src"), path.join(tempDir, "src"), { recursive: true });
   fs.cpSync(path.resolve(process.cwd(), "tests"), path.join(tempDir, "tests"), { recursive: true });
   fs.copyFileSync(path.resolve(process.cwd(), "package.json"), path.join(tempDir, "package.json"));
+  fs.copyFileSync(path.resolve(process.cwd(), "next.config.mjs"), path.join(tempDir, "next.config.mjs"));
   fs.copyFileSync(path.resolve(process.cwd(), "tsconfig.json"), path.join(tempDir, "tsconfig.json"));
   fs.copyFileSync(path.resolve(process.cwd(), "vitest.config.ts"), path.join(tempDir, "vitest.config.ts"));
 

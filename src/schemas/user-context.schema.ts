@@ -71,7 +71,7 @@ export type UserConstraints = z.infer<typeof UserConstraintsSchema>;
 export const HouseholdContextSchema = z.object({
   householdId: z.string().uuid(),
   updatedAt: z.string().datetime(),
-  preferredLanguage: z.enum(["en", "bn", "hi"]).default("en"),
+  preferredLanguage: z.string().min(2).default("en"),
   dwelling: DwellingContextSchema,
   members: z.array(HouseholdMemberSchema).min(1),
   routine: z.array(RoutineActivitySchema),

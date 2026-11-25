@@ -8,22 +8,32 @@ import type { IndianCityLocation } from "@/services/location/location-service";
 
 export interface LocationSearchProps {
   readonly language: SupportedLanguage;
-  readonly selectedCity: string;
+  readonly selectedCity?: string;
   readonly onSelectLocation: (loc: { name: string; latitude: number; longitude: number; city: string; state: string }) => void;
+  readonly initialLoading?: boolean;
+  readonly initialGeoLoading?: boolean;
+  readonly initialGeoError?: string | null;
+  readonly initialResults?: readonly IndianCityLocation[];
+  readonly initialIsOpen?: boolean;
 }
 
 export const LocationSearch: React.FC<LocationSearchProps> = ({
   language,
   selectedCity: _selectedCity,
-  onSelectLocation
+  onSelectLocation,
+  initialLoading,
+  initialGeoLoading,
+  initialGeoError,
+  initialResults,
+  initialIsOpen
 }) => {
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] || TRANSLATIONS["en-IN"];
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<readonly IndianCityLocation[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [results, setResults] = useState<readonly IndianCityLocation[]>(initialResults ?? []);
+  const [isLoading, setIsLoading] = useState(initialLoading ?? false);
+  const [isOpen, setIsOpen] = useState(initialIsOpen ?? false);
+  const [geoLoading, setGeoLoading] = useState(initialGeoLoading ?? false);
+  const [geoError, setGeoError] = useState<string | null>(initialGeoError ?? null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,9 +104,9 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         <div className="relative flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" />
             ) : (
-              <Search className="h-4 w-4 text-slate-400" />
+              <Search className="h-4 w-4 text-[var(--hs-text-secondary)]" />
             )}
           </div>
           <input
@@ -107,7 +117,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
               if (results.length > 0) setIsOpen(true);
             }}
             placeholder={t.searchPlaceholder}
-            className="w-full rounded-xl border border-slate-800 bg-slate-900/90 py-2.5 pl-10 pr-4 text-sm text-white placeholder-slate-500 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="w-full rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] py-2.5 pl-10 pr-4 text-sm text-[var(--hs-text-primary)] placeholder-[var(--hs-text-secondary)] shadow-xs focus:border-[var(--hs-accent)] focus:outline-none"
             aria-label="Search city or location"
           />
         </div>
@@ -116,26 +126,25 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
           type="button"
           onClick={handleUseCurrentLocation}
           disabled={geoLoading}
-          className="inline-flex items-center justify-center space-x-1.5 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 disabled:opacity-50"
+          className="inline-flex shrink-0 items-center justify-center space-x-1.5 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-4 py-2.5 text-xs font-semibold text-[var(--hs-text-primary)] transition hover:border-[var(--hs-accent)] shadow-xs disabled:opacity-50"
         >
           {geoLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" />
           ) : (
-            <Navigation className="h-4 w-4 text-teal-400" />
+            <Navigation className="h-4 w-4 text-[var(--hs-accent)]" />
           )}
           <span>{t.useLocation}</span>
         </button>
       </div>
 
       {geoError && (
-        <p className="mt-1 text-xs text-rose-400" role="alert">
+        <p className="mt-1 text-xs text-rose-500" role="alert">
           {geoError}
         </p>
       )}
 
-      {/* Autocomplete Dropdown */}
       {isOpen && results.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+        <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] shadow-xl">
           {results.map((loc) => (
             <li key={loc.id}>
               <button
@@ -151,11 +160,11 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
                   setQuery("");
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center space-x-2 px-4 py-2.5 text-left text-sm text-slate-200 transition hover:bg-slate-800"
+                className="flex w-full items-center space-x-2 px-4 py-2.5 text-left text-sm text-[var(--hs-text-primary)] transition hover:bg-[var(--hs-subtle-bg)]"
               >
-                <MapPin className="h-4 w-4 text-teal-400" />
-                <span className="font-medium text-white">{loc.name}</span>
-                <span className="text-xs text-slate-400">({loc.state})</span>
+                <MapPin className="h-4 w-4 text-[var(--hs-accent)] shrink-0" />
+                <span className="font-medium">{loc.name}</span>
+                <span className="text-xs text-[var(--hs-text-secondary)]">({loc.state})</span>
               </button>
             </li>
           ))}

@@ -3,23 +3,23 @@ import { z } from "zod";
 
 export const OpenAQLicenseSchema = z.object({
   id: z.number().optional(),
-  name: z.string().optional(),
-  commercialUseAllowed: z.boolean().optional(),
-  attributionRequired: z.boolean().optional(),
-  shareAlike: z.boolean().optional(),
-  url: z.string().optional()
+  name: z.string().optional().nullable(),
+  commercialUseAllowed: z.boolean().optional().nullable(),
+  attributionRequired: z.boolean().optional().nullable(),
+  shareAlike: z.boolean().optional().nullable(),
+  url: z.string().optional().nullable()
 });
 
 export const OpenAQSensorParameterSchema = z.object({
   id: z.number().optional(),
   name: z.string(),
-  units: z.string().optional(),
-  displayName: z.string().optional()
+  units: z.string().optional().nullable(),
+  displayName: z.string().optional().nullable()
 });
 
 export const OpenAQSensorSchema = z.object({
   id: z.number(),
-  name: z.string().optional(),
+  name: z.string().optional().nullable(),
   parameter: OpenAQSensorParameterSchema
 });
 
@@ -37,8 +37,8 @@ export const OpenAQLocationSchema = z.object({
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180)
   }),
-  sensors: z.array(OpenAQSensorSchema).optional().default([]),
-  licenses: z.array(OpenAQLicenseSchema).optional().default([]),
+  sensors: z.array(OpenAQSensorSchema).nullable().optional().transform((v) => v ?? []),
+  licenses: z.array(OpenAQLicenseSchema).nullable().optional().transform((v) => v ?? []),
   provider: z.object({
     id: z.number().optional(),
     name: z.string().optional()

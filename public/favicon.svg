@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="HawaSaathi Favicon">
+  <title>HawaSaathi</title>
+  <!-- Rounded tile background for crisp browser tab visibility -->
+  <rect width="48" height="48" rx="10" fill="#164E4A"/>
+  <!-- Leaf and wind current -->
+  <path d="M10 38C7.5 27 13 14 27 8C36 10 40 17 40 24C40 32 32 39 21 40C16 40.5 12 39.5 10 38Z" stroke="#B8E6D2" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8 29C14 29 19 23 25 16C29 11 35 10 39 12" stroke="#1F9D78" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Directional Compass Needle -->
+  <polygon points="31,13 34,22 25,19" fill="#1F9D78"/>
+  <polygon points="31,13 22,23 25,19" fill="#FFFFFF"/>
+  <circle cx="28" cy="18" r="1.5" fill="#164E4A"/>
+</svg>

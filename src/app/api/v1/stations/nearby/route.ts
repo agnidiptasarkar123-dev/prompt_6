@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const latStr = url.searchParams.get("lat");
   const lonStr = url.searchParams.get("lon");
-  const radiusStr = url.searchParams.get("radiusKm");
+  const radiusStr = url.searchParams.get("radiusKm") ?? url.searchParams.get("radius");
   const query = url.searchParams.get("query") || undefined;
 
   if (!latStr || !lonStr) {

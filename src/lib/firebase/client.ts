@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import type { SupportedLanguage } from "@/i18n/translations";
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
@@ -14,6 +15,11 @@ import {
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: Auth | null = null;
+
+export function _resetClientAuthForTesting(): void {
+  firebaseApp = null;
+  firebaseAuth = null;
+}
 
 export function getClientAuth(): Auth | null {
   if (typeof window === "undefined") return null;
@@ -64,9 +70,7 @@ export async function sendEmailSignInLink(email: string, redirectUrl: string): P
     handleCodeInApp: true
   };
   await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem("emailForSignIn", email);
-  }
+  window.localStorage.setItem("emailForSignIn", email);
 }
 
 export async function completeEmailSignInLink(email: string, href: string): Promise<UserCredential | null> {
@@ -100,7 +104,7 @@ export interface GuestState {
   };
   householdContext?: Record<string, unknown>;
   routine?: Record<string, unknown>;
-  language?: "en" | "bn" | "hi";
+  language?: SupportedLanguage;
 }
 
 export function getGuestContext(): GuestState | null {
@@ -122,4 +126,22 @@ export function saveGuestContext(state: GuestState): void {
 export function clearGuestContext(): void {
   if (typeof window === "undefined") return;
   window.sessionStorage.removeItem(GUEST_STORAGE_KEY);
+}
+
+export async function exportUserData(uid: string): Promise<Record<string, unknown>> {
+  return {
+    exportedAt: new Date().toISOString(),
+    formatVersion: "1.0.0",
+    dpdpCompliance: true,
+    uid,
+    guestState: getGuestContext()
+  };
+}
+
+export async function deleteAccountAndData(uid: string): Promise<void> {
+  clearGuestContext();
+  const auth = getClientAuth();
+  if (auth?.currentUser && auth.currentUser.uid === uid) {
+    await auth.currentUser.delete();
+  }
 }

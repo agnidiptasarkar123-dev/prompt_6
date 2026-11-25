@@ -6,6 +6,7 @@ import { generateDeterministicRecommendations } from "@/domain/rules/determinist
 import { evaluateIndoorSources } from "@/domain/indoor/source-control";
 import { determineVentilationStrategy } from "@/domain/indoor/ventilation-decision";
 import { calculateRoomFiltrationRequirements } from "@/domain/indoor/filtration-calculator";
+import { getCategoryFromAqi } from "@/domain/cpcb/sub-index-calculator";
 import { globalAiExplainer } from "@/services/ai/ai-explainer";
 import {
   HouseholdContextSchema,
@@ -16,11 +17,11 @@ import {
 import { RoutineActivitySchema, type RoutineActivity } from "@/schemas/routine.schema";
 import { CpcbCategorySchema, type CpcbAqiResult } from "@/schemas/cpcb.schema";
 import { type CpcbPollutantId } from "@/schemas/pollutant.schema";
-import { AiEvidenceItemSchema } from "@/schemas/ai-explanation.schema";
+import { AiEvidenceItemSchema, SupportedAiLanguageSchema } from "@/schemas/ai-explanation.schema";
 
 const RecommendationRequestSchema = z.object({
   overallAqi: z.number().nullable(),
-  aqiCategory: CpcbCategorySchema.default("MODERATE"),
+  aqiCategory: CpcbCategorySchema.nullable().optional().default(null),
   prominentPollutant: z.string().nullable().optional(),
   householdContext: HouseholdContextSchema.optional(),
   routine: z.array(RoutineActivitySchema).optional(),
@@ -31,7 +32,7 @@ const RecommendationRequestSchema = z.object({
     heightMeters: z.number().positive()
   }).optional(),
   evidenceList: z.array(AiEvidenceItemSchema).optional().default([]),
-  language: z.enum(["en", "bn", "hi"]).default("en")
+  language: SupportedAiLanguageSchema.default("en")
 });
 
 export async function POST(req: NextRequest) {
@@ -51,7 +52,11 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
-  const aqiCat = data.aqiCategory;
+  // Cross-component consistency rule: if overallAqi is null, category MUST be null (never assume MODERATE)
+  const effectiveCategory =
+    data.overallAqi !== null
+      ? (data.aqiCategory ?? getCategoryFromAqi(data.overallAqi))
+      : null;
 
   const dwelling: DwellingContext = data.dwelling || {
     dwellingType: "APARTMENT_LOW_RISE",
@@ -129,14 +134,17 @@ export async function POST(req: NextRequest) {
     calculatedAtUtc: new Date().toISOString(),
     overallAqi: data.overallAqi,
     rawMathematicalAqi: data.overallAqi,
-    category: data.overallAqi !== null ? aqiCat : null,
+    category: effectiveCategory,
     prominentPollutant: (data.prominentPollutant as CpcbPollutantId | null) || null,
-    sufficiencyStatus: data.overallAqi !== null ? "SUFFICIENT" : "INSUFFICIENT_DATA",
+    sufficiencyStatus: data.overallAqi !== null && effectiveCategory !== null ? "SUFFICIENT" : "INSUFFICIENT_DATA",
     completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H",
     subIndices: [],
     isBeyondNominalScale: (data.overallAqi ?? 0) > 500,
     reportingCeilingCappedAqi: data.overallAqi !== null ? Math.min(data.overallAqi, 500) : null,
-    explanation: data.overallAqi !== null ? `Calculated AQI ${data.overallAqi} (${aqiCat})` : "AQI unavailable"
+    explanation:
+      data.overallAqi !== null && effectiveCategory !== null
+        ? `Calculated AQI ${data.overallAqi} (${effectiveCategory})`
+        : "Overall CPCB AQI unavailable"
   };
 
   // 1. Evaluate Deterministic Recommender
@@ -145,7 +153,7 @@ export async function POST(req: NextRequest) {
 
   // 2. Indoor Air Coach Logic
   const indoorHazardAssessment = evaluateIndoorSources(dwelling);
-  const ventilationDecision = determineVentilationStrategy(aqiCat, dwelling);
+  const ventilationDecision = determineVentilationStrategy(effectiveCategory, dwelling);
 
   let filtrationRec = null;
   if (data.purifierRoomDimensions) {
@@ -162,7 +170,7 @@ export async function POST(req: NextRequest) {
     evidenceList: data.evidenceList,
     deterministicRecommendations: deterministicRecs,
     overallAqi: data.overallAqi,
-    aqiCategory: aqiCat,
+    aqiCategory: effectiveCategory ?? "UNAVAILABLE",
     prominentPollutant: data.prominentPollutant || null,
     language: data.language
   });

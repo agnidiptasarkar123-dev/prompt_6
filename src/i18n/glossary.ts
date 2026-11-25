@@ -1,0 +1,185 @@
+// SPDX-License-Identifier: Apache-2.0
+import type { CanonicalLocale } from "./locale-registry";
+
+export interface EnvironmentalTerm {
+  readonly termEn: string;
+  readonly definition: string;
+  readonly translations: Record<CanonicalLocale, string>;
+}
+
+export const ENVIRONMENTAL_GLOSSARY: Record<string, EnvironmentalTerm> = {
+  AQI: {
+    termEn: "Air Quality Index",
+    definition: "A standardized composite index reflecting ambient air pollution levels and associated health risks.",
+    translations: {
+      "en-IN": "Air Quality Index (AQI)",
+      "as-IN": "বায়ু মান সূচক (AQI)",
+      "bn-IN": "বায়ু মান সূচক (AQI)",
+      "brx-IN": "बारनि मान दिन्थिग्रा (AQI)",
+      "doi-IN": "हवा दी गुणवत्ता दा सूचकांक (AQI)",
+      "gu-IN": "વાયુ ગુણવત્તા સૂચકાંક (AQI)",
+      "hi-IN": "वायु गुणवत्ता सूचकांक (AQI)",
+      "kn-IN": "ವಾಯು ಗುಣಮಟ್ಟ ಸೂಚ್ಯಂಕ (AQI)",
+      "ks-IN": "ہوا ہنٛز معیارُک اشاریہ (AQI)",
+      "kok-IN": "हवेचो दर्जो निर्देशांक (AQI)",
+      "mai-IN": "वायु गुणवत्ता सूचकांक (AQI)",
+      "ml-IN": "വായു ഗുണനിലവാര സൂചിക (AQI)",
+      "mni-IN": "নুংশিৎকী মানগী সূচক (AQI)",
+      "mr-IN": "हवा गुणवत्ता निर्देशांक (AQI)",
+      "ne-IN": "वायु गुणस्तर सूचकांक (AQI)",
+      "or-IN": "ବାୟୁ ଗୁଣବତ୍ତା ସୂଚକାଙ୍କ (AQI)",
+      "pa-IN": "ਹਵਾ ਗੁਣਵੱਤਾ ਸੂਚਕ ਅੰਕ (AQI)",
+      "sa-IN": "वायुगुणवत्तासूचकाङ्कः (AQI)",
+      "sat-IN": "ᱦᱚᱭ ᱜᱩᱱ ᱩᱫᱩᱜᱤᱡ (AQI)",
+      "sd-IN": "هوا جي معيار جو اشاريل (AQI)",
+      "ta-IN": "காற்று தரக் குறியீடு (AQI)",
+      "te-IN": "గాలి నాణ్యత సూచిక (AQI)",
+      "ur-IN": "ہوا کا معیاری اشاریہ (AQI)"
+    }
+  },
+  PM25: {
+    termEn: "Particulate Matter (PM2.5)",
+    definition: "Fine inhalable particles with diameters 2.5 micrometers or smaller, capable of entering the bloodstream.",
+    translations: {
+      "en-IN": "Particulate Matter (PM2.5)",
+      "as-IN": "ধূলিকণা (PM2.5)",
+      "bn-IN": "সূক্ষ্ম ধূলিকণা (PM2.5)",
+      "brx-IN": "गुसुं बारगुन्द्रा (PM2.5)",
+      "doi-IN": "बारीक धूल कण (PM2.5)",
+      "gu-IN": "સૂક્ષ્મ રજકણો (PM2.5)",
+      "hi-IN": "सूक्ष्म कण (PM2.5)",
+      "kn-IN": "ಸೂಕ್ಷ್ಮ ಕಣಗಳು (PM2.5)",
+      "ks-IN": "بَریکھ دُودٕ کَن (PM2.5)",
+      "kok-IN": "बारीक धुलीकण (PM2.5)",
+      "mai-IN": "सूक्ष्म कण (PM2.5)",
+      "ml-IN": "സൂക്ഷ്മ കണികകൾ (PM2.5)",
+      "mni-IN": "অফেম্বা কনা (PM2.5)",
+      "mr-IN": "सूक्ष्म कण (PM2.5)",
+      "ne-IN": "मसिना कणहरू (PM2.5)",
+      "or-IN": "ସୂକ୍ଷ୍ମ ଧୂଳିକଣା (PM2.5)",
+      "pa-IN": "ਬਾਰੀਕ ਕਣ (PM2.5)",
+      "sa-IN": "सूक्ष्मकणाः (PM2.5)",
+      "sat-IN": "ᱢᱤᱦᱤ ᱫᱷᱩᱲᱤ (PM2.5)",
+      "sd-IN": "سُرمي ذرڙا (PM2.5)",
+      "ta-IN": "நுண்துகள் மாசுகள் (PM2.5)",
+      "te-IN": "సూక్ష్మ ధూళికణాలు (PM2.5)",
+      "ur-IN": "انتہائی باریک ذرات (PM2.5)"
+    }
+  },
+  PM10: {
+    termEn: "Particulate Matter (PM10)",
+    definition: "Inhalable particulate matter with diameters 10 micrometers and smaller, depositing in the upper respiratory tract.",
+    translations: {
+      "en-IN": "Inhalable Dust Particles (PM10)",
+      "as-IN": "উশাহৰ ধূলিকণা (PM10)",
+      "bn-IN": "শ্বাসযোগ্য ধূলিকণা (PM10)",
+      "brx-IN": "हांसो बारगुन्द्रा (PM10)",
+      "doi-IN": "मोटे धूल कण (PM10)",
+      "gu-IN": "શ્વાસમાં જઈ શકે તેવા રજકણો (PM10)",
+      "hi-IN": "धूल के कण (PM10)",
+      "kn-IN": "ಉಸಿರಾಟದ ಧೂಳಿನ ಕಣಗಳು (PM10)",
+      "ks-IN": "شَواس گَردا کَن (PM10)",
+      "kok-IN": "श्वासाचे धुलीकण (PM10)",
+      "mai-IN": "धूलि कण (PM10)",
+      "ml-IN": "ശ്വസന കണികകൾ (PM10)",
+      "mni-IN": "নুংশিৎকী ময়েক কনা (PM10)",
+      "mr-IN": "धुलीकण (PM10)",
+      "ne-IN": "सास फेर्न सकिने कण (PM10)",
+      "or-IN": "ଶ୍ୱାସଯୋଗ୍ୟ ଧୂଳିକଣା (PM10)",
+      "pa-IN": "ਸਾਹ ਲੈਣ ਯੋਗ ਕਣ (PM10)",
+      "sa-IN": "श्वसनीयकणाः (PM10)",
+      "sat-IN": "ᱥᱟᱦᱮᱫ ᱫᱷᱩᱲᱤ (PM10)",
+      "sd-IN": "ساهه کڻڻ جوڳا ذرڙا (PM10)",
+      "ta-IN": "சுவாசத் துகள்கள் (PM10)",
+      "te-IN": "శ్వాసకోశ ధూళికణాలు (PM10)",
+      "ur-IN": "قابلِ تنفس ذرات (PM10)"
+    }
+  },
+  AIR_PURIFIER: {
+    termEn: "Air Purifier",
+    definition: "A mechanical device equipped with HEPA filtration to extract particulate pollutants from indoor air.",
+    translations: {
+      "en-IN": "Air Purifier",
+      "as-IN": "বায়ু শোধক যন্ত্ৰ",
+      "bn-IN": "বায়ু শোধক (এয়ার পিউরিফায়ার)",
+      "brx-IN": "बार साफा खावग्रा यन्त्र",
+      "doi-IN": "हवा साफ करने आला यन्त्र",
+      "gu-IN": "એર પ્યુરિફાયર (હવા શુદ્ધિકરણ યંત્ર)",
+      "hi-IN": "वायु शोधक (एयर प्यूरीफायर)",
+      "kn-IN": "ವಾಯು ಶುದ್ಧೀಕರಣ ಯಂತ್ರ",
+      "ks-IN": "ہوا صاف کرن وول آلَہ",
+      "kok-IN": "हवा शुद्ध करपी साधन",
+      "mai-IN": "वायु शोधक",
+      "ml-IN": "എയർ പ്യൂരിഫയർ",
+      "mni-IN": "নুংশিৎ শেংদোকপা মেসিন",
+      "mr-IN": "हवा शुद्धीकरण यंत्र",
+      "ne-IN": "वायु शुद्धिकरण यन्त्र",
+      "or-IN": "ବାୟୁ ବିଶୋଧକ",
+      "pa-IN": "ਹਵਾ ਸਾਫ਼ ਕਰਨ ਵਾਲਾ ਯੰਤਰ",
+      "sa-IN": "वायुशोधकयन्त्रम्",
+      "sat-IN": "ᱦᱚᱭ ᱥᱟᱯᱷᱟᱭᱤᱡ ᱥᱟᱯᱟᱵ",
+      "sd-IN": "هوا صاف ڪرڻ وارو اوزار",
+      "ta-IN": "காற்று சுத்திகரிப்பான்",
+      "te-IN": "గాలి శుద్ధీకరణ యంత్రం",
+      "ur-IN": "ایئر پیوریفائر (ہوا صاف کرنے والا آلہ)"
+    }
+  },
+  VENTILATION: {
+    termEn: "Ventilation",
+    definition: "The deliberate exchange of indoor and outdoor air to maintain acceptable oxygenation and dilute contaminants.",
+    translations: {
+      "en-IN": "Ventilation",
+      "as-IN": "বায়ু চলাচল",
+      "bn-IN": "বায়ু চলাচল (ভেন্টিলেশন)",
+      "brx-IN": "बार थांनाय-फैनाय",
+      "doi-IN": "हवा दा आना-जाना",
+      "gu-IN": "હવા ઉજાસ / વેન્ટિલેશન",
+      "hi-IN": "हवा की आवाजाही (वेंटिलेशन)",
+      "kn-IN": "ಗಾಳಿಯಾಡುವಿಕೆ",
+      "ks-IN": "ہوا ہنٛز آمدورفت",
+      "kok-IN": "हवेचें येरादारी",
+      "mai-IN": "हवाक आवागमन",
+      "ml-IN": "വായുസഞ്ചാരം",
+      "mni-IN": "নুংশিৎ চৎথোক-চৎশিন",
+      "mr-IN": "हवेची ये-जा (व्हेंटिलेशन)",
+      "ne-IN": "हावाको आवतजावत",
+      "or-IN": "ବାୟୁ ଚଳାଚଳ",
+      "pa-IN": "ਹਵਾ ਦੀ ਆਵਾਜਾਈ",
+      "sa-IN": "वातायनम्",
+      "sat-IN": "ᱦᱚᱭ ᱵᱚᱞᱚᱱ-ᱚᱰᱚᱠ",
+      "sd-IN": "هوا جي لنگھه جي ترتيب",
+      "ta-IN": "காற்றோட்டம்",
+      "te-IN": "గాలి వెలుతురు",
+      "ur-IN": "ہوا کی نکاسی و فراہمی (وینٹیلیشن)"
+    }
+  },
+  VULNERABLE_GROUP: {
+    termEn: "Vulnerable Population",
+    definition: "Individuals with heightened physiological susceptibility to air pollution, including infants, pregnant individuals, elderly, and respiratory patients.",
+    translations: {
+      "en-IN": "Vulnerable Groups (Infants, Elderly, Respiratory Sensitive)",
+      "as-IN": "সংবেদনশীল ব্যক্তি (শিশু, বৃদ্ধ আৰু ৰোগী)",
+      "bn-IN": "সংবেদনশীল দল (শিশু, প্রবীণ ও শ্বাসকষ্টের রোগী)",
+      "brx-IN": "गोबां खैफोदगोनां मानसि",
+      "doi-IN": "संवेदनशील लोक (बच्चे, बुजुर्ग)",
+      "gu-IN": "સંવેદનશીલ જૂથો (બાળકો, વડીલો અને દર્દીઓ)",
+      "hi-IN": "संवेदनशील समूह (बच्चे, बुजुर्ग और सांस के मरीज)",
+      "kn-IN": "ಸೂಕ್ಷ್ಮ ಗುಂಪುಗಳು (ಮಕ್ಕಳು, ಹಿರಿಯರು, ಉಸಿರಾಟದ ತೊಂದರೆಯುಳ್ಳವರು)",
+      "ks-IN": "نازُک لوٗکھ (شُرؠ، بٔڑؠ بَب تہٕ مریض)",
+      "kok-IN": "संवेदनशील गट (भुरगीं, जाण्टे आनी दुयेंती)",
+      "mai-IN": "संवेदनशील वर्ग (बच्चा, वृद्ध आ रोगी)",
+      "ml-IN": "പ്രത്യേക ശ്രദ്ധ ആവശ്യമുള്ളവർ (കുട്ടികൾ, വയോധികർ)",
+      "mni-IN": "চেকশিনবা তাইবং মীওইশিং",
+      "mr-IN": "संवेदनशील गट (बालके, वृद्ध व श्वसनविकार असलेले)",
+      "ne-IN": "संवेदनशील वर्ग (बालबालिका, वृद्ध र बिरामी)",
+      "or-IN": "ସମ୍ବେଦନଶୀଳ ଗୋଷ୍ଠୀ (ଶିଶୁ, ବୟସ୍କ ଏବଂ ରୋଗୀ)",
+      "pa-IN": "ਸੰਵੇਦਨਸ਼ੀਲ ਗਰੁੱਪ (ਬੱਚੇ, ਬਜ਼ੁਰਗ ਅਤੇ ਮਰੀਜ਼)",
+      "sa-IN": "संवेदनशीलवर्गाः (शिशवः, वृद्धाः च)",
+      "sat-IN": "ᱱᱟᱡᱩᱠ ᱦᱚᱲ (ᱜᱤᱫᱽᱨᱟᱹ, ᱵᱩᱰᱷᱟᱹ ᱟᱨ ᱨᱩᱣᱟᱹ ᱦᱚᱲ)",
+      "sd-IN": "حساس آبادي (ٻار، بزرگ، مريض)",
+      "ta-IN": "பாதிப்புக்குள்ளாகும் குழுவினர் (குழந்தைகள், முதியவர்கள்)",
+      "te-IN": "సున్నితమైన వర్గాలు (పిల్లలు, వృద్ధులు, రోగులు)",
+      "ur-IN": "حساس افراد (بچے، بزرگ اور سانس کے مریض)"
+    }
+  }
+};

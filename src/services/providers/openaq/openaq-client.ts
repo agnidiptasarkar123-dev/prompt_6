@@ -20,7 +20,7 @@ export class OpenAQClient {
   constructor(options: OpenAQClientOptions = {}) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl || "https://api.openaq.org/v3";
-    this.timeoutMs = options.timeoutMs || 8000;
+    this.timeoutMs = options.timeoutMs || 15000;
   }
 
   public isConfigured(): boolean {
@@ -39,7 +39,9 @@ export class OpenAQClient {
     }
 
     const url = new URL(`${this.baseUrl}/locations`);
-    url.searchParams.set("iso", params.iso ?? "IN");
+    if (params.iso || !params.coordinates) {
+      url.searchParams.set("iso", params.iso ?? "IN");
+    }
     url.searchParams.set("limit", String(params.limit ?? 100));
     if (params.page) {
       url.searchParams.set("page", String(params.page));
@@ -49,15 +51,43 @@ export class OpenAQClient {
         "coordinates",
         `${params.coordinates.latitude},${params.coordinates.longitude}`
       );
-      url.searchParams.set("radius", String((params.radiusKm ?? 50) * 1000));
+      // OpenAQ v3 caps location radius search at 25,000 meters
+      url.searchParams.set("radius", String(Math.min((params.radiusKm ?? 25) * 1000, 25000)));
     }
 
     return this.fetchWithAuth(url.toString(), OpenAQLocationsResponseSchema);
   }
 
+  public async getLocation(locationId: number): Promise<OpenAQLocationsResponse> {
+    if (!this.isConfigured()) {
+      throw new Error("OpenAQ provider is NOT_CONFIGURED (OPENAQ_API_KEY is missing)");
+    }
+    const url = new URL(`${this.baseUrl}/locations/${locationId}`);
+    return this.fetchWithAuth(url.toString(), OpenAQLocationsResponseSchema);
+  }
+
+  public async getSensorHours(
+    sensorId: number,
+    limit: number = 48,
+    datetimeFrom?: string
+  ): Promise<OpenAQMeasurementsResponse> {
+    if (!this.isConfigured()) {
+      throw new Error("OpenAQ provider is NOT_CONFIGURED (OPENAQ_API_KEY is missing)");
+    }
+
+    const url = new URL(`${this.baseUrl}/sensors/${sensorId}/hours`);
+    url.searchParams.set("limit", String(limit));
+    if (datetimeFrom) {
+      url.searchParams.set("datetime_from", datetimeFrom);
+    }
+
+    return this.fetchWithAuth(url.toString(), OpenAQMeasurementsResponseSchema);
+  }
+
   public async getSensorMeasurements(
     sensorId: number,
-    limit: number = 24
+    limit: number = 24,
+    datetimeFrom?: string
   ): Promise<OpenAQMeasurementsResponse> {
     if (!this.isConfigured()) {
       throw new Error("OpenAQ provider is NOT_CONFIGURED (OPENAQ_API_KEY is missing)");
@@ -65,6 +95,9 @@ export class OpenAQClient {
 
     const url = new URL(`${this.baseUrl}/sensors/${sensorId}/measurements`);
     url.searchParams.set("limit", String(limit));
+    if (datetimeFrom) {
+      url.searchParams.set("datetime_from", datetimeFrom);
+    }
 
     return this.fetchWithAuth(url.toString(), OpenAQMeasurementsResponseSchema);
   }

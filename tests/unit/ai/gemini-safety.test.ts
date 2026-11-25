@@ -132,11 +132,11 @@ describe("Gemini AI Safety & Evidence Validation Suite", () => {
 
     await service.generateExplanation(defaultParams);
     expect(mockGenerateContent).toHaveBeenCalledTimes(1);
-    expect(getCallArgs().model).toBe("gemini-2.5-flash");
+    expect(getCallArgs().model).toBe("gemini-3.5-flash-lite");
   });
 
   it("AI-004: accepts custom model name override in constructor", async () => {
-    const service = new AiExplainerService("test-key", "gemini-1.5-pro");
+    const service = new AiExplainerService("test-key", "gemini-3.1-flash-lite");
     mockGenerateContent.mockResolvedValueOnce({
       text: JSON.stringify({
         summary: "Air quality is poor.",
@@ -153,7 +153,7 @@ describe("Gemini AI Safety & Evidence Validation Suite", () => {
     });
 
     await service.generateExplanation(defaultParams);
-    expect(getCallArgs().model).toBe("gemini-1.5-pro");
+    expect(getCallArgs().model).toBe("gemini-3.1-flash-lite");
   });
 
   it("AI-005: reads GEMINI_API_KEY from environment variables if constructor param omitted", () => {

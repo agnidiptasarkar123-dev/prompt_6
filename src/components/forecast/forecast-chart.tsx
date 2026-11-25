@@ -18,7 +18,7 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
   modelDomain = "cams_global",
   spatialResolutionKm = 45
 }) => {
-  const t = TRANSLATIONS[language];
+  const t = TRANSLATIONS[language] || TRANSLATIONS["en-IN"];
 
   // Filter PM2.5 points sorted by validTime
   const pm25Points = forecast.filter((f) => f.pollutant === "PM2.5");
@@ -31,27 +31,27 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
   );
 
   return (
-    <section aria-labelledby="forecast-heading" className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+    <section aria-labelledby="forecast-heading" className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-card-subtle">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center space-x-2">
-            <h3 id="forecast-heading" className="text-base font-bold text-white">
+            <h3 id="forecast-heading" className="text-base font-bold text-[#102A2A]">
               {t.forecastTitle}
             </h3>
-            <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] font-bold text-teal-400 ring-1 ring-teal-500/20">
+            <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-[#164E4A] border border-[#B8E6D2]">
               Type D: Model Forecast
             </span>
           </div>
-          <p className="text-xs text-slate-400">
-            {t.forecastSubtitle} (~{spatialResolutionKm} km grid, 3-hourly underlying model)
+          <p className="text-xs text-[#526466]">
+            {t.forecastSubtitle} (~{spatialResolutionKm} km grid, 3-hourly regional dispersion model — separate from ground station readings)
           </p>
         </div>
 
-        <span className="text-xs text-slate-400">Horizon: Next 24-72 Hours</span>
+        <span className="text-xs text-[#526466]">Horizon: Next 24-72 Hours</span>
       </div>
 
       {timelineTimes.length === 0 ? (
-        <p className="py-8 text-center text-xs text-slate-500">
+        <p className="py-8 text-center text-xs text-[#526466]">
           Atmospheric forecast data is currently unavailable for this region.
         </p>
       ) : (
@@ -69,28 +69,28 @@ export const ForecastChart: React.FC<ForecastChartProps> = ({
 
               return (
                 <div key={timeStr} className="flex min-w-[36px] flex-1 flex-col items-center">
-                  <span className="text-[10px] font-semibold text-slate-300">{Math.round(val25)}</span>
+                  <span className="text-[10px] font-semibold text-[#102A2A]">{Math.round(val25)}</span>
                   <div
-                    className="mt-1 w-full rounded-t bg-teal-500/80 transition hover:bg-teal-400"
+                    className="mt-1 w-full rounded-t bg-[#1F9D78] transition hover:bg-[#164E4A]"
                     style={{ height: `${heightPct}%` }}
                     title={`PM2.5: ${val25} µg/m³ at ${dateObj.toUTCString()}`}
                   />
-                  <span className="mt-1.5 text-[9px] text-slate-500">{hourLabel}</span>
+                  <span className="mt-1.5 text-[9px] text-[#526466]">{hourLabel}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-800 pt-3 text-xs text-slate-400">
+          <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-200 pt-3 text-xs text-[#526466]">
             <div className="flex items-center space-x-4">
               <span className="flex items-center space-x-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded bg-teal-500" />
-                <span>Forecasted PM2.5 (µg/m³)</span>
+                <span className="inline-block h-2.5 w-2.5 rounded bg-[#1F9D78]" />
+                <span className="text-[#102A2A] font-medium">Forecasted PM2.5 (µg/m³)</span>
               </span>
-              <span className="text-slate-500">Domain: {modelDomain}</span>
+              <span className="text-[#526466]">Domain: {modelDomain}</span>
             </div>
 
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#526466]">
               Copernicus Atmosphere Monitoring Service (CAMS) under CC BY 4.0
             </p>
           </div>

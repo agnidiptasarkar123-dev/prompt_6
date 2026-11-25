@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const stationId = url.searchParams.get("stationId");
+  const stationName = url.searchParams.get("stationName") || undefined;
   const latStr = url.searchParams.get("lat");
   const lonStr = url.searchParams.get("lon");
 
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
 
   try {
     let resolvedStationId: string | undefined = stationId || undefined;
+    let resolvedStationHint = undefined;
 
     if (!resolvedStationId && latStr && lonStr) {
       const lat = parseFloat(latStr);
@@ -50,14 +52,19 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      resolvedStationId = nearby.stations[0]?.id;
+      resolvedStationHint = nearby.stations[0];
+      resolvedStationId = resolvedStationHint?.id;
     }
 
     if (!resolvedStationId) {
       return errorResponse(404, "STATION_NOT_FOUND", "No valid monitoring station could be resolved.");
     }
 
-    const aqResult = await globalSourceOrchestrator.getStationAirQuality(resolvedStationId);
+    const aqResult = await globalSourceOrchestrator.getStationAirQuality(
+      resolvedStationId,
+      resolvedStationHint,
+      stationName
+    );
     return successResponse({
       data: aqResult,
       warnings: aqResult.warnings

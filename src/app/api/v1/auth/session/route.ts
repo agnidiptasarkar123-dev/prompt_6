@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const sessionCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const sessionCookie = req.cookies?.get?.(SESSION_COOKIE_NAME)?.value;
   if (sessionCookie && globalFirebaseAuth.isConfigured()) {
     try {
       const decoded = await globalFirebaseAuth.verifySessionCookie(sessionCookie, false);

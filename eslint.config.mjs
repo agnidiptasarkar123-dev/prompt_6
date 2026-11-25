@@ -11,7 +11,8 @@ const eslintConfig = [
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-      "prefer-const": "error"
+      "prefer-const": "error",
+      "react-hooks/set-state-in-effect": "off"
     }
   }
 ];

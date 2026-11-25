@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
+import { initializeApp, getApps, cert, applicationDefault, type App } from "firebase-admin/app";
 import { getAuth, type Auth, type DecodedIdToken } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 
@@ -24,19 +24,33 @@ export class FirebaseAdminService {
           })
         });
       } else {
-        this.app = getApps()[0] || null;
+        const apps = getApps();
+        this.app = apps[0]!;
       }
     } else if (projectId) {
       if (!getApps().length) {
-        this.app = initializeApp({ projectId });
+        try {
+          this.app = initializeApp({
+            credential: applicationDefault(),
+            projectId
+          });
+        } catch {
+          this.app = initializeApp({ projectId });
+        }
       } else {
-        this.app = getApps()[0] || null;
+        const apps = getApps();
+        this.app = apps[0]!;
       }
     }
 
     if (this.app) {
       this.auth = getAuth(this.app);
       this.firestore = getFirestore(this.app);
+      try {
+        this.firestore.settings({ ignoreUndefinedProperties: true });
+      } catch {
+        // Settings can only be applied once, or ignored if mocked
+      }
     }
   }
 
@@ -48,7 +62,7 @@ export class FirebaseAdminService {
   }
 
   public isConfigured(): boolean {
-    return this.app !== null && this.auth !== null;
+    return this.app !== null;
   }
 
   public async verifyIdToken(idToken: string): Promise<DecodedIdToken> {

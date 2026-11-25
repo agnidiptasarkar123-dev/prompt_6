@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="HawaSaathi Icon">
+  <title>HawaSaathi Symbol</title>
+  <desc>Flowing clean air currents, environmental leaf form, and intelligent directional guidance compass needle</desc>
+  <!-- Outer leaf silhouette and wind envelope -->
+  <path d="M10 38C7.5 27 13 14 27 8C36 10 40 17 40 24C40 32 32 39 21 40C16 40.5 12 39.5 10 38Z" fill="#164E4A" fill-opacity="0.10"/>
+  <path d="M10 38C7.5 27 13 14 27 8C36 10 40 17 40 24C40 32 32 39 21 40C16 40.5 12 39.5 10 38Z" stroke="#164E4A" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Flowing laminar air currents -->
+  <path d="M8 29C14 29 19 23 25 16C29 11 35 10 39 12" stroke="#1F9D78" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M13 36C18 35 22 30 27 24C31 19 35 17 38 18" stroke="#B8E6D2" stroke-width="1.75" stroke-linecap="round"/>
+  <!-- Directional Intelligence Compass Needle (Guidance) -->
+  <polygon points="31,13 34,22 25,19" fill="#1F9D78"/>
+  <polygon points="31,13 22,23 25,19" fill="#102A2A"/>
+  <circle cx="28" cy="18" r="1.5" fill="#FFFFFF"/>
+</svg>

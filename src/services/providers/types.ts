@@ -7,6 +7,13 @@ import type {
 
 export type ProviderStatus = "CONFIGURED" | "NOT_CONFIGURED" | "DEGRADED" | "UNAVAILABLE";
 
+export const PROVIDER_STATUSES: readonly ProviderStatus[] = [
+  "CONFIGURED",
+  "NOT_CONFIGURED",
+  "DEGRADED",
+  "UNAVAILABLE"
+] as const;
+
 export interface ProviderCapabilities {
   readonly providerId: string;
   readonly displayName: string;
@@ -29,6 +36,7 @@ export interface StationSearchQuery {
 
 export interface ObservationQuery {
   readonly stationId?: string;
+  readonly stationName?: string;
   readonly latitude?: number;
   readonly longitude?: number;
   readonly radiusKm?: number;

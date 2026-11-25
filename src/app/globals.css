@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+[data-theme="light"] {
+  --brand-midnight: #102A2A;
+  --brand-deep-teal: #164E4A;
+  --brand-saathi-green: #1F9D78;
+  --brand-mint: #B8E6D2;
+  --brand-canvas: #F6F8F4;
+  --brand-white: #FFFFFF;
+  --brand-slate: #526466;
+  --brand-amber: #F2B544;
+  --brand-orange: #E98245;
+  --brand-red: #D94B4B;
+
+  --hs-canvas-bg: #F6F8F4;
+  --hs-surface-bg: #FFFFFF;
+  --hs-elevated-bg: #FFFFFF;
+  --hs-subtle-bg: #EDF2EC;
+  --hs-text-primary: #102A2A;
+  --hs-text-secondary: #47595B;
+  --hs-border-subtle: #D7E2DD;
+  --hs-border-strong: #9FB7AE;
+  --hs-header-bg: #164E4A;
+  --hs-header-text: #FFFFFF;
+  --hs-sidebar-bg: #164E4A;
+  --hs-sidebar-text: #FFFFFF;
+  --hs-accent: #1F9D78;
+  --hs-accent-hover: #164E4A;
+  --hs-accent-text: #FFFFFF;
+  --hs-focus-ring: #1F9D78;
+  --hs-page-bg: #F6F8F4;
+  --hs-map-bg: #EBF3F0;
+  --hs-map-grid: #C9DDD6;
+  --hs-map-label: #102A2A;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --hs-canvas-bg: #0B1414;
+  --hs-surface-bg: #122121;
+  --hs-elevated-bg: #172B2B;
+  --hs-subtle-bg: #0E1A1A;
+  --hs-text-primary: #ECF4F1;
+  --hs-text-secondary: #A3BEB6;
+  --hs-border-subtle: #24403E;
+  --hs-border-strong: #35615E;
+  --hs-header-bg: #0D2624;
+  --hs-header-text: #ECF4F1;
+  --hs-sidebar-bg: #0B1E1D;
+  --hs-sidebar-text: #ECF4F1;
+  --hs-accent: #27C497;
+  --hs-accent-hover: #1F9D78;
+  --hs-accent-text: #061714;
+  --hs-focus-ring: #5CE1BA;
+  --hs-page-bg: #0B1414;
+  --hs-map-bg: #0B1518;
+  --hs-map-grid: #1E293B;
+  --hs-map-label: #E2E8F0;
+  color-scheme: dark;
+}
+
+[data-theme="high-contrast"] {
+  --hs-canvas-bg: #000000;
+  --hs-surface-bg: #0A0A0A;
+  --hs-elevated-bg: #121212;
+  --hs-subtle-bg: #171717;
+  --hs-text-primary: #FFFFFF;
+  --hs-text-secondary: #FACC15;
+  --hs-border-subtle: #FFFFFF;
+  --hs-border-strong: #FACC15;
+  --hs-header-bg: #000000;
+  --hs-header-text: #FFFFFF;
+  --hs-sidebar-bg: #000000;
+  --hs-sidebar-text: #FFFFFF;
+  --hs-accent: #00E5A3;
+  --hs-accent-hover: #FACC15;
+  --hs-accent-text: #000000;
+  --hs-focus-ring: #FACC15;
+  --hs-page-bg: #000000;
+  --hs-map-bg: #000000;
+  --hs-map-grid: #3F3F46;
+  --hs-map-label: #FFFFFF;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--hs-canvas-bg);
+  color: var(--hs-text-primary);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Global accessible focus ring */
+:focus-visible {
+  outline: 2px solid var(--hs-focus-ring);
+  outline-offset: 2px;
+}
+
+[data-theme="high-contrast"] :focus-visible {
+  outline: 3px solid #FACC15;
+  outline-offset: 2px;
+}
+
+[data-theme="high-contrast"] .hs-card {
+  border-width: 2px !important;
+  border-color: #FFFFFF !important;
+}
+
+/* Safe word wrapping across all 23 Indian scripts */
+.hs-wrap-safe {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Custom scrollbar aligned with active theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--hs-canvas-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hs-border-strong);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hs-accent);
+}

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { NextResponse } from "next/server";
 import { globalRateLimiter } from "@/services/rate-limit/rate-limiter";
+import { sanitizePublicErrorMessage } from "@/services/ai/output-guardrails";
 
 export interface ApiResponseOptions<T> {
   readonly status?: number;
@@ -46,12 +47,17 @@ export function errorResponse(
   headers.set("X-Frame-Options", "DENY");
   headers.set("Cache-Control", "no-store, max-age=0");
 
+  const safeMessage =
+    status >= 500
+      ? "An internal service error occurred. Please retry or reference X-Request-Id."
+      : sanitizePublicErrorMessage(message);
+
   return NextResponse.json(
     {
       requestId,
       status: "ERROR",
       errorCode,
-      message,
+      message: safeMessage,
       retryable
     },
     {
@@ -67,7 +73,7 @@ export async function checkRouteRateLimit(
   windowSeconds: number = 60
 ): Promise<NextResponse | null> {
   const forwarded = req.headers.get("x-forwarded-for");
-  const ip = forwarded ? forwarded.split(",")[0]?.trim() || "anonymous" : "anonymous";
+  const ip = forwarded ? forwarded.split(",")[0]!.trim() || "anonymous" : "anonymous";
   const rateLimitResult = await globalRateLimiter.checkLimit(`ip_${ip}`, limit, windowSeconds);
 
   if (!rateLimitResult.allowed) {

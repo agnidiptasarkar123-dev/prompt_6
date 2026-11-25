@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { HouseholdContextSchema } from "./user-context.schema";
 import { RoutineActivitySchema } from "./routine.schema";
+import { SupportedAiLanguageSchema } from "./ai-explanation.schema";
 
 export const SavedLocationSchema = z.object({
   name: z.string().min(1).max(100),
@@ -13,9 +14,10 @@ export const SavedLocationSchema = z.object({
 export type SavedLocation = z.infer<typeof SavedLocationSchema>;
 
 export const UserPreferencesSchema = z.object({
-  language: z.enum(["en", "bn", "hi"]).default("en"),
+  language: SupportedAiLanguageSchema.default("en"),
   temperatureUnit: z.enum(["C", "F"]).default("C"),
-  notificationsEnabled: z.boolean().default(false)
+  notificationsEnabled: z.boolean().default(false),
+  theme: z.enum(["light", "dark", "high-contrast", "system"]).optional()
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
 

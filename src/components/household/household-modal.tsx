@@ -141,38 +141,45 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="household-modal-heading"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 p-4 backdrop-blur-sm"
+    >
+      <div className="hs-card relative w-full max-w-lg rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-modal-subtle">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 hover:text-white"
+          className="absolute right-4 top-4 inline-flex min-h-[32px] min-w-[32px] items-center justify-center rounded-lg p-1 text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
           aria-label="Close modal"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex items-center space-x-2">
-          <Users className="h-5 w-5 text-teal-400" />
-          <h3 className="text-xl font-bold text-white">Household Context & Routine</h3>
+          <Users className="h-5 w-5 text-[var(--hs-accent)]" />
+          <h3 id="household-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
+            Household Context & Routine
+          </h3>
         </div>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-[#526466]">
           Voluntarily personalize your recommendations for multi-generational household vulnerabilities. Health info is non-diagnostic.
         </p>
 
         <form onSubmit={handleSave} className="mt-5 space-y-4">
           {/* Vulnerable Members */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="rounded-xl border border-slate-200 bg-[#F6F8F4] p-3.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#164E4A]">
               Household Vulnerabilities
             </h4>
-            <div className="mt-2.5 space-y-2 text-xs text-slate-200">
+            <div className="mt-2.5 space-y-2 text-xs text-[#102A2A]">
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   checked={hasInfant}
                   onChange={(e) => setHasInfant(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-800 text-teal-500"
+                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
                 />
                 <span>Infants or young children under 5 in household</span>
               </label>
@@ -182,7 +189,7 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   type="checkbox"
                   checked={hasElderly}
                   onChange={(e) => setHasElderly(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-800 text-teal-500"
+                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
                 />
                 <span>Elderly family members (65+ years)</span>
               </label>
@@ -192,7 +199,7 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   type="checkbox"
                   checked={hasRespiratory}
                   onChange={(e) => setHasRespiratory(e.target.checked)}
-                  className="rounded border-slate-700 bg-slate-800 text-teal-500"
+                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
                 />
                 <span>Self-reported respiratory or cardiac sensitivity</span>
               </label>
@@ -200,8 +207,8 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
           </div>
 
           {/* Commute Mode */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <div className="rounded-xl border border-slate-200 bg-[#F6F8F4] p-3.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#164E4A]">
               Daily Commute Mode
             </h4>
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
@@ -210,11 +217,10 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   key={mode}
                   type="button"
                   onClick={() => setCommuteMode(mode)}
-                  className={`rounded-lg border px-3 py-2 font-medium transition ${
-                    commuteMode === mode
-                      ? "border-teal-500 bg-teal-500/10 text-teal-300"
-                      : "border-slate-800 bg-slate-900 text-slate-300 hover:border-slate-700"
-                  }`}
+                  className={`rounded-lg border px-3 py-2 font-medium transition ${commuteMode === mode
+                    ? "border-[#1F9D78] bg-[#B8E6D2]/25 text-[#164E4A] font-semibold"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
                 >
                   {mode.replace(/_/g, " ")}
                 </button>
@@ -223,16 +229,16 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
           </div>
 
           {/* DPDP Act Consent */}
-          <div className="rounded-xl border border-teal-500/20 bg-teal-950/20 p-3.5 text-xs text-slate-300">
+          <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-3.5 text-xs text-slate-700">
             <label className="flex items-start space-x-2">
               <input
                 type="checkbox"
                 checked={cloudConsent}
                 onChange={(e) => setCloudConsent(e.target.checked)}
-                className="mt-0.5 rounded border-slate-700 bg-slate-800 text-teal-500"
+                className="mt-0.5 rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
               />
               <span className="leading-relaxed">
-                <strong className="text-teal-300">DPDP Act (2023) Consent:</strong> I voluntarily consent to storing this non-diagnostic household context for personalized recommendations. (Unchecked context remains in local session storage).
+                <strong className="text-[#164E4A]">DPDP Act (2023) Consent:</strong> I voluntarily consent to storing this non-diagnostic household context for personalized recommendations. (Unchecked context remains in local session storage).
               </span>
             </label>
           </div>
@@ -241,13 +247,13 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+              className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-[#F6F8F4]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-teal-500 px-5 py-2 text-xs font-bold text-slate-950 transition hover:bg-teal-400"
+              className="rounded-xl bg-[#1F9D78] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#164E4A]"
             >
               Save Context
             </button>

@@ -8,11 +8,12 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
     css: false,
+    maxWorkers: 4,
     coverage: {
       provider: "custom",
       customProviderModule: path.resolve(import.meta.dirname, "./node_modules/@vitest/coverage-v8"),
       reporter: ["text", "json", "html", "json-summary"],
-      include: ["src/domain/**/*.ts", "src/schemas/**/*.ts"],
+      include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/types/**", "node_modules/**"],
       thresholds: {
         statements: 100,

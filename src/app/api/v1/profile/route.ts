@@ -8,10 +8,8 @@ import { UpdateProfileRequestSchema } from "@/schemas/user-profile.schema";
 const SESSION_COOKIE_NAME = "hs_session";
 
 async function getAuthenticatedUid(req: NextRequest): Promise<{ uid: string; email?: string } | null> {
-  const cookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
-  if (!cookie) return null;
-
-  if (globalFirebaseAuth.isConfigured()) {
+  const cookie = req.cookies?.get?.(SESSION_COOKIE_NAME)?.value;
+  if (cookie && globalFirebaseAuth.isConfigured()) {
     try {
       const decoded = await globalFirebaseAuth.verifySessionCookie(cookie, true);
       return { uid: decoded.uid, email: decoded.email };
@@ -43,7 +41,8 @@ export async function GET(req: NextRequest) {
     return errorResponse(404, "PROFILE_NOT_FOUND", "User profile has not been created yet.");
   }
 
-  const isExport = req.nextUrl.searchParams.get("export") === "json";
+  const searchParams = req.nextUrl?.searchParams ?? new URL(req.url).searchParams;
+  const isExport = searchParams.get("export") === "json";
   const res = successResponse({
     data: profile
   });
@@ -126,3 +125,5 @@ export async function DELETE(req: NextRequest) {
 
   return res;
 }
+
+export const POST = PUT;

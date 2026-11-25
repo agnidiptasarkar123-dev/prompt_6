@@ -1,0 +1,117 @@
+{
+  "en-IN": {
+    "status": "approved",
+    "reviewedBy": "Principal Systems Architect (English Source Authority)",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "as-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted via Gemini API with MoEFCC CPCB environmental glossary grounding. Awaiting qualified Assamese native speaker review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "bn-IN": {
+    "status": "review-pending",
+    "notes": "Audited with WBPCB terminology. Awaiting final independent native linguistic review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "brx-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script. Awaiting qualified Bodo linguistic scholar review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "doi-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script. Awaiting Dogri native speaker verification.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "gu-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Gujarati script. Awaiting GPCB aligned native verification.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "hi-IN": {
+    "status": "review-pending",
+    "notes": "Aligned with CPCB official Hindi NAQI 2014 gazette. Awaiting independent native review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "kn-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Kannada script. Awaiting KSPCB aligned native speaker review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "ks-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Perso-Arabic (Nastaliq) script with RTL formatting. Awaiting Kashmiri scholar review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "kok-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script (Goan standard). Awaiting Konkani native reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "mai-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script. Awaiting Maithili linguistic review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "ml-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Malayalam script. Awaiting KSPCB aligned native reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "mni-IN": {
+    "status": "review-pending",
+    "notes": "Drafted in Eastern Nagari / Bengali script with Meitei Mayek cross-references. Awaiting Manipuri native reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "mr-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script. Awaiting MPCB aligned native Marathi reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "ne-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Devanagari script. Awaiting Nepali native speaker review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "or-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Odia script. Awaiting OSPCB aligned native Odia reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "pa-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Gurmukhi script. Awaiting PPCB aligned native Punjabi reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "sa-IN": {
+    "status": "review-pending",
+    "notes": "Drafted in classical Sanskrit Devanagari orthography. Awaiting Sanskrit scholar verification.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "sat-IN": {
+    "status": "review-pending",
+    "notes": "Drafted in official Ol Chiki script. Awaiting Santali linguistic community review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "sd-IN": {
+    "status": "review-pending",
+    "notes": "Drafted in Perso-Arabic Sindhi script with RTL direction. Awaiting Sindhi scholar review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "ta-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Tamil script. Awaiting TNPCB aligned native Tamil reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "te-IN": {
+    "status": "review-pending",
+    "notes": "Machine-drafted in Telugu script. Awaiting APPCB/TGPCB aligned native Telugu reviewer.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  },
+  "ur-IN": {
+    "status": "review-pending",
+    "notes": "Drafted in Nastaliq / Perso-Arabic script with RTL direction. Awaiting Urdu linguistic review.",
+    "updatedAt": "2026-11-24T14:00:00.000Z"
+  }
+}

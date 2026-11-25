@@ -8,12 +8,42 @@ export const AiGuidanceItemSchema = z.object({
 });
 export type AiGuidanceItem = z.infer<typeof AiGuidanceItemSchema>;
 
+export const SupportedAiLanguageSchema = z.enum([
+  "en",
+  "bn",
+  "hi",
+  "en-IN",
+  "as-IN",
+  "bn-IN",
+  "brx-IN",
+  "doi-IN",
+  "gu-IN",
+  "hi-IN",
+  "kn-IN",
+  "ks-IN",
+  "kok-IN",
+  "mai-IN",
+  "ml-IN",
+  "mni-IN",
+  "mr-IN",
+  "ne-IN",
+  "or-IN",
+  "pa-IN",
+  "sa-IN",
+  "sat-IN",
+  "sd-IN",
+  "ta-IN",
+  "te-IN",
+  "ur-IN"
+]);
+export type SupportedAiLanguage = z.infer<typeof SupportedAiLanguageSchema>;
+
 export const AiExplanationSchema = z.object({
   summary: z.string().min(1),
   primaryPollutantExplanation: z.string().min(1),
   actionGuidance: z.array(AiGuidanceItemSchema),
   forecastTrendSummary: z.string().optional(),
-  language: z.enum(["en", "bn", "hi"])
+  language: SupportedAiLanguageSchema
 });
 export type AiExplanation = z.infer<typeof AiExplanationSchema>;
 

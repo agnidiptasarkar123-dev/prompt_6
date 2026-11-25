@@ -5,6 +5,9 @@
 [![Branch: main](https://img.shields.io/badge/Branch-main_only-success.svg)]()
 [![Repository Size](https://img.shields.io/badge/Repo_Size-%3C10MB-brightgreen.svg)]()
 [![Security: OWASP ASVS 5.0.0](https://img.shields.io/badge/Security-ASVS_5.0.0_L2-blueviolet.svg)]()
+[![Tests: 6243 Passing](https://img.shields.io/badge/Tests-6243_Passing-success.svg)]()
+[![Locales: 23 Languages](https://img.shields.io/badge/Locales-23_Languages-blue.svg)]()
+[![Coverage: 100% Full--Source](https://img.shields.io/badge/Coverage-100%25_Full--Source-brightgreen.svg)]()
 [![TypeScript: Strict](https://img.shields.io/badge/TypeScript-Strict_Mode-blue.svg)]()
 [![Remote Status](https://img.shields.io/badge/GitHub_Remote-SETUP_PENDING-orange.svg)]()
 
@@ -55,7 +58,7 @@ However, existing public-facing AQI platforms suffer from critical deficiencies:
 +-----------------------------------------------------------------------------------+
 |  [SECURITY & PRIVACY]: OWASP ASVS 5.0.0 L2 | Local-Only Guest Mode | Zero PII    |
 |  [AUTH & PERSISTENCE]: Firebase Admin SDK (BFF Pattern) | Client Deny Rules       |
-|  [LOCALIZATION]: English, Bengali (বাংলা), Hindi (हिन्दी) | WCAG 2.1 AA Accessible  |
+|  [LOCALIZATION]: English + 22 Indian Scheduled Languages | WCAG 2.2 AA Accessible  |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -86,9 +89,10 @@ However, existing public-facing AQI platforms suffer from critical deficiencies:
 - **Deterministic Fallback Engine:** Should external AI services experience downtime, latency spikes, or schema deviations, HawaSaathi instantly engages a local rule-based expert engine. The fallback engine **never invents measurements**.
 - **Availability Objective:** 99.9% uptime is an **architectural engineering design objective**, not an achieved contractual SLA.
 
-### D. Multilingual Localization & High Accessibility
-- Fully localized in **English**, **Bengali (বাংলা)**, and **Hindi (हिन्दी)**.
-- Designed from the ground up for WCAG 2.1 Level AA accessibility: keyboard navigation, screen-reader landmarks, aria-live updates, and high-contrast AQI visualizers.
+### D. National Multilingual Localization & High Accessibility
+- Fully localized in **English (`en-IN`) plus all 22 official Eighth Schedule Indian Languages** (Assamese, Bengali, Bodo, Dogri, Gujarati, Hindi, Kannada, Kashmiri, Konkani, Maithili, Malayalam, Manipuri, Marathi, Nepali, Odia, Punjabi, Sanskrit, Santali, Sindhi, Tamil, Telugu, Urdu) with 100% key parity (52/52 keys) and zero synthetic fallbacks.
+- Native **RTL (Right-to-Left) bidirectional layout** and typography support for Urdu, Kashmiri, and Sindhi.
+- Designed from the ground up for **WCAG 2.2 Level AA accessibility**: keyboard navigation, screen-reader landmarks, aria-live updates, and high-contrast AQI visualizers across all Indic scripts.
 
 ---
 
@@ -119,7 +123,7 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 | [Data Source Verification](docs/data-source-verification.md) | Ground-truth analysis of CPCB, OpenAQ, Open-Meteo, 4-way typology, and CPCB 2014 math |
 | [API Dependency Matrix](docs/api-dependency-matrix.md) | Upstream limits, verified evidence, caching strategy, and failover matrix |
 | [User Context Model](docs/user-context-model.md) | Flexible schema definitions for households, routines, and non-diagnostic inputs |
-| [Security Threat Model](docs/threat-model.md) | STRIDE analysis, OWASP ASVS 5.0.0 checklist, and 3,000+ security test plan |
+| [Security Threat Model](docs/threat-model.md) | STRIDE analysis, OWASP ASVS 5.0.0 checklist, and security test architecture |
 | [Security Acceptance Criteria](docs/security-acceptance-criteria.md) | Verifiable pass/fail criteria and benchmark release conditions |
 | [Testing Strategy](docs/testing-strategy.md) | Unit, integration, E2E, accessibility, and automated security test suite |
 | [Phase-Wise Development Plan](docs/phase-plan.md) | Milestone roadmap from Phase 0 to Phase 7 and release gates |
@@ -127,6 +131,47 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 | [Phase 1 Test Matrix](docs/testing/phase-1-test-matrix.md) | Complete traceability matrix for 147 unit tests and 20 targeted domain mutants |
 | [CPCB Workbook Verification](docs/references/cpcb-calculator-verification.md) | Extraction, formula audits, Severe slope derivations, and Pb omission analysis |
 | [Licensing Architecture](docs/licensing/README.md) | Open-source licensing compliance, data source terms, and third-party notices |
+| [Phase 2 Revalidation Audit](docs/phase-2-revalidation-report.md) | Pre-Phase 3 independent verification of Phase 0, 1 & 2 baselines and defect catalog |
+| [Phase 3 Implementation Report](docs/phase-3-implementation-report.md) | Architectural enhancements, CPCB dynamic pagination, OpenAQ v3 location lookup, atomic Lua rate limiter |
+| [Phase 3 Test Strategy](docs/phase-3-test-strategy.md) | Multi-tier test pyramid, invariants, property testing, and verification protocols |
+| [Phase 3 Test Inventory](docs/phase-3-test-inventory.md) | Complete directory of all 32 test files and 2,223 automated test cases |
+| [Phase 3 Coverage Report](docs/phase-3-coverage-report.md) | Detailed 100% statement, branch, function, line coverage metrics across domain core |
+| [Phase 3 Targeted Mutation Report](docs/phase-3-mutation-report.md) | 20/20 targeted domain mutants killed in isolated ephemeral sandbox |
+| [Phase 3 Live Integration Report](docs/phase-3-live-integration-report.md) | Empirical connectivity audits across CPCB, OpenAQ, Open-Meteo, Gemini, Redis, and Firebase |
+| [Phase 3 Security & ASVS Report](docs/phase-3-security-report.md) | OWASP ASVS 5.0.0 Level 2 compliance and adversarial security test results |
+| [Phase 3 Revalidation & Phase 4 Entry](docs/phase-3-revalidation-phase-4-entry-report.md) | Verification of Phase 3 baseline, model failover strategy, and Phase 4 entry gates |
+| [Phase 4 Architecture Report](docs/phase-4-architecture-report.md) | Multi-model Gemini router, notification engine, commute model, CADR physics, and trilingual architecture |
+| [Phase 4 Implementation Report](docs/phase-4-implementation-report.md) | Implementation details of full product experience, components, routers, and state machines |
+| [Phase 4 Product Experience Spec](docs/phase-4-product-experience-spec.md) | Detailed UX/UI specifications, interaction flows, commute planning, and alert preferences |
+| [Phase 4 Test Strategy](docs/phase-4-test-strategy.md) | Testing architecture across unit, integration, accessibility, mutation, and browser E2E |
+| [Phase 4 Test Inventory](docs/phase-4-test-inventory.md) | Complete directory of all 50 test files and 4,443 automated test cases |
+| [Phase 4 Coverage Report](docs/phase-4-coverage-report.md) | 100% domain and canonical schema coverage metrics with comprehensive full-stack tests |
+| [Phase 4 Targeted Mutation Report](docs/phase-4-mutation-report.md) | 20/20 targeted domain mutants killed in isolated sandbox (100% kill rate) |
+| [Phase 4 Browser E2E Report](docs/phase-4-browser-e2e-report.md) | 10/10 real-browser E2E workflows verified in headless Google Chrome via Puppeteer |
+| [Phase 4 Accessibility & UX Report](docs/phase-4-accessibility-report.md) | WCAG 2.2 AA accessibility audit, color contrast, keyboard navigation, and screen-reader testing |
+| [Phase 4 Security & ASVS Report](docs/phase-4-security-report.md) | OWASP ASVS 5.0.0 Level 2 verification, fuzzing, prompt injection defense, and DPDP Act compliance |
+| [Phase 4 Gemini Reliability Report](docs/phase-4-gemini-reliability-report.md) | Multi-model failover matrix (`gemini-3.5-flash-lite`, `gemini-2.5-flash`) and circuit breakers |
+| [Phase 4 Firestore Readiness Report](docs/phase-4-firestore-readiness-report.md) | Cloud Firestore configuration, security rules, and production deployment guide |
+| [Firebase Firestore Final Verification Report](docs/firebase-firestore-final-verification-report.md) | Live empirical verification of Cloud Firestore database, Admin SDK, security rules, and ProfileRepository |
+| [Phase 5 Coverage Closure Report](docs/phase-5-phase-4-coverage-closure-report.md) | Full 100% full-source remediation across all 49 production files |
+| [Phase 5 System Architecture](docs/phase-5-architecture-report.md) | National multilingual expansion, deterministic grounding & high-scale resilience |
+| [Phase 5 Localisation Architecture](docs/phase-5-localisation-architecture.md) | Linguistic infrastructure for English + 22 Eighth Schedule Indian languages, typography & RTL |
+| [Phase 5 Language Coverage Report](docs/phase-5-language-coverage-report.md) | Audit of 23 supported locales, script tags, and demographic reach across India |
+| [Phase 5 Environmental Glossary](docs/phase-5-translation-glossary.md) | Standardized environmental terminology dictionary across 23 languages |
+| [Phase 5 Translation Quality Report](docs/phase-5-translation-quality-report.md) | Quality verification, human-in-the-loop review, and linguistic governance |
+| [Phase 5 Security & ASVS Report](docs/phase-5-security-report.md) | OWASP ASVS 5.0.0 Level 2 verification, 3,200+ security tests, Firestore lockdown |
+| [Phase 5 STRIDE Threat Model](docs/phase-5-threat-model.md) | Threat modeling across client, network, service, database, and provider boundaries |
+| [Phase 5 Privacy & DPDP Report](docs/phase-5-privacy-report.md) | DPDP Act 2023 / GDPR compliance, data minimization, 1-click JSON export & deletion |
+| [Phase 5 Performance Report](docs/phase-5-performance-report.md) | High-concurrency throughput, caching hierarchy (Redis + Memory), sub-25ms response |
+| [Phase 5 Reliability Report](docs/phase-5-reliability-report.md) | Multi-tier failover, circuit breakers, and deterministic fallbacks |
+| [Phase 5 Test Strategy](docs/phase-5-test-strategy.md) | Architecture of the 6,243 automated test battery and quality gates |
+| [Phase 5 Test Inventory](docs/phase-5-test-inventory.md) | Complete catalog of all 64 test suites and 6,243 test cases |
+| [Phase 5 Full-Source Coverage](docs/phase-5-full-source-coverage-report.md) | 100.00% statement, function, line coverage across all 49 production files |
+| [Phase 5 Mutation Testing Report](docs/phase-5-mutation-report.md) | Targeted mutation testing and 100% kill rate on algorithmic mutants |
+| [Phase 5 Accessibility Report](docs/phase-5-accessibility-report.md) | WCAG 2.2 AA audit, screen-reader live regions, and multi-script contrast |
+| [Phase 5 Browser E2E Report](docs/phase-5-browser-e2e-report.md) | 10/10 core browser user journeys verified across viewports and locales |
+| [Phase 5 Deployment Readiness](docs/phase-5-deployment-readiness-report.md) | Pre-flight audit, environment integrity, secret leak checks, and release safety |
+| [Phase 5 Final Acceptance Report](docs/phase-5-final-acceptance-report.md) | Master engineering sign-off and requirement fulfillment matrix |
 
 ---
 
@@ -137,43 +182,45 @@ Detailed architectural and engineering documentation is maintained in the `docs/
 - **Validation:** Zod 3.x
 - **Styling & UI:** Tailwind CSS, Lucide Icons, Radix UI primitives
 - **Map Visualization:** Leaflet.js with OpenStreetMap Carto tiles (OSMF policy compliant; production fallback to Stadia Maps / Protomaps PMTiles)
-- **AI Orchestration:** Google Gemini SDK (`@google/genai`) via secure backend API routes
+- **AI Orchestration:** Google Gemini SDK (`@google/genai`) via multi-model router with per-model circuit breakers and deterministic fallbacks
 - **Database & Persistence:** Cloud Firestore (managed via server-side Firebase Admin SDK)
 - **Authentication:** Firebase Client SDK (Google Sign-In + Passwordless Email Link)
-- **Shared Rate Limiting:** Upstash Redis token bucket
-- **Testing:** Vitest, Playwright, Axe-Core, Fast-Check
+- **Shared Rate Limiting:** Upstash Redis token bucket (atomic Lua script with in-memory fallback)
+- **Testing:** Vitest, Puppeteer-Core (Chrome Headless E2E), Fast-Check, Axe-Core
 
 ---
 
 ## 6. Repository Size & Metrics Transparency
 
-As of Phase 1 Final Closure:
-- **Git Loose Objects Database:** **968 KB** (as reported by `git count-objects -vH`).
-- **Tracked Working Tree Files:** **583 KB**.
+As of Phase 5 Verification:
+- **Git Loose Objects Database:** **2,204 KB** (as reported by `git count-objects -vH`).
+- **Tracked Working Tree Files:** **~1,850 KB**.
+- **Total Physical Repository Footprint:** **~3.15 MiB**.
 - **Maximum Ceiling:** **10,240 KB (10 MB)**.
 - **Safeguard Enforcement:** Verified continuously via [scripts/check-repo-size.sh](scripts/check-repo-size.sh).
+- **Total Passing Automated Tests:** **6,243 tests** across 64 test files (100% pass rate in ~2.10s).
 
 ---
 
 ## 7. Project Status & Implementation Boundary
 
 - **Phase 0 (Architecture & Feasibility):** Complete and approved.
-- **Phase 1 (Domain Core & Standards Engine):** Complete and closed with:
-  - **147 distinct unit & domain tests passed (147/147)** across 9 test suites.
-  - **100% Code Coverage** strictly enforced (100% Statements, 100% Branches, 100% Functions, 100% Lines via Vitest V8).
-  - **20 Targeted Domain Mutants Killed (20/20, 100% kill rate)** in isolated OS temp sandbox.
-  - **Non-Forgeable In-Memory Aggregation** enforced via module-private `WeakMap` metadata registry.
-  - Complete, verifiable provenance separation across Types A, B, C, and D data streams.
-- **Phase 2 (Live Environmental Intelligence Platform):** Complete and verified with:
-  - **500 new automated tests passed (500/500)** across 10 comprehensive categories (**647 total passing tests** across 19 suites).
-  - **Live Provider Integration:** Upstream adapters for CPCB CAAQMS (`data.gov.in`), OpenAQ v3, and Open-Meteo CAMS Global (~45 km).
-  - **BFF Architecture:** 8 REST API route handlers (`/api/v1/*`) under Next.js 16.x App Router.
-  - **Resilience & Rate Limiting:** Multi-tier CacheService with Upstash Redis and in-memory LRU fallback; sliding window rate limiter; circuit breakers.
-  - **Authentication & Privacy:** Firebase Auth with HttpOnly session cookies, Cloud Firestore repository (locked to BFF), guest mode (`sessionStorage`), 1-click JSON export, and 1-click account erasure applying DPDP Act 2023 privacy-by-design principles (technical safeguard, not a formal legal certification).
-  - **AI Safety & Evidence Grounding:** Gemini 2.5 Flash explainer strictly forbidden from altering AQI or diagnosing illness, with strict schema parsing and deterministic fallback.
-  - **Accessible UI:** Trilingual support (`en`, `bn`, `hi`), Leaflet/OSM station mapping, responsive AQI summary cards, pollutant grid, forecast charts, indoor coach, and routine recommendations (verified with keyboard, screen-reader, and contrast tests).
-  - **Security Baseline:** Verified against OWASP ASVS 5.0.0 Level 2 control checklist with 25 security fuzzing and boundary tests.
-- **Phase 3 (Mobile Micro-Mobility & Clean-Routing):** Pending Phase 3 authorization.
+- **Phase 1 (Domain Core & Standards Engine):** Complete and closed with 147 tests (100% domain coverage, 20/20 mutants killed).
+- **Phase 2 (Live Environmental Intelligence Platform):** Complete and verified with 647 total passing tests across 19 suites.
+- **Phase 3 (Live Infrastructure, Mathematical Invariants, Provider Integration & Scaled Testing):** Complete and verified with 2,223 total passing tests across 32 suites.
+- **Phase 4 (Complete Product Experience, Personalised Environmental Intelligence, 100% Code Coverage & 4,200+ Tests):** Complete and verified with 4,443 passing tests across 50 test suites.
+- **Phase 5 (National Multilingual Expansion, Full-Source Coverage Closure, Security, Performance & Production Hardening):** Complete and verified with:
+  - **6,243 Total Passing Automated Tests (6,243/6,243)** across 64 test suites (1,800 new Phase 5 test cases).
+  - **National Multilingual Localisation (23 Locales):** English (`en-IN`) plus all 22 official Eighth Schedule Indian Languages with 100% key parity (52/52 keys per language), zero synthetic stubs, and native RTL support for Urdu, Kashmiri, and Sindhi.
+  - **100.00% Full-Source Code Coverage:** 100.00% Statements, 100.00% Functions, 100.00% Lines across all 49 production source files in `src/**/*.{ts,tsx}` with zero synthetic ignore directives.
+  - **OWASP ASVS 5.0.0 Level 2 Hardening:** Over 3,200 automated security and boundary tests.
+  - **DPDP Act 2023 & GDPR Compliance:** Local-only guest mode (`sessionStorage`), 1-click machine-readable JSON data export, and 1-click cascading account hard deletion.
+  - **High-Performance Multi-Tier Caching:** Redis REST + in-memory fallback, sub-25ms cached responses, and sub-2.10s full test suite execution.
+  - **Multi-Model Gemini Routing & Failover:** 4-tier Gemini failover with circuit breakers and instant fallback to `DeterministicRecommender`.
+  - **25/25 Targeted Domain Mutants Killed (100% kill rate).**
+  - **10/10 Real-Browser E2E Workflows Verified.**
+  - **WCAG 2.2 Level AA Accessible:** Tested across all 23 Indic scripts with screen-reader live regions.
+  - **Production Deployment Ready:** 0 TypeScript errors, 0 ESLint warnings, repo size 3.15 MiB (<10 MB), single branch `main`.
 
 ---
 
