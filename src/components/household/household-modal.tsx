@@ -163,23 +163,23 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
             Household Context & Routine
           </h3>
         </div>
-        <p className="mt-1 text-xs text-[#526466]">
+        <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
           Voluntarily personalize your recommendations for multi-generational household vulnerabilities. Health info is non-diagnostic.
         </p>
 
         <form onSubmit={handleSave} className="mt-5 space-y-4">
           {/* Vulnerable Members */}
-          <div className="rounded-xl border border-slate-200 bg-[#F6F8F4] p-3.5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#164E4A]">
+          <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-3.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--hs-accent)]">
               Household Vulnerabilities
             </h4>
-            <div className="mt-2.5 space-y-2 text-xs text-[#102A2A]">
+            <div className="mt-2.5 space-y-2 text-xs text-[var(--hs-text-primary)]">
               <label className="flex items-center space-x-2">
                 <input
                   type="checkbox"
                   checked={hasInfant}
                   onChange={(e) => setHasInfant(e.target.checked)}
-                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
+                  className="rounded border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-accent)] focus:ring-[var(--hs-accent)]"
                 />
                 <span>Infants or young children under 5 in household</span>
               </label>
@@ -189,7 +189,7 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   type="checkbox"
                   checked={hasElderly}
                   onChange={(e) => setHasElderly(e.target.checked)}
-                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
+                  className="rounded border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-accent)] focus:ring-[var(--hs-accent)]"
                 />
                 <span>Elderly family members (65+ years)</span>
               </label>
@@ -199,7 +199,7 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   type="checkbox"
                   checked={hasRespiratory}
                   onChange={(e) => setHasRespiratory(e.target.checked)}
-                  className="rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
+                  className="rounded border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-accent)] focus:ring-[var(--hs-accent)]"
                 />
                 <span>Self-reported respiratory or cardiac sensitivity</span>
               </label>
@@ -207,8 +207,8 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
           </div>
 
           {/* Commute Mode */}
-          <div className="rounded-xl border border-slate-200 bg-[#F6F8F4] p-3.5">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-[#164E4A]">
+          <div className="rounded-xl border border-[var(--hs-info-border)] bg-[var(--hs-info-bg)] p-3.5">
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--hs-accent-blue)]">
               Daily Commute Mode
             </h4>
             <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
@@ -218,8 +218,8 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
                   type="button"
                   onClick={() => setCommuteMode(mode)}
                   className={`rounded-lg border px-3 py-2 font-medium transition ${commuteMode === mode
-                    ? "border-[#1F9D78] bg-[#B8E6D2]/25 text-[#164E4A] font-semibold"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    ? "border-[var(--hs-accent-blue)] bg-[var(--hs-surface-bg)] text-[var(--hs-accent-blue)] font-semibold"
+                    : "border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)] text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
                     }`}
                 >
                   {mode.replace(/_/g, " ")}
@@ -229,16 +229,16 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
           </div>
 
           {/* DPDP Act Consent */}
-          <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-3.5 text-xs text-slate-700">
+          <div className="rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-3.5 text-xs text-[var(--hs-text-secondary)]">
             <label className="flex items-start space-x-2">
               <input
                 type="checkbox"
                 checked={cloudConsent}
                 onChange={(e) => setCloudConsent(e.target.checked)}
-                className="mt-0.5 rounded border-slate-300 bg-white text-[#1F9D78] focus:ring-[#1F9D78]"
+                className="mt-0.5 rounded border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-accent)] focus:ring-[var(--hs-accent)]"
               />
               <span className="leading-relaxed">
-                <strong className="text-[#164E4A]">DPDP Act (2023) Consent:</strong> I voluntarily consent to storing this non-diagnostic household context for personalized recommendations. (Unchecked context remains in local session storage).
+                <strong className="text-[var(--hs-text-primary)]">DPDP Act (2023) Consent:</strong> I voluntarily consent to storing this non-diagnostic household context for personalized recommendations. (Unchecked context remains in local session storage).
               </span>
             </label>
           </div>
@@ -247,13 +247,13 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-[#F6F8F4]"
+              className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] px-4 py-2 text-xs font-semibold text-[var(--hs-text-primary)] hover:bg-[var(--hs-elevated-bg)]"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-xl bg-[#1F9D78] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#164E4A]"
+              className="rounded-xl bg-[var(--hs-accent)] px-5 py-2 text-xs font-bold text-[var(--hs-accent-text)] transition hover:opacity-90"
             >
               Save Context
             </button>

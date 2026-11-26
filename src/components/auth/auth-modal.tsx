@@ -106,25 +106,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <h3 id="auth-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
           {isAuthenticated ? "Account & Privacy Settings" : t.signIn}
         </h3>
-        <p className="mt-1 text-xs text-[#526466]">
+        <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
           {isAuthenticated
             ? `Signed in as ${userEmail || "Authenticated User"}`
             : "Sign in to persist your household profile across devices, or continue in local guest mode."}
         </p>
 
         {error && (
-          <div className="mt-4 rounded-lg bg-rose-50 p-3 text-xs text-rose-800 ring-1 ring-rose-200">
+          <div className="mt-4 rounded-lg border border-[var(--hs-accent-coral)]/35 bg-[var(--hs-accent-coral)]/10 p-3 text-xs text-[var(--hs-accent-coral)]">
             {error}
           </div>
         )}
 
         {isAuthenticated ? (
           <div className="mt-6 space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-[#F6F8F4] p-4">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-[#164E4A]">
+            <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--hs-accent)]">
                 DPDP Act (2023) Data Rights
               </h4>
-              <p className="mt-1 text-xs text-[#526466]">
+              <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
                 You have the full right to export or delete your personal household and routine data at any time.
               </p>
 
@@ -132,18 +132,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <button
                   type="button"
                   onClick={onExportData}
-                  className="flex items-center justify-center space-x-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-[#F6F8F4] shadow-xs"
+                  className="flex items-center justify-center space-x-2 rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-4 py-2 text-xs font-semibold text-[var(--hs-text-primary)] hover:bg-[var(--hs-elevated-bg)] shadow-xs"
                 >
-                  <Download className="h-4 w-4 text-[#164E4A]" />
+                  <Download className="h-4 w-4 text-[var(--hs-accent)]" />
                   <span>1-Click Data Export (JSON)</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={onDeleteAccount}
-                  className="flex items-center justify-center space-x-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                  className="flex items-center justify-center space-x-2 rounded-lg border border-[var(--hs-accent-coral)]/40 bg-[var(--hs-accent-coral)]/10 px-4 py-2 text-xs font-semibold text-[var(--hs-accent-coral)] hover:bg-[var(--hs-accent-coral)]/20"
                 >
-                  <Trash2 className="h-4 w-4 text-rose-600" />
+                  <Trash2 className="h-4 w-4 text-[var(--hs-accent-coral)]" />
                   <span>1-Click Account & Data Deletion</span>
                 </button>
               </div>
@@ -156,19 +156,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="flex w-full items-center justify-center space-x-2 rounded-xl border border-slate-300 bg-white py-2.5 text-xs font-bold text-slate-800 transition hover:bg-[#F6F8F4] disabled:opacity-50 shadow-xs"
+              className="flex w-full items-center justify-center space-x-2 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)] py-2.5 text-xs font-bold text-[var(--hs-text-primary)] transition hover:bg-[var(--hs-subtle-bg)] disabled:opacity-50 shadow-xs"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin text-[#1F9D78]" /> : <span>Sign In with Google</span>}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" /> : <span>Sign In with Google</span>}
             </button>
 
             <div className="relative flex items-center justify-center">
-              <div className="w-full border-t border-slate-200" />
-              <span className="absolute bg-white px-2 text-[10px] uppercase text-[#526466]">Or email link</span>
+              <div className="w-full border-t border-[var(--hs-border-subtle)]" />
+              <span className="absolute bg-[var(--hs-surface-bg)] px-2 text-[10px] uppercase text-[var(--hs-text-secondary)]">Or email link</span>
             </div>
 
             {emailSent ? (
-              <div className="rounded-xl bg-teal-50 p-4 text-center text-xs text-[#164E4A] ring-1 ring-[#B8E6D2]">
-                <Check className="mx-auto mb-1 h-5 w-5 text-[#1F9D78]" />
+              <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4 text-center text-xs text-[var(--hs-accent)]">
+                <Check className="mx-auto mb-1 h-5 w-5 text-[var(--hs-accent)]" />
                 Sign-in link sent to {email}. Check your inbox.
               </div>
             ) : (
@@ -178,19 +178,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address..."
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-[#102A2A] placeholder-slate-400 focus:border-[#1F9D78] focus:outline-none focus:ring-2 focus:ring-[#1F9D78]/20"
+                  className="w-full rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] px-3 py-2 text-xs text-[var(--hs-text-primary)] placeholder:text-[var(--hs-text-secondary)] focus:border-[var(--hs-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--hs-accent)]/20"
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-[#1F9D78] py-2 text-xs font-bold text-white transition hover:bg-[#164E4A] disabled:opacity-50"
+                  className="w-full rounded-xl bg-[var(--hs-accent)] py-2 text-xs font-bold text-[var(--hs-accent-text)] transition hover:opacity-90 disabled:opacity-50"
                 >
                   Send Passwordless Email Link
                 </button>
               </form>
             )}
 
-            <p className="text-center text-[11px] text-[#526466]">
+            <p className="text-center text-[11px] text-[var(--hs-text-secondary)]">
               No account required. You can use all public features in Guest Mode.
             </p>
           </div>

@@ -104,6 +104,7 @@ export class OpenMeteoAdapter implements AirQualityProvider {
                 longitude: resp.longitude,
                 modelDomain: "cams_global",
                 spatialResolutionKm: 45,
+                // Native CAMS Global model runs in 3-hour synoptic assimilation steps while Open-Meteo's `hourly` API resamples to UTC hourly timestamps
                 temporalResolutionHours: 3,
                 pollutant: v.pollutant,
                 forecastValue: forecastVal,

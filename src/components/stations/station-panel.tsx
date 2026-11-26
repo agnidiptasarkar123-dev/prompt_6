@@ -68,28 +68,28 @@ export const StationPanel: React.FC<StationPanelProps> = ({
   const noReadingCount = stations.filter((s) => s.availablePollutants.length === 0).length;
 
   return (
-    <section aria-labelledby="stations-heading" className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card-subtle">
+    <section aria-labelledby="stations-heading" className="hs-card rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-5 shadow-card-subtle">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 id="stations-heading" className="text-base font-bold text-[#102A2A]">
+          <h3 id="stations-heading" className="text-base font-bold text-[var(--hs-text-primary)]">
             {t.stationPanelTitle}
           </h3>
-          <p className="text-xs text-[#526466]">
+          <p className="text-xs text-[var(--hs-text-secondary)]">
             {stations.length} stations discovered within radius • {freshStationsCount} fresh (&le;24h) •{" "}
             {eligibleCoverageCount} multi-pollutant PM • {rawOnlyCount} partial raw • {noReadingCount} inactive
           </p>
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-[#F6F8F4] p-1">
+        <div className="flex items-center space-x-1 rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-1">
           {["ALL", "CPCB_CAAQMS", "OPENAQ"].map((p) => (
             <button
               key={p}
               type="button"
               onClick={() => setFilterProvider(p)}
               className={`rounded px-2.5 py-1 text-xs font-semibold transition ${filterProvider === p
-                ? "bg-teal-500 text-slate-950 font-bold shadow-xs"
-                : "text-[#526466] hover:text-[#102A2A]"
+                ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold shadow-xs"
+                : "text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
                 }`}
             >
               {p === "ALL" ? "All Sources" : p === "CPCB_CAAQMS" ? "CPCB" : "OpenAQ"}
@@ -100,7 +100,7 @@ export const StationPanel: React.FC<StationPanelProps> = ({
 
       <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
         {sortedFiltered.length === 0 ? (
-          <p className="py-8 text-center text-xs text-[#526466]">
+          <p className="py-8 text-center text-xs text-[var(--hs-text-secondary)]">
             No monitoring stations found for the selected filter.
           </p>
         ) : (
@@ -118,42 +118,42 @@ export const StationPanel: React.FC<StationPanelProps> = ({
               <div
                 key={s.id}
                 className={`flex flex-col justify-between rounded-xl border p-3.5 transition sm:flex-row sm:items-center ${isSelected
-                  ? "border-[#1F9D78] bg-[#B8E6D2]/15 shadow-xs"
-                  : "border-slate-200 bg-white hover:border-[#1F9D78]/40 hover:bg-[#F6F8F4]/50"
+                  ? "border-[var(--hs-accent)] bg-[var(--hs-subtle-bg)] shadow-xs"
+                  : "border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)] hover:border-[var(--hs-accent)]/50"
                   }`}
               >
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-semibold text-[#102A2A]">{s.name}</span>
+                    <span className="font-semibold text-[var(--hs-text-primary)]">{s.name}</span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${s.providerId === "CPCB_CAAQMS"
-                        ? "bg-blue-50 text-blue-700 border border-blue-200"
-                        : "bg-purple-50 text-purple-700 border border-purple-200"
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${s.providerId === "CPCB_CAAQMS"
+                        ? "border-[var(--hs-info-border)] bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)]"
+                        : "border-[var(--hs-learn-border)] bg-[var(--hs-learn-bg)] text-[var(--hs-accent-violet)]"
                         }`}
                     >
                       {s.providerId === "CPCB_CAAQMS" ? "CPCB Official" : "OpenAQ Sensor"}
                     </span>
                     {repLabel && (
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${isArchived
-                          ? "bg-slate-100 text-slate-600 border border-slate-200"
-                          : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${isArchived
+                          ? "border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] text-[var(--hs-accent-amber)]"
+                          : "border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-accent)]"
                           }`}
                       >
                         {repLabel}
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-3 text-xs text-[#526466]">
+                  <div className="flex flex-wrap items-center gap-x-3 text-xs text-[var(--hs-text-secondary)]">
                     <span>
                       {s.city}, {s.state}
                     </span>
                     {s.distanceKm !== undefined && (
-                      <span className="text-[#164E4A] font-semibold">
+                      <span className="text-[var(--hs-accent)] font-semibold">
                         {t.distance}: {s.distanceKm} km
                       </span>
                     )}
-                    <code className="text-[10px] text-[#526466]">{s.id}</code>
+                    <code className="text-[10px] text-[var(--hs-text-secondary)]">{s.id}</code>
                     <span>Pollutants: {s.availablePollutants?.join(", ") || "N/A"}</span>
                   </div>
                 </div>
@@ -163,8 +163,8 @@ export const StationPanel: React.FC<StationPanelProps> = ({
                     type="button"
                     onClick={() => onSelectStation(s)}
                     className={`min-h-[32px] rounded-lg px-3 py-1.5 text-xs font-semibold transition ${isSelected
-                      ? "bg-teal-500 text-slate-950 font-bold shadow-xs"
-                      : "border border-[#164E4A]/25 bg-white text-[#164E4A] hover:bg-[#F6F8F4]"
+                      ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold shadow-xs"
+                      : "border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-text-primary)] hover:bg-[var(--hs-subtle-bg)]"
                       }`}
                   >
                     {isSelected ? v2.activeStationLabel : v2.selectStationLabel}
@@ -174,7 +174,7 @@ export const StationPanel: React.FC<StationPanelProps> = ({
                     type="button"
                     onClick={() => onOpenProvenance(s)}
                     aria-label={`View provenance for ${s.name}`}
-                    className="rounded-lg border border-slate-200 bg-[#F6F8F4] p-1.5 text-[#526466] hover:text-[#102A2A] hover:border-slate-300"
+                    className="rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-1.5 text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </button>

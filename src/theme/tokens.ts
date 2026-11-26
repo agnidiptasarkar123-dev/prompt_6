@@ -20,6 +20,24 @@ export const BRAND_COLORS = {
   aqiRed: "#D94B4B"
 } as const;
 
+export const SEMANTIC_EXTENDED_COLORS = {
+  skyBlue: "#4C91B6",
+  deepBlue: "#317DAA",
+  warmAmber: "#D99A32",
+  softCoral: "#D66D5F",
+  restrainedViolet: "#8175B8",
+  warmSand: "#D8C5A2"
+} as const;
+
+export const POLLUTANT_SERIES_COLORS = {
+  pm25: "#317DAA",
+  pm10: "#D99A32",
+  no2: "#D66D5F",
+  o3: "#1F9D78",
+  co: "#8175B8",
+  so2: "#4C91B6"
+} as const;
+
 export type BrandColorKey = keyof typeof BRAND_COLORS;
 
 export type ThemeMode = "light" | "dark" | "high-contrast" | "system";
@@ -33,6 +51,9 @@ export interface ThemeTokenSet {
   readonly surfaceBg: string;
   readonly elevatedBg: string;
   readonly subtleBg: string;
+  readonly infoSurfaceBg: string;
+  readonly learnSurfaceBg: string;
+  readonly warmSurfaceBg: string;
   readonly textPrimary: string;
   readonly textSecondary: string;
   readonly borderSubtle: string;
@@ -42,42 +63,60 @@ export interface ThemeTokenSet {
   readonly sidebarBg: string;
   readonly sidebarText: string;
   readonly accentPrimary: string;
+  readonly accentBlue: string;
+  readonly accentAmber: string;
+  readonly accentCoral: string;
+  readonly accentViolet: string;
   readonly focusRing: string;
 }
 
 export const THEME_PALETTES: Record<ResolvedTheme, ThemeTokenSet> = {
   light: {
     id: "light",
-    canvasBg: "#F6F8F4",
+    canvasBg: "#F2F5F1",
     surfaceBg: "#FFFFFF",
     elevatedBg: "#FFFFFF",
-    subtleBg: "#EDF2EC",
-    textPrimary: "#102A2A",
-    textSecondary: "#526466",
-    borderSubtle: "#D7E2DD",
+    subtleBg: "#EDF4F2",
+    infoSurfaceBg: "#EEF4F8",
+    learnSurfaceBg: "#F1EFF8",
+    warmSurfaceBg: "#F8F1E5",
+    textPrimary: "#193330",
+    textSecondary: "#536966",
+    borderSubtle: "#D6E1DC",
     borderStrong: "#9FB7AE",
     headerBg: "#164E4A",
     headerText: "#FFFFFF",
     sidebarBg: "#164E4A",
     sidebarText: "#FFFFFF",
-    accentPrimary: "#1F9D78",
+    accentPrimary: "#168A68",
+    accentBlue: "#317EAC",
+    accentAmber: "#A96E1E",
+    accentCoral: "#B9574E",
+    accentViolet: "#7061A8",
     focusRing: "#1F9D78"
   },
   dark: {
     id: "dark",
     canvasBg: "#0B1414",
-    surfaceBg: "#122121",
-    elevatedBg: "#172B2B",
-    subtleBg: "#0E1A1A",
-    textPrimary: "#ECF4F1",
-    textSecondary: "#A3BEB6",
-    borderSubtle: "#223D3B",
-    borderStrong: "#35615E",
-    headerBg: "#0E2927",
-    headerText: "#ECF4F1",
-    sidebarBg: "#0C2120",
-    sidebarText: "#ECF4F1",
-    accentPrimary: "#27C497",
+    surfaceBg: "#18282E",
+    elevatedBg: "#20343B",
+    subtleBg: "#132127",
+    infoSurfaceBg: "#1B303B",
+    learnSurfaceBg: "#29283A",
+    warmSurfaceBg: "#332E23",
+    textPrimary: "#E7F0ED",
+    textSecondary: "#A8BBB6",
+    borderSubtle: "#31474A",
+    borderStrong: "#48696D",
+    headerBg: "#112126",
+    headerText: "#E7F0ED",
+    sidebarBg: "#0E1A1E",
+    sidebarText: "#E7F0ED",
+    accentPrimary: "#35B58B",
+    accentBlue: "#70B5DD",
+    accentAmber: "#E8B65C",
+    accentCoral: "#E78375",
+    accentViolet: "#AD9DEB",
     focusRing: "#5CE1BA"
   },
   "high-contrast": {
@@ -86,6 +125,9 @@ export const THEME_PALETTES: Record<ResolvedTheme, ThemeTokenSet> = {
     surfaceBg: "#0A0A0A",
     elevatedBg: "#121212",
     subtleBg: "#181818",
+    infoSurfaceBg: "#0A1929",
+    learnSurfaceBg: "#1A1229",
+    warmSurfaceBg: "#221A08",
     textPrimary: "#FFFFFF",
     textSecondary: "#FACC15",
     borderSubtle: "#FFFFFF",
@@ -95,6 +137,10 @@ export const THEME_PALETTES: Record<ResolvedTheme, ThemeTokenSet> = {
     sidebarBg: "#000000",
     sidebarText: "#FFFFFF",
     accentPrimary: "#00E5A3",
+    accentBlue: "#7DD3FC",
+    accentAmber: "#FACC15",
+    accentCoral: "#FCA5A5",
+    accentViolet: "#D8B4FE",
     focusRing: "#FACC15"
   }
 };
@@ -172,4 +218,28 @@ export const RADIUS = {
   input: "rounded-xl",
   button: "rounded-xl",
   badge: "rounded-full"
+} as const;
+
+export const SEMANTIC_CSS_TOKENS = {
+  background: "var(--background)",
+  surface: "var(--surface)",
+  surfaceRaised: "var(--surface-raised)",
+  surfaceMuted: "var(--surface-muted)",
+  surfaceAccent: "var(--surface-accent)",
+  foreground: "var(--foreground)",
+  foregroundMuted: "var(--foreground-muted)",
+  primary: "var(--primary)",
+  primaryHover: "var(--primary-hover)",
+  secondary: "var(--secondary)",
+  accent: "var(--accent)",
+  info: "var(--info)",
+  success: "var(--success)",
+  warning: "var(--warning)",
+  danger: "var(--danger)",
+  border: "var(--border)",
+  focusRing: "var(--focus-ring)",
+  chartSeries1: "var(--chart-series-1)",
+  chartSeries2: "var(--chart-series-2)",
+  chartSeries3: "var(--chart-series-3)",
+  chartGrid: "var(--chart-grid)"
 } as const;

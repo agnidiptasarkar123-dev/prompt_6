@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { SupportedLanguage } from "@/i18n/translations";
 import { getV2UiStrings } from "@/i18n/v2-translations";
+import { SafeMarkdown } from "@/components/shared/safe-markdown";
 import type { CpcbAqiResult } from "@/schemas/cpcb.schema";
 import type {
   NormalizedStation,
@@ -30,6 +31,9 @@ export interface ChatMessageItem {
   readonly sources?: readonly string[];
   readonly isAiGenerated?: boolean;
   readonly dataDistinction?: string;
+  readonly modelUsed?: string;
+  readonly latencyMs?: number;
+  readonly serverTotalMs?: number;
   readonly timestamp: string;
 }
 
@@ -42,9 +46,77 @@ export interface ChatThread {
 export interface AiChatWorkspaceProps {
   readonly language: SupportedLanguage;
   readonly selectedStation: NormalizedStation | null;
+  readonly stations?: readonly NormalizedStation[];
   readonly calculatedAqi: CpcbAqiResult | null;
   readonly observations: readonly NormalizedObservation[];
   readonly forecast: readonly NormalizedForecast[];
+}
+
+interface ChatMessageRowProps {
+  readonly msg: ChatMessageItem;
+  readonly isCopied: boolean;
+  readonly onCopy: (id: string, text: string) => void;
+}
+
+function renderChatMessageRow({
+  msg,
+  isCopied,
+  onCopy
+}: ChatMessageRowProps) {
+  return (
+    <div
+      key={msg.id}
+      className={`rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+        msg.role === "user"
+          ? "ml-auto max-w-[85%] bg-[var(--hs-accent)] text-[var(--hs-accent-text)] shadow-sm"
+          : "mr-auto max-w-[95%] border border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)] text-[var(--hs-text-primary)]"
+      }`}
+    >
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-[10px] opacity-85">
+        <span className="font-bold uppercase tracking-wide flex items-center gap-1.5">
+          {msg.role === "user"
+            ? "You"
+            : msg.isAiGenerated
+            ? "HawaSaathi AI"
+            : "Verified Domain Reply"}
+          {msg.dataDistinction && msg.role === "assistant" && (
+            <span className="rounded bg-[var(--hs-info-bg)] border border-[var(--hs-border-subtle)] px-1.5 py-0.5 text-[9px] font-semibold text-[var(--hs-accent-blue)]">
+              {msg.dataDistinction}
+            </span>
+          )}
+        </span>
+        <span className="hs-tabular flex items-center gap-2">
+          {msg.latencyMs !== undefined && (
+            <span className="text-[10px] opacity-75">
+              {msg.latencyMs} ms{msg.modelUsed ? ` · ${msg.modelUsed}` : ""}
+            </span>
+          )}
+          <span>{msg.timestamp}</span>
+        </span>
+      </div>
+      {msg.role === "assistant" ? (
+        <SafeMarkdown content={msg.text} />
+      ) : (
+        <p className="whitespace-pre-line">{msg.text}</p>
+      )}
+      {msg.role === "assistant" && (
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--hs-border-subtle)] pt-2 text-[10px] text-[var(--hs-text-secondary)]">
+          <span className="hs-wrap-safe">
+            {msg.sources && msg.sources.length > 0 ? `Sources: ${msg.sources.join(" • ")}` : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => onCopy(msg.id, msg.text)}
+            aria-label="Copy response"
+            className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-0.5 border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-text-primary)] hover:border-[var(--hs-accent)]"
+          >
+            {isCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            <span>{isCopied ? "Copied" : "Copy"}</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const STARTER_PROMPTS = [
@@ -66,10 +138,14 @@ function nextChatId(prefix: string): string {
 function nowTimeLabel(): string {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+function nowEpochMs(): number {
+  return Date.now();
+}
 
 export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
   language,
   selectedStation,
+  stations,
   calculatedAqi,
   observations,
   forecast
@@ -136,14 +212,15 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
     const withUser = threads.map((t) =>
       t.id === activeThread.id
         ? {
-            ...t,
-            title: t.messages.length === 0 ? clean.slice(0, 32) : t.title,
-            messages: [...t.messages, userMsg]
-          }
+          ...t,
+          title: t.messages.length === 0 ? clean.slice(0, 32) : t.title,
+          messages: [...t.messages, userMsg]
+        }
         : t
     );
     persistThreads(withUser);
 
+    const reqStartMs = nowEpochMs();
     try {
       const res = await fetch("/api/v1/chat", {
         method: "POST",
@@ -152,35 +229,41 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
           message: clean,
           language,
           station: shareStationConsent ? selectedStation : null,
+          stations: shareStationConsent && stations ? stations.slice(0, 5) : undefined,
           calculatedAqi,
           observations,
           forecast,
+          history: activeThread.messages.slice(-4).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
           hasConsentForPersonalization: shareStationConsent
         })
       });
 
-      type ChatApiResponse = {
+      interface ChatApiPayload {
         status?: string;
         message?: string;
         data?: {
           reply: string;
           sources: string[];
           isAiGenerated: boolean;
+          modelUsed?: string;
           dataDistinction: string;
+          timings?: {
+            serverTotalMs?: number;
+          };
         };
-      };
-      let json: ChatApiResponse | null = null;
+      }
+      let json: ChatApiPayload | null = null;
       if (typeof res.text === "function") {
         const rawText = await res.text();
         if (rawText) {
           try {
-            json = JSON.parse(rawText) as ChatApiResponse;
+            json = JSON.parse(rawText) as ChatApiPayload;
           } catch {
             json = null;
           }
         }
       } else if (typeof res.json === "function") {
-        json = (await res.json()) as ChatApiResponse;
+        json = (await res.json()) as ChatApiPayload;
       }
       if (!res.ok || !json || json.status === "ERROR" || !json.data) {
         const httpMsg = res.status >= 500
@@ -197,6 +280,9 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
           sources: payload.sources,
           isAiGenerated: payload.isAiGenerated,
           dataDistinction: payload.dataDistinction,
+          modelUsed: payload.modelUsed,
+          latencyMs: nowEpochMs() - reqStartMs,
+          serverTotalMs: payload.timings?.serverTotalMs,
           timestamp: nowTimeLabel()
         };
         persistThreads(
@@ -264,11 +350,11 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
   return (
     <section
       aria-labelledby="ai-chat-heading"
-      className="hs-card rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-sm space-y-4"
+      className="hs-card scroll-mt-24 rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-5 sm:p-6 shadow-sm space-y-4"
     >
       <div className="flex flex-col gap-3 border-b border-[var(--hs-border-subtle)] pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--hs-accent)]/15 text-[var(--hs-accent)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)] border border-[var(--hs-border-subtle)]">
             <MessageSquare className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -343,11 +429,10 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
             <button
               type="button"
               onClick={() => setActiveThreadId(th.id)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                th.id === activeThread.id
-                  ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold"
-                  : "border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-text-secondary)]"
-              }`}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${th.id === activeThread.id
+                ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold"
+                : "border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-text-secondary)]"
+                }`}
             >
               {th.title}
             </button>
@@ -401,46 +486,15 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
       <div
         role="log"
         aria-live="polite"
-        className="max-h-96 overflow-y-auto space-y-3 pr-1"
+        className="max-h-[19rem] lg:max-h-[22rem] overflow-y-auto space-y-3 pr-1"
       >
-        {activeThread.messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`rounded-2xl p-4 text-xs leading-relaxed ${
-              msg.role === "user"
-                ? "ml-auto max-w-[85%] bg-[var(--hs-accent)] text-[var(--hs-accent-text)]"
-                : "mr-auto max-w-[92%] border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-text-primary)]"
-            }`}
-          >
-            <div className="mb-1 flex items-center justify-between gap-2 text-[10px] opacity-80">
-              <span className="font-bold uppercase">
-                {msg.role === "user"
-                  ? "You"
-                  : msg.isAiGenerated
-                  ? "HawaSaathi AI"
-                  : "Verified Domain Reply"}
-              </span>
-              <span>{msg.timestamp}</span>
-            </div>
-            <p className="whitespace-pre-line">{msg.text}</p>
-            {msg.role === "assistant" && (
-              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--hs-border-subtle)] pt-2 text-[10px] text-[var(--hs-text-secondary)]">
-                <span>
-                  {msg.sources && msg.sources.length > 0 ? `Sources: ${msg.sources.join(" • ")}` : ""}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void handleCopy(msg.id, msg.text)}
-                  aria-label="Copy response"
-                  className="inline-flex items-center gap-1 rounded px-2 py-0.5 border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] text-[var(--hs-text-primary)]"
-                >
-                  {copiedId === msg.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  <span>{copiedId === msg.id ? "Copied" : "Copy"}</span>
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+        {activeThread.messages.map((msg) =>
+          renderChatMessageRow({
+            msg,
+            isCopied: copiedId === msg.id,
+            onCopy: (id, text) => void handleCopy(id, text)
+          })
+        )}
       </div>
 
       {error && (

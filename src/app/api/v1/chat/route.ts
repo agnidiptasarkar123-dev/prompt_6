@@ -18,16 +18,30 @@ const ChatRequestSchema = z.object({
   message: z.string().min(1).max(1200),
   language: SupportedAiLanguageSchema.default("en"),
   station: NormalizedStationSchema.nullable().optional(),
+  stations: z.array(NormalizedStationSchema).max(20).optional(),
   calculatedAqi: CpcbAqiResultSchema.nullable().optional(),
   observations: z.array(NormalizedObservationSchema).optional().default([]),
   forecast: z.array(NormalizedForecastSchema).optional().default([]),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        text: z.string().max(1500)
+      })
+    )
+    .max(8)
+    .optional(),
   hasConsentForPersonalization: z.boolean().default(false)
 });
 
 export async function POST(req: NextRequest) {
+  const tRouteEntry = Date.now();
+  const tRlStart = Date.now();
   const rateLimitError = await checkRouteRateLimit(req, 30, 60);
+  const rateLimitMs = Date.now() - tRlStart;
   if (rateLimitError) return rateLimitError;
 
+  const tValStart = Date.now();
   let body: unknown;
   try {
     body = await req.json();
@@ -36,6 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   const parsed = ChatRequestSchema.safeParse(body);
+  const schemaValidationMs = Date.now() - tValStart;
   if (!parsed.success) {
     return errorResponse(
       400,
@@ -44,19 +59,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const tAuthStart = Date.now();
   const isAuthenticated = await resolveSessionAuth(req);
+  const authMs = Date.now() - tAuthStart;
   const d = parsed.data;
 
   const result = await generateGroundedChatReply({
     message: d.message,
     language: d.language,
     station: d.station ?? null,
+    stations: d.stations,
     calculatedAqi: d.calculatedAqi ?? null,
     observations: d.observations,
     forecast: d.forecast,
+    history: d.history,
     hasConsentForPersonalization: d.hasConsentForPersonalization,
     isAuthenticated,
-    timeoutMs: 12000
+    timeoutMs: 12000,
+    routePreTimings: {
+      rateLimitMs,
+      schemaValidationMs,
+      authMs,
+      routeEntryMs: tRouteEntry
+    }
   });
 
   return successResponse({

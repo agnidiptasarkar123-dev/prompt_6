@@ -9,6 +9,7 @@ export interface AgentTaskRequest {
   readonly language?: SupportedLanguage;
   readonly stationId?: string;
   readonly station?: NormalizedStation | null;
+  readonly stations?: readonly NormalizedStation[];
   readonly calculatedAqi?: CpcbAqiResult | null;
   readonly observations?: readonly NormalizedObservation[];
   readonly forecast?: readonly NormalizedForecast[];
@@ -145,22 +146,17 @@ export async function runIntelligentAgentTask(req: AgentTaskRequest): Promise<Ag
     };
   }
 
-  // 3. Compare Nearby Stations task
+  // 3. Compare Nearby Stations task (reuse loaded stations first to avoid 15-20s serial fetches)
   if (q.includes("compare") || q.includes("station")) {
-    const searchRes = await executeAgentTool(
-      "search_stations",
-      { latitude: lat, longitude: lon, radiusKm: 50 },
-      req.context
-    );
-    traces.push(searchRes.trace);
-    const stationsList = ((searchRes.data as { stations?: NormalizedStation[] })?.stations || []).slice(0, 3);
-    if (stationsList.length > 0) {
-      const compRes = await executeAgentTool(
-        "compare_stations",
-        { stationIds: stationsList.map((s) => s.id) },
+    let stationsList: NormalizedStation[] = (req.stations ?? []).slice(0, 3);
+    if (stationsList.length === 0) {
+      const searchRes = await executeAgentTool(
+        "search_stations",
+        { latitude: lat, longitude: lon, radiusKm: 50 },
         req.context
       );
-      traces.push(compRes.trace);
+      traces.push(searchRes.trace);
+      stationsList = ((searchRes.data as { stations?: NormalizedStation[] })?.stations || []).slice(0, 3);
     }
     return {
       taskType: "STATION_COMPARISON",
@@ -181,11 +177,14 @@ export async function runIntelligentAgentTask(req: AgentTaskRequest): Promise<Ag
     };
   }
 
-  // 4. Forecast & Walk / Commute Activity Window task
+  // 4. Forecast & Walk / Commute Activity Window task (reuse pre-loaded forecast snapshot when available)
   if (q.includes("forecast") || q.includes("walk") || q.includes("commute") || q.includes("plan") || q.includes("window")) {
-    const fcRes = await executeAgentTool("get_forecast", { latitude: lat, longitude: lon, horizonDays: 3 }, req.context);
-    traces.push(fcRes.trace);
-    const forecastPoints = (fcRes.data as { forecast?: NormalizedForecast[] })?.forecast || req.forecast || [];
+    let forecastPoints: readonly NormalizedForecast[] = req.forecast ?? [];
+    if (forecastPoints.length === 0) {
+      const fcRes = await executeAgentTool("get_forecast", { latitude: lat, longitude: lon, horizonDays: 3 }, req.context);
+      traces.push(fcRes.trace);
+      forecastPoints = (fcRes.data as { forecast?: NormalizedForecast[] })?.forecast || [];
+    }
     const planRes = await executeAgentTool(
       "evaluate_daily_plan",
       {
@@ -203,7 +202,10 @@ export async function runIntelligentAgentTask(req: AgentTaskRequest): Promise<Ag
           }
         ],
         latitude: lat,
-        longitude: lon
+        longitude: lon,
+        forecast: forecastPoints,
+        calculatedAqi: req.calculatedAqi,
+        observations: req.observations
       },
       req.context
     );

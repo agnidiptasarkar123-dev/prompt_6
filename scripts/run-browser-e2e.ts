@@ -332,11 +332,38 @@ async function run() {
 
     await page.setRequestInterception(true);
     let activeScenario: "NORMAL" | "UNAVAILABLE" | "NO_STATION" | "STALE" = "NORMAL";
+    let mockMarkdownChat = false;
     let airQualityRequestsCount = 0;
 
     page.on("request", (req) => {
       const url = req.url();
-      if (url.includes("/api/v1/stations/nearby")) {
+      if (url.includes("/api/v1/chat") && mockMarkdownChat) {
+        req.respond({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            status: "SUCCESS",
+            data: {
+              reply: [
+                "### CPCB Sub-Index Breakdown",
+                "",
+                "Fine particulate concentration $C_p = 90\\ \\mu\\text{g/m}^3$ yields **Moderate** sub-index:",
+                "",
+                "$$I_p = \\frac{200 - 101}{90 - 60} \\times (90 - 60) + 101 = 200$$",
+                "",
+                "| Parameter | Value | Category |",
+                "| --- | --- | --- |",
+                "| PM2.5 | 90 µg/m³ | Moderate |"
+              ].join("\n"),
+              sources: ["CPCB NAQI"],
+              isAiGenerated: true,
+              modelUsed: "gemini-3.5-flash-lite",
+              dataDistinction: "TYPE_B_CALCULATED_AQI",
+              timings: { serverTotalMs: 145, agentBaselineMs: 2, geminiMs: 140, validationMs: 3, fallbackAttempts: 0 }
+            }
+          })
+        });
+      } else if (url.includes("/api/v1/stations/nearby")) {
         req.respond({
           status: 200,
           contentType: "application/json",
@@ -621,6 +648,117 @@ async function run() {
       const ok = !overflow && pageErrors.length === 0;
       if (pageErrors.length > 0) console.error("[E2E pageErrors]", pageErrors);
       record("Responsive Viewports Matrix & Zero Runtime Page Errors", "RESPONSIVE", ok ? "PASS" : "FAIL", Date.now() - t0, `${notes.join(", ")}, pageErrors=${pageErrors.length}`);
+    }
+
+    // 13. Chat Rich Markdown, KaTeX Math, Table & Sticky Header Offset
+    {
+      const t0 = Date.now();
+      await page.setViewport({ width: 1280, height: 800 });
+      mockMarkdownChat = true;
+      await navigateSidebarView("AI Chat");
+      await page.waitForSelector("#ai-chat-heading", { timeout: 10000 });
+      await sleep(200);
+      await page.type('input[aria-label="Message HawaSaathi Chat"]', "Show CPCB sub-index math table");
+      await page.evaluate(() => {
+        const submit = document.querySelector('#ai-chat-heading')?.closest('section')?.querySelector('form button[type="submit"]') as HTMLButtonElement | null;
+        submit?.click();
+      });
+      await page.waitForFunction(
+        () => Boolean(document.querySelector('.hs-markdown table') && document.querySelector('.hs-markdown .katex')),
+        { timeout: 10000 }
+      );
+      mockMarkdownChat = false;
+      const mdCheck = await page.evaluate(() => {
+        const mdList = Array.from(document.querySelectorAll('.hs-markdown'));
+        const md = mdList[mdList.length - 1];
+        const header = document.querySelector('header');
+        const heading = document.querySelector('#ai-chat-heading');
+        const headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+        const headingTop = heading ? heading.getBoundingClientRect().top : 0;
+        const rawText = md?.textContent || "";
+        return {
+          hasTable: Boolean(md?.querySelector('table')),
+          hasKatex: Boolean(md?.querySelector('.katex')),
+          hasStrong: Boolean(md?.querySelector('strong')),
+          noRawMd: !rawText.includes("**Moderate**") && !rawText.includes("$$"),
+          headingVisibleBelowSticky: headingTop >= headerBottom - 2
+        };
+      });
+      const ok = mdCheck.hasTable && mdCheck.hasKatex && mdCheck.hasStrong && mdCheck.noRawMd && mdCheck.headingVisibleBelowSticky;
+      record("Chat GFM Table, KaTeX Math & Header Non-Occlusion", "CHAT_UX", ok ? "PASS" : "FAIL", Date.now() - t0, JSON.stringify(mdCheck));
+    }
+
+    // 14. Interactive Learning Centre + Isolated Educational Learning Agent
+    {
+      const t0 = Date.now();
+      await navigateSidebarView("Learn");
+      await page.waitForSelector('[data-testid="lesson-card-pm25"]', { timeout: 10000 });
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="lesson-card-pm25"]') as HTMLButtonElement | null)?.click();
+      });
+      await page.waitForSelector('[data-testid="learning-lesson-detail"]', { timeout: 10000 });
+      await page.evaluate(() => {
+        const adv = Array.from(document.querySelectorAll("button")).find((b) => b.textContent === "Advanced") as HTMLButtonElement | undefined;
+        adv?.click();
+      });
+      await sleep(100);
+      await page.evaluate(() => {
+        const fc = Array.from(document.querySelectorAll("button")).find((b) => b.textContent === "Flashcards") as HTMLButtonElement | undefined;
+        fc?.click();
+      });
+      await sleep(100);
+      await page.evaluate(() => {
+        const rev = Array.from(document.querySelectorAll("button")).find((b) => b.textContent === "Reveal Answer") as HTMLButtonElement | undefined;
+        rev?.click();
+      });
+      await page.waitForSelector('[data-testid="flashcard-answer"]', { timeout: 5000 });
+      await page.type('input[aria-label*="Ask learning tutor"]', "How much ₹ does an air purifier cost?");
+      await page.evaluate(() => {
+        (document.querySelector('button[aria-label="Ask learning tutor"]') as HTMLButtonElement | null)?.click();
+      });
+      await page.waitForFunction(
+        () => document.body.innerText.includes("not product pricing or purchases"),
+        { timeout: 10000 }
+      );
+      await page.evaluate(() => {
+        (document.querySelector('[data-testid="back-to-learning-centre"]') as HTMLButtonElement | null)?.click();
+      });
+      await page.waitForSelector('[data-testid="lesson-card-pm25"]', { timeout: 5000 });
+      record("Interactive Learning Centre & Pricing-Blocked Study Tutor", "LEARN", "PASS", Date.now() - t0, "PM2.5 lesson, Advanced level, Flashcard reveal, Pricing refusal, Back nav verified");
+    }
+
+    // 15. CAMS Forecast Non-Zero Bars & Dark Mode Multi-Colour Tokens
+    {
+      const t0 = Date.now();
+      await navigateSidebarView("Overview");
+      await page.waitForSelector("#forecast-heading", { timeout: 10000 });
+      await sleep(300);
+      const lightBars = await page.evaluate(() => {
+        const bars = Array.from(document.querySelectorAll('button[aria-label*="PM2.5 forecast"]'));
+        return bars.map((b) => Math.round(b.getBoundingClientRect().height));
+      });
+      await navigateSidebarView("Settings");
+      await page.waitForFunction(
+        () => Array.from(document.querySelectorAll("button")).some((b) => (b.textContent || "").includes("Dark")),
+        { timeout: 10000 }
+      );
+      await page.evaluate(() => {
+        const darkBtn = Array.from(document.querySelectorAll("button")).find((b) => (b.textContent || "").trim() === "Dark") as HTMLButtonElement | undefined;
+        darkBtn?.click();
+      });
+      await navigateSidebarView("Overview");
+      await page.waitForSelector("#forecast-heading", { timeout: 10000 });
+      await sleep(300);
+      const darkCheck = await page.evaluate(() => {
+        const card = document.querySelector("#forecast-heading")?.closest("section");
+        const bg = card ? getComputedStyle(card).backgroundColor : "";
+        const bars = Array.from(document.querySelectorAll('button[aria-label*="PM2.5 forecast"]'));
+        const heights = bars.map((b) => Math.round(b.getBoundingClientRect().height));
+        return { bg, heights, isNonWhiteBg: bg !== "rgb(255, 255, 255)" };
+      });
+      await page.evaluate(() => window.localStorage.setItem("hs_theme_mode", "light"));
+      const ok = lightBars.length >= 2 && lightBars.every((h) => h > 8) && darkCheck.isNonWhiteBg && darkCheck.heights.every((h) => h > 8);
+      record("CAMS Non-Zero Forecast Bars & Dark Multi-Colour Theme", "VIZ_THEME", ok ? "PASS" : "FAIL", Date.now() - t0, `lightBars=${JSON.stringify(lightBars)}, darkBg=${darkCheck.bg}`);
     }
 
     console.log("\n================================================================================");

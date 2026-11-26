@@ -260,6 +260,11 @@ export default function DashboardPage() {
     }
   }, [language]);
 
+  // Reset viewport scroll cleanly when switching workspace views so sticky navbar never occludes top headings
+  useEffect(() => {
+    window.scrollTo?.(0, 0);
+  }, [activeView]);
+
   // Location & Language Handlers
   const handleSelectLocation = (loc: SelectedLocationState) => {
     setSelectedLocation(loc);
@@ -536,6 +541,7 @@ export default function DashboardPage() {
               <AiChatWorkspace
                 language={language}
                 selectedStation={selectedStation}
+                stations={stations}
                 calculatedAqi={calculatedAqi}
                 observations={observations}
                 forecast={forecast}

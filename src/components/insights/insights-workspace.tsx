@@ -57,28 +57,28 @@ export const InsightsWorkspace: React.FC<InsightsWorkspaceProps> = ({
 
         {/* City Coverage Metrics */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4">
-            <p className="text-[11px] font-semibold uppercase text-[var(--hs-text-secondary)]">Discovered Stations</p>
-            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-text-primary)]">{stations.length}</p>
+          <div className="rounded-xl border border-[var(--hs-info-border)] bg-[var(--hs-info-bg)] p-4">
+            <p className="text-[11px] font-semibold uppercase text-[var(--hs-accent-blue)]">Discovered Stations</p>
+            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-text-primary)] hs-tabular">{stations.length}</p>
             <p className="text-[11px] text-[var(--hs-text-secondary)]">
               {cpcbCount} CPCB Official • {openaqCount} OpenAQ
             </p>
           </div>
           <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4">
-            <p className="text-[11px] font-semibold uppercase text-[var(--hs-text-secondary)]">CPCB NAQI Eligible</p>
-            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-accent)]">{eligibleCount}</p>
+            <p className="text-[11px] font-semibold uppercase text-[var(--hs-accent)]">CPCB NAQI Eligible</p>
+            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-accent)] hs-tabular">{eligibleCount}</p>
             <p className="text-[11px] text-[var(--hs-text-secondary)]">Stations meeting ≥3 pollutant rule</p>
           </div>
-          <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4">
-            <p className="text-[11px] font-semibold uppercase text-[var(--hs-text-secondary)]">Active Measurements</p>
-            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-text-primary)]">{observations.length}</p>
+          <div className="rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-4">
+            <p className="text-[11px] font-semibold uppercase text-[var(--hs-accent-amber)]">Active Measurements</p>
+            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-text-primary)] hs-tabular">{observations.length}</p>
             <p className="text-[11px] text-[var(--hs-text-secondary)]">
               Selected: {selectedStation?.name || "None"}
             </p>
           </div>
-          <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4">
-            <p className="text-[11px] font-semibold uppercase text-[var(--hs-text-secondary)]">CAMS Grid Outlook</p>
-            <p className="mt-1 text-2xl font-extrabold text-indigo-500">{forecast.length}</p>
+          <div className="rounded-xl border border-[var(--hs-learn-border)] bg-[var(--hs-learn-bg)] p-4">
+            <p className="text-[11px] font-semibold uppercase text-[var(--hs-accent-violet)]">CAMS Grid Outlook</p>
+            <p className="mt-1 text-2xl font-extrabold text-[var(--hs-accent-violet)] hs-tabular">{forecast.length}</p>
             <p className="text-[11px] text-[var(--hs-text-secondary)]">Type D ~45 km forecast points</p>
           </div>
         </div>

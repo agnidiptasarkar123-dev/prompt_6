@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside
-      className="hidden lg:flex w-64 flex-col justify-between border-r border-[#102A2A]/30 bg-[#164E4A] p-5 text-white shadow-lg sticky top-0 h-screen select-none"
+      className="hidden lg:flex w-64 flex-col justify-between border-r border-[var(--hs-border-subtle)] bg-[var(--hs-sidebar-bg)] p-5 text-[var(--hs-sidebar-text)] shadow-lg sticky top-0 h-screen select-none"
       aria-label="Application Sidebar Navigation"
     >
       <div className="space-y-6">

@@ -255,23 +255,23 @@ export const StationMap: React.FC<StationMapProps> = ({
   const userY = height / 2 + pan.y;
 
   return (
-    <section aria-labelledby="map-heading" className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-card-subtle">
+    <section aria-labelledby="map-heading" className="hs-card overflow-hidden rounded-2xl border border-[var(--hs-info-border)] bg-[var(--hs-surface-bg)] p-4 shadow-card-subtle">
       <div className="flex items-center justify-between pb-3">
         <div>
-          <h3 id="map-heading" className="text-sm font-bold text-[#102A2A]">
+          <h3 id="map-heading" className="text-sm font-bold text-[var(--hs-text-primary)]">
             Monitoring Stations Map
           </h3>
-          <p className="text-xs text-[#526466]">
+          <p className="text-xs text-[var(--hs-text-secondary)]">
             Center: {center.latitude.toFixed(4)}°N, {center.longitude.toFixed(4)}°E
           </p>
         </div>
 
         {/* View toggle */}
-        <div className="flex items-center space-x-1 rounded-lg border border-slate-200 bg-[#F6F8F4] p-1">
+        <div className="flex items-center space-x-1 rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-1">
           <button
             type="button"
             onClick={() => setViewMode("map")}
-            className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-semibold transition ${viewMode === "map" ? "bg-teal-500 text-slate-950 font-bold shadow-xs" : "text-[#526466] hover:text-[#102A2A]"
+            className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-semibold transition ${viewMode === "map" ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold shadow-xs" : "text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
               }`}
             aria-pressed={viewMode === "map"}
           >
@@ -281,7 +281,7 @@ export const StationMap: React.FC<StationMapProps> = ({
           <button
             type="button"
             onClick={() => setViewMode("list")}
-            className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-semibold transition ${viewMode === "list" ? "bg-teal-500 text-slate-950 font-bold shadow-xs" : "text-[#526466] hover:text-[#102A2A]"
+            className={`flex items-center space-x-1 rounded px-2.5 py-1 text-xs font-semibold transition ${viewMode === "list" ? "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] font-bold shadow-xs" : "text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
               }`}
             aria-pressed={viewMode === "list"}
           >
@@ -585,7 +585,7 @@ export const StationMap: React.FC<StationMapProps> = ({
           </svg>
 
           {/* Map Attribution and Legend */}
-          <div className="flex flex-wrap items-center justify-between border-t border-slate-200 bg-white px-3 py-2 text-[10px] text-[#526466]">
+          <div className="flex flex-wrap items-center justify-between border-t border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)] px-3 py-2 text-[10px] text-[var(--hs-text-secondary)]">
             <div className="flex items-center space-x-3">
               <span className="flex items-center">
                 <span className="mr-1 inline-block h-2 w-2 rounded-full bg-teal-500" /> User Center
@@ -608,7 +608,7 @@ export const StationMap: React.FC<StationMapProps> = ({
                 <button
                   type="button"
                   onClick={onOpenStationDetails}
-                  className="inline-flex min-h-[24px] items-center text-teal-700 font-semibold hover:underline"
+                  className="inline-flex min-h-[24px] items-center text-[var(--hs-accent)] font-semibold hover:underline"
                 >
                   Inspect Station Details
                 </button>
@@ -618,7 +618,7 @@ export const StationMap: React.FC<StationMapProps> = ({
               href="https://www.openstreetmap.org/copyright"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex min-h-[24px] items-center hover:underline text-teal-700 font-medium"
+              className="inline-flex min-h-[24px] items-center hover:underline text-[var(--hs-accent)] font-medium"
             >
               © OpenStreetMap contributors
             </a>
@@ -626,9 +626,9 @@ export const StationMap: React.FC<StationMapProps> = ({
         </div>
       ) : (
         /* Accessible Non-Map Fallback List */
-        <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-xs text-slate-700">
-            <thead className="bg-[#F6F8F4] text-[11px] font-semibold text-[#526466]">
+        <div className="mt-2 overflow-x-auto rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-elevated-bg)]">
+          <table className="min-w-full divide-y divide-[var(--hs-border-subtle)] text-left text-xs text-[var(--hs-text-primary)]">
+            <thead className="bg-[var(--hs-subtle-bg)] text-[11px] font-semibold text-[var(--hs-text-secondary)]">
               <tr>
                 <th className="px-3 py-2">Station Name</th>
                 <th className="px-3 py-2">Source</th>
@@ -637,34 +637,34 @@ export const StationMap: React.FC<StationMapProps> = ({
                 <th className="px-3 py-2">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-[var(--hs-border-subtle)]">
               {filteredStations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-center text-[#526466]">
+                  <td colSpan={5} className="px-3 py-4 text-center text-[var(--hs-text-secondary)]">
                     No monitoring stations available for the selected layer.
                   </td>
                 </tr>
               ) : (
                 filteredStations.map((st) => (
-                <tr key={st.id} className={st.id === selectedStationId ? "bg-teal-500/10" : ""}>
-                  <td className="px-3 py-2 font-medium text-[#102A2A]">{st.name}</td>
+                <tr key={st.id} className={st.id === selectedStationId ? "bg-[var(--hs-subtle-bg)]" : ""}>
+                  <td className="px-3 py-2 font-medium text-[var(--hs-text-primary)]">{st.name}</td>
                   <td className="px-3 py-2">
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${st.providerId === "CPCB_CAAQMS" ? "bg-blue-500/20 text-blue-700" : "bg-purple-500/20 text-purple-700"
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${st.providerId === "CPCB_CAAQMS" ? "bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)]" : "bg-[var(--hs-learn-bg)] text-[var(--hs-accent-violet)]"
                         }`}
                     >
                       {st.providerId === "CPCB_CAAQMS" ? "CPCB" : "OpenAQ"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-[#526466]">
+                  <td className="px-3 py-2 text-[var(--hs-text-secondary)] hs-tabular">
                     {st.latitude.toFixed(4)}, {st.longitude.toFixed(4)}
                   </td>
-                  <td className="px-3 py-2 text-[#164E4A] font-medium">{st.distanceKm ?? "N/A"} km</td>
+                  <td className="px-3 py-2 text-[var(--hs-accent)] font-medium hs-tabular">{st.distanceKm ?? "N/A"} km</td>
                   <td className="px-3 py-2">
                     <button
                       type="button"
                       onClick={() => onSelectStation(st)}
-                      className="rounded bg-[#164E4A] px-2 py-1 text-[11px] font-medium text-white hover:bg-[#1F9D78] transition"
+                      className="rounded bg-[var(--hs-accent)] px-2 py-1 text-[11px] font-medium text-[var(--hs-accent-text)] hover:opacity-90 transition"
                     >
                       {st.id === selectedStationId ? "Active" : "Select"}
                     </button>

@@ -6,8 +6,9 @@ import { determineVentilationStrategy } from "@/domain/indoor/ventilation-decisi
 import { evaluateScheduleDay } from "@/domain/planner/schedule-planner";
 import { searchIndianCities } from "@/services/location/location-service";
 import { PlannedActivitySchema, type PlannedActivity } from "@/schemas/planner.schema";
-import type { CpcbCategory } from "@/schemas/cpcb.schema";
+import type { CpcbCategory, CpcbAqiResult } from "@/schemas/cpcb.schema";
 import type { DwellingContext } from "@/schemas/user-context.schema";
+import type { NormalizedForecast, NormalizedObservation } from "@/schemas/providers/normalized-provider.schema";
 
 export type AgentToolName =
   | "search_stations"
@@ -271,13 +272,23 @@ export async function executeAgentTool(
           stationId?: string;
           latitude?: number;
           longitude?: number;
+          forecast?: readonly NormalizedForecast[];
+          calculatedAqi?: CpcbAqiResult | null;
+          observations?: readonly NormalizedObservation[];
         };
         const activities = Array.isArray(payload.activities) ? payload.activities : [];
-        const aq = payload.stationId ? await globalSourceOrchestrator.getStationAirQuality(payload.stationId) : null;
+        const aq =
+          payload.calculatedAqi !== undefined
+            ? { calculatedAqi: payload.calculatedAqi, observations: payload.observations ?? [] }
+            : payload.stationId
+              ? await globalSourceOrchestrator.getStationAirQuality(payload.stationId)
+              : null;
         const fc =
-          payload.latitude !== undefined && payload.longitude !== undefined
-            ? await globalSourceOrchestrator.getForecast({ latitude: payload.latitude, longitude: payload.longitude })
-            : { forecast: [] };
+          Array.isArray(payload.forecast) && payload.forecast.length > 0
+            ? { forecast: payload.forecast }
+            : payload.latitude !== undefined && payload.longitude !== undefined
+              ? await globalSourceOrchestrator.getForecast({ latitude: payload.latitude, longitude: payload.longitude })
+              : { forecast: [] };
 
         const planEval = evaluateScheduleDay({
           activities,

@@ -58,20 +58,29 @@ export const AlertCenterView: React.FC<AlertCenterViewProps> = ({
         </p>
       ) : (
         <div className="space-y-3">
-          {alerts.map((al) => (
-            <div
-              key={al.id}
-              className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-4 text-xs"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-[var(--hs-text-primary)]">{al.title}</span>
-                <span className="rounded bg-[var(--hs-surface-bg)] px-2 py-0.5 text-[10px] font-mono text-[var(--hs-text-secondary)]">
-                  {al.severity} • {al.source}
-                </span>
+          {alerts.map((al) => {
+            const isSevere = al.severity === "SEVERE" || al.severity === "VERY_POOR";
+            const isWarn = al.severity === "POOR";
+            const cardCls = isSevere
+              ? "border-[var(--hs-accent-coral)]/45 bg-[var(--hs-warm-bg)]"
+              : isWarn
+                ? "border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)]"
+                : "border-[var(--hs-info-border)] bg-[var(--hs-info-bg)]";
+            return (
+              <div
+                key={al.id}
+                className={`rounded-xl border p-4 text-xs ${cardCls}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-[var(--hs-text-primary)]">{al.title}</span>
+                  <span className="rounded border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-2 py-0.5 text-[10px] font-mono font-semibold text-[var(--hs-text-primary)]">
+                    {al.severity} • {al.source}
+                  </span>
+                </div>
+                <p className="mt-1 text-[var(--hs-text-secondary)]">{al.message}</p>
               </div>
-              <p className="mt-1 text-[var(--hs-text-secondary)]">{al.message}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

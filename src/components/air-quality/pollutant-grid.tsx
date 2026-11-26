@@ -72,7 +72,7 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({
   return (
     <section aria-labelledby="pollutants-heading" className="mt-8">
       <div className="flex items-center justify-between">
-        <h3 id="pollutants-heading" className="text-lg font-bold text-[#102A2A]">
+        <h3 id="pollutants-heading" className="text-lg font-bold text-[var(--hs-text-primary)]">
           {t.pollutantBreakdownTitle}
         </h3>
         <span className="text-xs font-medium text-[var(--hs-text-secondary)]">
@@ -108,10 +108,10 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-[#102A2A]">{item.name}</span>
-                  <span className="text-[10px] font-semibold text-[#526466]">{item.formula}</span>
+                  <span className="text-sm font-bold text-[var(--hs-text-primary)]">{item.name}</span>
+                  <span className="text-[10px] font-semibold text-[var(--hs-text-secondary)]">{item.formula}</span>
                 </div>
-                <p className="mt-0.5 text-[10px] text-[#526466]">CPCB Window: {item.standardWindow}</p>
+                <p className="mt-0.5 text-[10px] text-[var(--hs-text-secondary)]">CPCB Window: {item.standardWindow}</p>
               </div>
 
               <div className="mt-3">

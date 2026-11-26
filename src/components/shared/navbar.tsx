@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const currentLocale = resolveLocale(language);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-[#102A2A]/20 bg-[#164E4A] text-white shadow-sm backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b border-[var(--hs-border-subtle)] bg-[var(--hs-header-bg)] text-[var(--hs-header-text)] shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-6">
         <div className="flex min-w-0 items-center space-x-2.5">
           {onToggleMobileNav && (
