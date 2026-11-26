@@ -16,20 +16,25 @@ export function generateCspNonce(): string {
 
 /**
  * Builds the strict Content-Security-Policy string.
- * Note: `'unsafe-inline'` is strictly forbidden from `script-src`; Next.js SSR
- * attaches the per-request nonce to framework hydration scripts automatically.
- * `style-src 'self' 'unsafe-inline'` remains scoped solely for Leaflet dynamic
- * SVG/DOM inline transforms and Tailwind utilities.
+ * Note: `'unsafe-inline'` is strictly forbidden from `script-src` and `style-src-elem`;
+ * Next.js SSR attaches per-request nonces to framework hydration scripts automatically.
+ * `style-src-attr 'unsafe-inline'` remains scoped solely for Leaflet dynamic SVG/DOM
+ * positioning attributes and bar chart inline percentage dimensions.
  */
 export function buildContentSecurityPolicy(nonce?: string): string {
   const scriptSrc = nonce
     ? `script-src 'self' 'nonce-${nonce}' https://apis.google.com`
     : "script-src 'self' https://apis.google.com";
+  const styleSrcElem = nonce
+    ? `style-src-elem 'self' 'nonce-${nonce}'`
+    : "style-src-elem 'self'";
 
   return [
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline'",
+    styleSrcElem,
+    "style-src-attr 'unsafe-inline'",
     "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org",
     "font-src 'self' data:",
     "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com",

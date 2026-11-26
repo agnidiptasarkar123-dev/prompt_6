@@ -20,6 +20,8 @@ export const loadLearningCentre = () =>
   import("@/components/learn/learning-centre").then((m) => m.LearningCentre);
 export const loadSettingsWorkspace = () =>
   import("@/components/settings/settings-workspace").then((m) => m.SettingsWorkspace);
+export const loadAuthModal = () =>
+  import("@/components/auth/auth-modal").then((m) => m.AuthModal);
 
 export const StationMap = dynamic(loadStationMap, {
   loading: WorkspaceLoadingSkeleton,
@@ -46,3 +48,4 @@ export const LearningCentre = dynamic(loadLearningCentre, {
 export const SettingsWorkspace = dynamic(loadSettingsWorkspace, {
   loading: WorkspaceLoadingSkeleton
 });
+export const LazyAuthModal = dynamic(loadAuthModal, { ssr: false });

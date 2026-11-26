@@ -159,17 +159,37 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
         })
       });
 
-      const json = await res.json();
-      if (!res.ok || json.status === "ERROR") {
-        setError(json.message || "Chat service returned an error.");
-        setLastFailedPrompt(clean);
-      } else {
-        const payload = json.data as {
+      type ChatApiResponse = {
+        status?: string;
+        message?: string;
+        data?: {
           reply: string;
           sources: string[];
           isAiGenerated: boolean;
           dataDistinction: string;
         };
+      };
+      let json: ChatApiResponse | null = null;
+      if (typeof res.text === "function") {
+        const rawText = await res.text();
+        if (rawText) {
+          try {
+            json = JSON.parse(rawText) as ChatApiResponse;
+          } catch {
+            json = null;
+          }
+        }
+      } else if (typeof res.json === "function") {
+        json = (await res.json()) as ChatApiResponse;
+      }
+      if (!res.ok || !json || json.status === "ERROR" || !json.data) {
+        const httpMsg = res.status >= 500
+          ? `HawaSaathi Chat service unavailable (HTTP ${res.status}). Please retry.`
+          : `Chat service returned an error (HTTP ${res.status}).`;
+        setError(json?.message || httpMsg);
+        setLastFailedPrompt(clean);
+      } else {
+        const payload = json.data;
         const assistantMsg: ChatMessageItem = {
           id: nextChatId("msg-a"),
           role: "assistant",
@@ -335,7 +355,7 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
               type="button"
               onClick={() => handleDeleteThread(th.id)}
               aria-label={`Delete conversation ${th.title}`}
-              className="rounded-full p-1 text-[var(--hs-text-secondary)] hover:text-rose-500"
+              className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full p-1 text-[var(--hs-text-secondary)] hover:text-rose-500"
             >
               <Trash2 className="h-3 w-3" />
             </button>

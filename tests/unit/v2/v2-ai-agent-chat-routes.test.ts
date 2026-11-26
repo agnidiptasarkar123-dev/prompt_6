@@ -322,6 +322,30 @@ describe("HawaSaathi 2.0 Agent Tools, Orchestrator, Chat & API Routes Suite", ()
       } finally {
         vi.useRealTimers();
       }
+
+      // Multi-model fallback chain: primary rejects 429, fallback model succeeds cleanly
+      vi.stubEnv("GEMINI_MODEL", "gemini-primary-test");
+      vi.stubEnv("GEMINI_FALLBACK_MODELS", "gemini-fallback-test");
+      mockGenerateContent
+        .mockRejectedValueOnce(new Error("429 Quota exceeded on primary"))
+        .mockResolvedValueOnce({ text: "Fallback model response: CPCB AQI is 356." });
+      const fallbackWin = await generateGroundedChatReply({
+        message: "Summarize current AQI",
+        station: mockStation,
+        calculatedAqi: mockValidAqi
+      }, "fake-key");
+      expect(fallbackWin.isAiGenerated).toBe(true);
+      expect(fallbackWin.errorFallbackUsed).toBe(false);
+      expect(fallbackWin.modelUsed).toBe("gemini-fallback-test");
+
+      // Exhausted deadline budget breaks fallback loop cleanly
+      const budgetZero = await generateGroundedChatReply({
+        message: "Budget check",
+        calculatedAqi: mockValidAqi,
+        timeoutMs: 0
+      }, "fake-key");
+      expect(budgetZero.errorFallbackUsed).toBe(true);
+      vi.unstubAllEnvs();
     });
 
     it("formats unavailable fallback cleanly in bn, hi, ta-IN, and validates Gemini anti-contradiction guard", async () => {

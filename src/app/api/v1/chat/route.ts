@@ -12,6 +12,8 @@ import {
   NormalizedForecastSchema
 } from "@/schemas/providers/normalized-provider.schema";
 
+export const runtime = "nodejs";
+
 const ChatRequestSchema = z.object({
   message: z.string().min(1).max(1200),
   language: SupportedAiLanguageSchema.default("en"),
@@ -53,7 +55,8 @@ export async function POST(req: NextRequest) {
     observations: d.observations,
     forecast: d.forecast,
     hasConsentForPersonalization: d.hasConsentForPersonalization,
-    isAuthenticated
+    isAuthenticated,
+    timeoutMs: 12000
   });
 
   return successResponse({

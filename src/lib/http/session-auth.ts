@@ -2,21 +2,35 @@
 import type { NextRequest } from "next/server";
 import { globalFirebaseAuth } from "@/lib/firebase/admin";
 
+export interface VerifiedSessionUser {
+  readonly uid: string;
+  readonly email?: string;
+}
+
 /**
- * Resolves caller authentication strictly from an HttpOnly Firebase session
- * cookie verified by Firebase Admin SDK. Dev mock headers are ignored outside
- * local development and automated test environments.
+ * Resolves verified caller identity strictly from an HttpOnly Firebase session
+ * cookie verified by Firebase Admin SDK. Dev mock headers are ignored in production.
  */
-export async function resolveSessionAuth(req: NextRequest): Promise<boolean> {
+export async function resolveSessionUser(req: NextRequest): Promise<VerifiedSessionUser | null> {
   const cookie = req.cookies?.get?.("hs_session")?.value;
   if (cookie && globalFirebaseAuth.isConfigured()) {
     try {
-      await globalFirebaseAuth.verifySessionCookie(cookie, true);
-      return true;
+      const decoded = await globalFirebaseAuth.verifySessionCookie(cookie, true);
+      return { uid: decoded.uid, email: decoded.email };
     } catch {
-      return false;
+      return null;
     }
   }
   const devUid = req.headers.get("x-mock-auth-uid");
-  return Boolean(devUid && process.env.NODE_ENV !== "production");
+  if (devUid && process.env.NODE_ENV !== "production") {
+    return { uid: devUid, email: `${devUid}@example.com` };
+  }
+  return null;
+}
+
+/**
+ * Resolves caller boolean authentication status via `resolveSessionUser`.
+ */
+export async function resolveSessionAuth(req: NextRequest): Promise<boolean> {
+  return (await resolveSessionUser(req)) !== null;
 }

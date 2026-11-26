@@ -15,7 +15,6 @@ import { StationPanel } from "@/components/stations/station-panel";
 import { ForecastChart } from "@/components/forecast/forecast-chart";
 import { RecommendationsPanel } from "@/components/recommendations/recommendations-panel";
 import { IndoorCoachPanel } from "@/components/household/indoor-coach-panel";
-import { AuthModal } from "@/components/auth/auth-modal";
 import { HouseholdModal } from "@/components/household/household-modal";
 import { ProvenanceModal } from "@/components/shared/provenance-modal";
 import { NotificationCenter } from "@/components/alerts/notification-center";
@@ -29,16 +28,14 @@ import {
   AiChatWorkspace,
   InsightsWorkspace,
   LearningCentre,
-  SettingsWorkspace
+  SettingsWorkspace,
+  LazyAuthModal as AuthModal
 } from "@/components/shared/lazy-workspaces";
 
 import { useAirQualityTelemetry } from "@/hooks/use-air-quality-telemetry";
 import { usePlannerAndAlerts } from "@/hooks/use-planner-and-alerts";
-import {
-  getGuestContext,
-  saveGuestContext,
-  clientSignOut
-} from "@/lib/firebase/client";
+import { useHouseholdAndRecommendations } from "@/hooks/use-household-and-recommendations";
+import { getGuestContext, saveGuestContext } from "@/lib/firebase/guest-context";
 import { getTextDirection, type SupportedLanguage } from "@/i18n/translations";
 import { resolveLocale } from "@/i18n/locale-registry";
 import { getV2UiStrings } from "@/i18n/v2-translations";
@@ -49,10 +46,7 @@ import {
 import { THEME_STORAGE_KEY, type ThemeMode } from "@/theme/tokens";
 import type { NormalizedStation } from "@/schemas/providers/normalized-provider.schema";
 import type { HouseholdContext } from "@/schemas/user-context.schema";
-import type { RecommendationAction } from "@/schemas/recommendation.schema";
 import type { AiExplanation } from "@/schemas/ai-explanation.schema";
-import type { IndoorHazardAssessment } from "@/domain/indoor/source-control";
-import type { VentilationWindowDecision } from "@/domain/indoor/ventilation-decision";
 
 interface SelectedLocationState {
   name: string;
@@ -91,17 +85,8 @@ export default function DashboardPage() {
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocationState>(DEFAULT_LOCATION);
 
-  // Personalization, Recommendations & Indoor Coach State
-  const [householdContext, setHouseholdContext] = useState<HouseholdContext | undefined>(undefined);
-  const [recommendations, setRecommendations] = useState<RecommendationAction[]>([]);
+  // Modals & Focus Restoration State
   const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(null);
-  const [isAiGenerated, setIsAiGenerated] = useState<boolean>(false);
-  const [indoorHazardAssessment, setIndoorHazardAssessment] = useState<IndoorHazardAssessment | null>(null);
-  const [ventilationGuidance, setVentilationGuidance] = useState<VentilationWindowDecision | null>(null);
-
-  // Auth & Modals State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState<boolean>(false);
   const [isProvenanceModalOpen, setIsProvenanceModalOpen] = useState<boolean>(false);
@@ -174,6 +159,37 @@ export default function DashboardPage() {
     syncDocumentTheme(mode);
   }, []);
 
+  const closeAuthModalOnDelete = useCallback(() => {
+    setIsAuthModalOpen(false);
+  }, []);
+
+  const {
+    householdContext,
+    setHouseholdContext,
+    recommendations,
+    isAiGenerated,
+    indoorHazardAssessment,
+    ventilationGuidance,
+    isAuthenticated,
+    userEmail,
+    handleAuthSuccess,
+    handleSignOut,
+    handleExportData,
+    handleDeleteAccount,
+    handleSaveHousehold
+  } = useHouseholdAndRecommendations({
+    language,
+    themeMode,
+    calculatedAqi,
+    verifiedAqiCategory,
+    observations,
+    loadingAirQuality,
+    setLanguage,
+    handleThemeChange,
+    setAiExplanation,
+    onAccountDeletedCloseAuth: closeAuthModalOnDelete
+  });
+
   const captureFocusBeforeModal = () => {
     lastFocusRef.current =
       typeof document !== "undefined"
@@ -232,7 +248,7 @@ export default function DashboardPage() {
     return () => {
       window.removeEventListener?.("keydown", handleKeyDown);
     };
-  }, []);
+  }, [setHouseholdContext]);
 
   // Synchronize HTML lang and RTL/LTR direction whenever language changes
   useEffect(() => {
@@ -243,82 +259,6 @@ export default function DashboardPage() {
       document.documentElement.setAttribute("dir", dir);
     }
   }, [language]);
-
-  // Verify Authenticated Session & Load Profile on Boot
-  useEffect(() => {
-    fetch("/api/v1/profile")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        const profile = json?.data?.profile || (json?.data?.uid ? json.data : null);
-        if (json?.status === "SUCCESS" && profile) {
-          setIsAuthenticated(true);
-          setUserEmail(profile.email);
-          if (profile.householdContext) {
-            setHouseholdContext(profile.householdContext);
-          }
-          if (profile.preferences?.language) {
-            setLanguage(profile.preferences.language);
-          }
-          if (profile.preferences?.theme) {
-            handleThemeChange(profile.preferences.theme);
-          }
-        }
-      })
-      .catch(() => {
-        // Guest mode remains cleanly active
-      });
-  }, [handleThemeChange]);
-
-  // Evaluate Recommendations & Indoor Ventilation safely without false MODERATE fallback
-  const evaluateRecommendations = useCallback(async () => {
-    try {
-      const evidenceList = observations.map((o) => ({
-        evidenceId: o.id,
-        source: o.providerId,
-        pollutant: o.pollutant,
-        value: o.value,
-        unit: o.unit || "unverified",
-        timestamp: o.observationTime,
-        description: `${o.stationName}: ${o.pollutant} ${o.value} ${o.unit || ""} (${o.averagingPeriod})`
-      }));
-
-      const res = await fetch("/api/v1/recommendations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          overallAqi: calculatedAqi?.overallAqi ?? null,
-          aqiCategory: verifiedAqiCategory,
-          prominentPollutant: calculatedAqi?.prominentPollutant || null,
-          language,
-          householdContext,
-          evidenceList
-        })
-      });
-
-      const json = await res.json();
-      if (res.ok && json.status === "SUCCESS" && json.data) {
-        setRecommendations(
-          json.data.deterministicRecommendations || json.data.recommendations || []
-        );
-        setAiExplanation(json.data.aiExplanation || null);
-        setIsAiGenerated(Boolean(json.data.isAiGenerated));
-        setIndoorHazardAssessment(
-          json.data.indoorAirCoach?.hazardAssessment || json.data.indoorHazardAssessment || null
-        );
-        setVentilationGuidance(
-          json.data.indoorAirCoach?.ventilation || json.data.ventilationGuidance || null
-        );
-      }
-    } catch {
-      // Fail safely preserving deterministic UI
-    }
-  }, [calculatedAqi, verifiedAqiCategory, language, householdContext, observations]);
-
-  useEffect(() => {
-    if (!loadingAirQuality) {
-      void evaluateRecommendations();
-    }
-  }, [loadingAirQuality, evaluateRecommendations]);
 
   // Location & Language Handlers
   const handleSelectLocation = (loc: SelectedLocationState) => {
@@ -334,68 +274,6 @@ export default function DashboardPage() {
   const handleSwitchStation = (station: NormalizedStation) => {
     handleSelectStation(station);
     setActiveView("overview");
-  };
-
-  // Auth Handlers
-  const handleAuthSuccess = (email?: string) => {
-    setIsAuthenticated(true);
-    setUserEmail(email);
-  };
-
-  const handleSignOut = async () => {
-    await fetch("/api/v1/auth/session", { method: "DELETE" });
-    await clientSignOut();
-    setIsAuthenticated(false);
-    setUserEmail(undefined);
-  };
-
-  const handleExportData = async () => {
-    const res = await fetch("/api/v1/profile?export=json");
-    if (res.ok) {
-      const json = await res.json();
-      const blob = new Blob([JSON.stringify(json.data, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `hawasaathi-profile-export-${Date.now()}.json`;
-      a.click();
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete your cloud profile? This cannot be undone.")) {
-      return;
-    }
-    const res = await fetch("/api/v1/profile", { method: "DELETE" });
-    if (res.ok) {
-      setIsAuthenticated(false);
-      setUserEmail(undefined);
-      setHouseholdContext(undefined);
-      setIsAuthModalOpen(false);
-    }
-  };
-
-  const handleSaveHousehold = async (data: {
-    householdContext: HouseholdContext;
-    cloudConsent: boolean;
-  }) => {
-    setHouseholdContext(data.householdContext);
-    saveGuestContext({ householdContext: data.householdContext as unknown as Record<string, unknown> });
-
-    if (isAuthenticated && data.cloudConsent) {
-      await fetch("/api/v1/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          householdContext: data.householdContext,
-          preferences: {
-            language,
-            theme: themeMode
-          },
-          cloudPersistenceConsent: true
-        })
-      });
-    }
   };
 
   const handleDismissOnboarding = () => {

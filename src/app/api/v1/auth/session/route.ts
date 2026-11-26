@@ -4,6 +4,8 @@ import { z } from "zod";
 import { successResponse, errorResponse, checkRouteRateLimit } from "@/lib/http/api-response";
 import { globalFirebaseAuth } from "@/lib/firebase/admin";
 
+export const runtime = "nodejs";
+
 const SessionRequestSchema = z.object({
   idToken: z.string().min(1)
 });

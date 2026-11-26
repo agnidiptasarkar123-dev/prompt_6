@@ -247,16 +247,20 @@ export class SourceOrchestrator {
             .filter((item): item is { value: number; unit: "µg/m³" | "mg/m³"; observationTime: string; averagingPeriod: NormalizedObservation["averagingPeriod"] } => item !== null);
 
           if (convertedObs.length === 0) {
-            warnings.push(`Skipping sub-index for ${pol}: unverified or missing unit.`);
+            const seenUnits = Array.from(new Set(obsList.map((o) => o.rawUnit || "missing"))).join(", ");
+            warnings.push(`Skipping sub-index for ${pol}: unverified or missing unit (${seenUnits}).`);
             continue;
           }
 
-          // Strict statutory CPCB NAQI completeness: >= 16 distinct hours in window OR verified 24h/8h upstream summary
+          // Strict statutory CPCB NAQI completeness:
+          // - 24h pollutants (PM2.5, PM10, NO2, SO2, NH3, Pb): >= 16 distinct hours in trailing 24h window
+          // - 8h pollutants (CO, O3): >= 6 distinct hours in 8h window (75% rule) or verified 8h/24h upstream summary
           const isVerifiedStatutory = convertedObs.some(
             (o) => o.averagingPeriod === "24h" || (windowHours === 8 && o.averagingPeriod === "8h")
           );
-          const hourlyEntries = Array.from(
-            convertedObs
+          const sortedConverted = [...convertedObs].sort((a, b) => b.observationTime.localeCompare(a.observationTime));
+          const allHourlyEntries = Array.from(
+            sortedConverted
               .reduce((map, item) => {
                 const hourBucket = item.observationTime.slice(0, 13);
                 if (!map.has(hourBucket)) {
@@ -267,23 +271,38 @@ export class SourceOrchestrator {
               .values()
           ).sort((a, b) => a.time.localeCompare(b.time));
 
-          const validHoursInWindow = isVerifiedStatutory ? 16 : hourlyEntries.length;
-          if (!isVerifiedStatutory && validHoursInWindow < 16) {
+          // Strictly bound trailing 24h window even when provider queries look back 26h for timezone margins
+          const hourlyEntries = !isVerifiedStatutory && allHourlyEntries.length > 24
+            ? allHourlyEntries.slice(-24)
+            : allHourlyEntries;
+
+          const minRequiredHours = windowHours === 8 ? 6 : 16;
+          const validHoursInWindow = isVerifiedStatutory ? minRequiredHours : hourlyEntries.length;
+          if (!isVerifiedStatutory && validHoursInWindow < minRequiredHours) {
             warnings.push(
-              `Skipping sub-index for ${pol}: insufficient hourly completeness (${validHoursInWindow}/16 statutory hours).`
+              `Skipping sub-index for ${pol}: insufficient hourly completeness (${validHoursInWindow}/${minRequiredHours} statutory hours).`
             );
             continue;
           }
 
           let summaryConcentration: number;
-          if (windowHours === 8 && hourlyEntries.length >= 8) {
-            let max8h = -Infinity;
-            for (let i = 0; i <= hourlyEntries.length - 8; i++) {
-              const slice = hourlyEntries.slice(i, i + 8);
-              const mean8 = slice.reduce((acc, e) => acc + e.value, 0) / slice.length;
-              if (mean8 > max8h) max8h = mean8;
+          let reportedValidHours = validHoursInWindow;
+          if (windowHours === 8) {
+            if (hourlyEntries.length >= 8) {
+              let max8h = -Infinity;
+              for (let i = 0; i <= hourlyEntries.length - 8; i++) {
+                const slice = hourlyEntries.slice(i, i + 8);
+                const mean8 = slice.reduce((acc, e) => acc + e.value, 0) / slice.length;
+                if (mean8 > max8h) max8h = mean8;
+              }
+              summaryConcentration = Math.round(max8h * 100) / 100;
+              reportedValidHours = 8;
+            } else {
+              const tail8 = hourlyEntries.slice(-8);
+              summaryConcentration =
+                Math.round((tail8.reduce((acc, e) => acc + e.value, 0) / tail8.length) * 100) / 100;
+              reportedValidHours = isVerifiedStatutory ? validHoursInWindow : tail8.length;
             }
-            summaryConcentration = Math.round(max8h * 100) / 100;
           } else {
             summaryConcentration =
               Math.round((hourlyEntries.reduce((acc, e) => acc + e.value, 0) / hourlyEntries.length) * 100) / 100;
@@ -297,7 +316,7 @@ export class SourceOrchestrator {
             unit: expectedUnit,
             averagingWindowHours: windowHours,
             recordedAtUtc: latestValidObsTime,
-            validHoursInWindow: windowHours === 8 ? Math.min(8, validHoursInWindow) : validHoursInWindow,
+            validHoursInWindow: windowHours === 8 ? Math.min(8, reportedValidHours) : reportedValidHours,
             completenessPolicy: "OFFICIAL_CPCB_STATUTORY_16H"
           });
 

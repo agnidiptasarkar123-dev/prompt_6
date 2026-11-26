@@ -12,6 +12,8 @@ import {
   NormalizedForecastSchema
 } from "@/schemas/providers/normalized-provider.schema";
 
+export const runtime = "nodejs";
+
 const AgentRequestSchema = z.object({
   prompt: z.string().min(1).max(1000),
   language: SupportedAiLanguageSchema.default("en"),

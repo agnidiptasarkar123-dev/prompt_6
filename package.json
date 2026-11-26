@@ -4,6 +4,9 @@
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
@@ -52,6 +55,9 @@
     "defaults"
   ],
   "overrides": {
-    "@grpc/grpc-js": "^1.14.7"
+    "@grpc/grpc-js": "^1.14.7",
+    "jwks-rsa": {
+      "jose": "5.10.0"
+    }
   }
 }

@@ -363,9 +363,9 @@ export const MUTATIONS: MutationTarget[] = [
   },
   {
     id: "MUT-SEC-08",
-    subsystem: "Profile Auth Gate",
+    subsystem: "Session Auth Gate",
     requirement: "Disable Dev Header Auth Outside Dev/Test",
-    file: "src/app/api/v1/profile/route.ts",
+    file: "src/lib/http/session-auth.ts",
     targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
     description: "Allow x-mock-auth-uid header even in production",
     find: 'if (devUid && process.env.NODE_ENV !== "production") {',
@@ -471,7 +471,7 @@ export const MUTATIONS: MutationTarget[] = [
     file: "src/services/air-quality/source-orchestrator.ts",
     targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
     description: "Relax minimum hourly completeness threshold from 16 to 4",
-    find: "validHoursInWindow < 16",
+    find: "validHoursInWindow < minRequiredHours",
     replace: "validHoursInWindow < 4",
     mutantType: "BOUNDARY"
   },
@@ -599,23 +599,23 @@ export const MUTATIONS: MutationTarget[] = [
   {
     id: "MUT-AUTH-01",
     subsystem: "Shared Session Resolver",
-    requirement: "Block Mock Dev Header in Production",
+    requirement: "Deny Unauthenticated Requests via resolveSessionAuth",
     file: "src/lib/http/session-auth.ts",
     targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
-    description: "Bypass production check on x-mock-auth-uid header",
-    find: 'return Boolean(devUid && process.env.NODE_ENV !== "production");',
-    replace: "return Boolean(devUid);",
+    description: "Always return true from resolveSessionAuth",
+    find: "return (await resolveSessionUser(req)) !== null;",
+    replace: "return true;",
     mutantType: "SECURITY"
   },
   {
     id: "MUT-AUTH-02",
     subsystem: "Shared Session Resolver",
-    requirement: "Strict Cookie Revocation Check",
+    requirement: "Strict Cookie Revocation & Fail-Closed Catch",
     file: "src/lib/http/session-auth.ts",
     targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
-    description: "Return true on invalid/expired session cookie",
-    find: "} catch {\n      return false;",
-    replace: "} catch {\n      return true;",
+    description: "Return forged identity on invalid/expired session cookie",
+    find: "} catch {\n      return null;",
+    replace: '} catch {\n      return { uid: "forged" };',
     mutantType: "SECURITY"
   },
   {
@@ -661,6 +661,50 @@ export const MUTATIONS: MutationTarget[] = [
     find: "if (overlapEnd > overlapStart) {",
     replace: "if (overlapEnd < overlapStart) {",
     mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-CSP-03",
+    subsystem: "CSP Security Headers",
+    requirement: "Restrict style-src-elem without unsafe-inline",
+    file: "src/lib/security/csp.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Inject unsafe-inline into style-src-elem directive",
+    find: "`style-src-elem 'self' 'nonce-${nonce}'`",
+    replace: "`style-src-elem 'self' 'unsafe-inline'`",
+    mutantType: "SECURITY"
+  },
+  {
+    id: "MUT-ORCH-03",
+    subsystem: "Source Orchestrator",
+    requirement: "Trailing 24h Window Cap",
+    file: "src/services/air-quality/source-orchestrator.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Remove trailing 24h window cap so >24h averages leak",
+    find: "const hourlyEntries = !isVerifiedStatutory && allHourlyEntries.length > 24\n            ? allHourlyEntries.slice(-24)\n            : allHourlyEntries;",
+    replace: "const hourlyEntries = allHourlyEntries;",
+    mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-ORCH-04",
+    subsystem: "Source Orchestrator",
+    requirement: "8-Hour Statutory 6/8 Completeness Rule",
+    file: "src/services/air-quality/source-orchestrator.ts",
+    targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
+    description: "Raise 8-hour pollutant completeness threshold from 6 to 16",
+    find: "const minRequiredHours = windowHours === 8 ? 6 : 16;",
+    replace: "const minRequiredHours = 16;",
+    mutantType: "BOUNDARY"
+  },
+  {
+    id: "MUT-CHAT-01",
+    subsystem: "AI Chat Service",
+    requirement: "Multi-Model Gemini Fallback Iteration",
+    file: "src/services/ai/chat-service.ts",
+    targetTest: "tests/unit/v2/v2-ai-agent-chat-routes.test.ts",
+    description: "Disable fallback model loop in chat-service.ts",
+    find: "const candidateModels = Array.from(new Set([primaryModel, ...configuredFallbacks]));",
+    replace: "const candidateModels = [primaryModel];",
+    mutantType: "SECURITY"
   }
 ];
 

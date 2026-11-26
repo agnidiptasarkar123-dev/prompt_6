@@ -31,6 +31,8 @@ test-results/
 *.tsbuildinfo
 .vitest/
 vitest_results.json
+test-results.json
+p7-results.json
 
 # Media & large binary files (Strict <10MB rule)
 *.mp4

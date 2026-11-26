@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: Apache-2.0
-import type { SupportedLanguage } from "@/i18n/translations";
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
@@ -12,6 +11,19 @@ import {
   type Auth,
   type UserCredential
 } from "firebase/auth";
+import {
+  type GuestState,
+  getGuestContext,
+  saveGuestContext,
+  clearGuestContext
+} from "./guest-context";
+
+export {
+  type GuestState,
+  getGuestContext,
+  saveGuestContext,
+  clearGuestContext
+};
 
 let firebaseApp: FirebaseApp | null = null;
 let firebaseAuth: Auth | null = null;
@@ -89,43 +101,6 @@ export async function clientSignOut(): Promise<void> {
   if (auth) {
     await signOut(auth);
   }
-}
-
-// Guest Mode Management (Local-only sessionStorage)
-const GUEST_STORAGE_KEY = "hawasaathi_guest_context";
-
-export interface GuestState {
-  savedLocation?: {
-    name: string;
-    city: string;
-    state: string;
-    latitude: number;
-    longitude: number;
-  };
-  householdContext?: Record<string, unknown>;
-  routine?: Record<string, unknown>;
-  language?: SupportedLanguage;
-}
-
-export function getGuestContext(): GuestState | null {
-  if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(GUEST_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as GuestState;
-  } catch {
-    return null;
-  }
-}
-
-export function saveGuestContext(state: GuestState): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(state));
-}
-
-export function clearGuestContext(): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(GUEST_STORAGE_KEY);
 }
 
 export async function exportUserData(uid: string): Promise<Record<string, unknown>> {

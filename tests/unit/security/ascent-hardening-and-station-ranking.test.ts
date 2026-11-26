@@ -16,6 +16,7 @@ import {
 } from "@/domain/air-quality/station-ranking";
 import { errorResponse } from "@/lib/http/api-response";
 import { RateLimiter, globalRateLimiter } from "@/services/rate-limit/rate-limiter";
+import { RedisService } from "@/lib/redis/redis-client";
 import { OpenAQAdapter } from "@/services/providers/openaq/openaq-adapter";
 import { CpcbAdapter } from "@/services/providers/cpcb/cpcb-adapter";
 import { SourceOrchestrator } from "@/services/air-quality/source-orchestrator";
@@ -24,8 +25,9 @@ import { globalFirebaseAuth } from "@/lib/firebase/admin";
 import { POST as postAuthSession } from "@/app/api/v1/auth/session/route";
 import { GET as getProfile } from "@/app/api/v1/profile/route";
 import { proxy, config as proxyConfig } from "@/proxy";
-import { buildContentSecurityPolicy, generateCspNonce } from "@/lib/security/csp";
-import { resolveSessionAuth } from "@/lib/http/session-auth";
+import { buildContentSecurityPolicy, generateCspNonce, SECURITY_RESPONSE_HEADERS } from "@/lib/security/csp";
+import { resolveSessionAuth, resolveSessionUser } from "@/lib/http/session-auth";
+import { checkRunningWindowSufficiency } from "@/domain/cpcb/running-window";
 import { executeAgentTool } from "@/services/ai/agent-tools";
 import { AlertCenterView } from "@/components/alerts/alert-center-view";
 import { evaluateSmartAlerts } from "@/domain/alerts/smart-alert-engine";
@@ -42,7 +44,8 @@ import {
   loadAiChatWorkspace,
   loadInsightsWorkspace,
   loadLearningCentre,
-  loadSettingsWorkspace
+  loadSettingsWorkspace,
+  loadAuthModal
 } from "@/components/shared/lazy-workspaces";
 import DashboardPage from "@/app/page";
 import { useAirQualityTelemetry } from "@/hooks/use-air-quality-telemetry";
@@ -95,7 +98,35 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
     const n1 = generateCspNonce();
     const n2 = generateCspNonce();
     expect(n1).not.toBe(n2);
-    expect(buildContentSecurityPolicy()).not.toContain("'nonce-");
+    expect(n1).toHaveLength(24);
+    const baseCsp = buildContentSecurityPolicy();
+    expect(baseCsp).not.toContain("'nonce-");
+    const noncedCsp = buildContentSecurityPolicy("testNonce123==");
+    expect(noncedCsp).toContain("script-src 'self' 'nonce-testNonce123==' https://apis.google.com");
+    expect(noncedCsp).toContain("style-src-elem 'self' 'nonce-testNonce123=='");
+    expect(baseCsp.split("; ")).toEqual([
+      "default-src 'self'",
+      "script-src 'self' https://apis.google.com",
+      "style-src 'self' 'unsafe-inline'",
+      "style-src-elem 'self'",
+      "style-src-attr 'unsafe-inline'",
+      "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org",
+      "font-src 'self' data:",
+      "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com",
+      "frame-src 'self' https://*.firebaseapp.com https://accounts.google.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'"
+    ]);
+    expect(SECURITY_RESPONSE_HEADERS.map((h) => h.key)).toEqual([
+      "X-Content-Type-Options",
+      "X-Frame-Options",
+      "Referrer-Policy",
+      "Permissions-Policy",
+      "Cross-Origin-Opener-Policy",
+      "Strict-Transport-Security"
+    ]);
     expect(proxyConfig.matcher.length).toBe(1);
 
     const pRes1 = proxy(new NextRequest("https://hawasaathi.in/"));
@@ -105,9 +136,15 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
     expect(csp1).toContain("'nonce-");
     expect(csp1).toContain("object-src 'none'");
     expect(csp1).toContain("frame-ancestors 'none'");
+    expect(csp1).toContain("base-uri 'self'");
+    expect(csp1).toContain("form-action 'self'");
+    expect(csp1).toContain("style-src-attr 'unsafe-inline'");
+    expect(csp1).not.toContain("style-src-elem 'self' 'unsafe-inline'");
     expect(csp1).not.toBe(csp2);
     expect(csp1).not.toContain("script-src 'self' 'unsafe-inline'");
     expect(pRes1.headers.get("X-Frame-Options")).toBe("DENY");
+    expect(pRes1.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(pRes1.headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin-allow-popups");
   });
 
   it("sanitizes homoglyphs, zero-width chars, delimiters, injection phrases, and long inputs", () => {
@@ -373,7 +410,7 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
       }) as unknown as typeof fetch;
 
       function TelemetryHarness() {
-        return useAirQualityTelemetry({ latitude: 22.5726, longitude: 88.3639 }, () => {});
+        return useAirQualityTelemetry({ latitude: 22.5726, longitude: 88.3639 }, () => { });
       }
       hookIdx = 0;
       const tState1 = TelemetryHarness();
@@ -615,8 +652,8 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
           quietHoursStart: "22:00",
           quietHoursEnd: "07:00"
         },
-        onConfigureRules: () => {},
-        onOpenDrawer: () => {}
+        onConfigureRules: () => { },
+        onOpenDrawer: () => { }
       })
     );
     expect(emptyAlertHtml).toContain("No active alerts triggered");
@@ -643,8 +680,8 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
           quietHoursStart: "22:00",
           quietHoursEnd: "07:00"
         },
-        onConfigureRules: () => {},
-        onOpenDrawer: () => {}
+        onConfigureRules: () => { },
+        onOpenDrawer: () => { }
       })
     );
     expect(popAlertHtml).toContain("High PM10");
@@ -652,10 +689,10 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
     const authHtml = renderToStaticMarkup(
       React.createElement(AuthModal, {
         isOpen: true,
-        onClose: () => {},
+        onClose: () => { },
         language: "en-IN",
         isAuthenticated: false,
-        onAuthSuccess: () => {}
+        onAuthSuccess: () => { }
       })
     );
     expect(authHtml).toContain('role="dialog"');
@@ -664,9 +701,9 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
     const hhHtml = renderToStaticMarkup(
       React.createElement(HouseholdModal, {
         isOpen: true,
-        onClose: () => {},
+        onClose: () => { },
         language: "en-IN",
-        onSave: () => {}
+        onSave: () => { }
       })
     );
     expect(hhHtml).toContain('role="dialog"');
@@ -675,7 +712,7 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
     const provHtml = renderToStaticMarkup(
       React.createElement(ProvenanceModal, {
         isOpen: true,
-        onClose: () => {},
+        onClose: () => { },
         station: baseStation,
         calculatedAqi: null,
         observations: [],
@@ -757,17 +794,23 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
         },
         removeEventListener: vi.fn(),
         localStorage: { getItem: () => null, setItem: vi.fn() },
-        sessionStorage: { getItem: () => null, setItem: vi.fn() },
+        sessionStorage: {
+          getItem: (k: string) =>
+            k === "hawasaathi_guest_context"
+              ? JSON.stringify({ language: "bn-IN", householdContext: { members: [] } })
+              : null,
+          setItem: vi.fn(),
+          removeItem: vi.fn()
+        },
         matchMedia: () => ({ matches: false })
       });
       authStates.clear();
       aIdx = 0;
-      aIdx = 0;
-      const firstRender = DashboardPage() as { props: { children: Array<{ props?: { children?: Array<{ props?: Record<string, unknown> }> } }> } };
+      const dashTree = DashboardPage() as { props: { children: Array<{ props?: { children?: Array<{ props?: Record<string, unknown> }> } }> } };
       capturedListeners["keydown"]?.({ key: "Escape" });
 
       // Navigate to alerts view and trigger AlertCenterView callbacks
-      const shell = firstRender.props.children[0]?.props?.children?.[2];
+      const shell = dashTree.props.children[0]?.props?.children?.[2];
       (shell?.props?.["onSelectView"] as ((v: string) => void) | undefined)?.("alerts");
       aIdx = 0;
       const alertsDash = DashboardPage();
@@ -782,7 +825,7 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
       };
       findAlertCallbacks(alertsDash);
 
-      // 6. Smart Alert 5-point hysteresis buffer invariant (AQI=203 suppressed at limit 200+5)
+      // 6. Smart Alert 5-point hysteresis, boundary triggers, quiet hours wrap, deduplication & session-auth / running-window AST invariants
       const jitterAqi = {
         stationId: baseStation.id,
         calculatedAtUtc: new Date().toISOString(),
@@ -797,31 +840,441 @@ describe("Final Ascent Hardening, AI Guardrails, Station Ranking & Headers", () 
         reportingCeilingCappedAqi: 203,
         explanation: "Poor"
       };
-      const bufferedAlerts = evaluateSmartAlerts({
+      const baseAlertRules = {
+        severityThreshold: "POOR" as const,
+        hysteresisEnabled: true,
+        quietHoursEnabled: false,
+        quietHoursStart: "22:00",
+        quietHoursEnd: "07:00",
+        notifyOnStaleData: false,
+        notifyOnStationUnavailable: false,
+        notifyOnForecastExceedance: false
+      };
+      expect(evaluateSmartAlerts({
         station: baseStation,
         aqiResult: jitterAqi,
         aqiStatus: "AVAILABLE",
         observations: [],
         forecast: [],
         currentHour: 14,
-        rules: {
-          severityThreshold: "POOR",
-          hysteresisEnabled: true,
-          quietHoursEnabled: false,
-          quietHoursStart: "22:00",
-          quietHoursEnd: "07:00",
-          notifyOnStaleData: false,
-          notifyOnStationUnavailable: false,
-          notifyOnForecastExceedance: false
+        rules: baseAlertRules
+      })).toHaveLength(0);
+      expect(evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: { ...jitterAqi, overallAqi: 204, rawMathematicalAqi: 204, reportingCeilingCappedAqi: 204 },
+        aqiStatus: "AVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 14,
+        rules: baseAlertRules
+      })).toHaveLength(0);
+      const exactFired = evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: { ...jitterAqi, overallAqi: 205, rawMathematicalAqi: 205, reportingCeilingCappedAqi: 205 },
+        aqiStatus: "AVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 14,
+        rules: baseAlertRules
+      });
+      expect(exactFired).toHaveLength(1);
+      expect(exactFired[0]?.kind).toBe("MEASURED_AQI");
+      expect(evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: { ...jitterAqi, overallAqi: 205, rawMathematicalAqi: 205, reportingCeilingCappedAqi: 205 },
+        aqiStatus: "AVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 14,
+        rules: baseAlertRules,
+        existingDedupeKeys: new Set([exactFired[0]!.dedupeKey])
+      })).toHaveLength(0);
+      expect(evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: { ...jitterAqi, overallAqi: 205 },
+        aqiStatus: "AVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 23,
+        rules: { ...baseAlertRules, quietHoursEnabled: true }
+      })).toHaveLength(0);
+      expect(evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: { ...jitterAqi, overallAqi: 420, category: "SEVERE" },
+        aqiStatus: "AVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 23,
+        rules: { ...baseAlertRules, severityThreshold: "SEVERE", quietHoursEnabled: true }
+      })).toHaveLength(1);
+      expect(evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: null,
+        aqiStatus: "STALE",
+        observations: [],
+        forecast: [],
+        currentHour: 14,
+        rules: { ...baseAlertRules, notifyOnStaleData: true, notifyOnStationUnavailable: true }
+      }).map((a) => a.kind)).toContain("STALE_DATA");
+      expect(evaluateSmartAlerts({
+        station: null,
+        aqiResult: null,
+        aqiStatus: "AQI_UNAVAILABLE",
+        observations: [],
+        forecast: [],
+        currentHour: 14,
+        rules: { ...baseAlertRules, notifyOnStationUnavailable: true }
+      }).map((a) => a.kind)).toContain("STATION_UNAVAILABLE");
+      const forecastAlerts = evaluateSmartAlerts({
+        station: baseStation,
+        aqiResult: null,
+        aqiStatus: "AQI_UNAVAILABLE",
+        observations: [{
+          id: "pm-obs-1",
+          stationId: baseStation.id,
+          stationName: baseStation.name,
+          providerId: "OPENAQ",
+          pollutant: "PM2.5",
+          value: 125,
+          unit: "µg/m³",
+          averagingPeriod: "1h",
+          typology: "TYPE_C_RAW_MEASUREMENT",
+          observationTime: new Date().toISOString(),
+          sourceUpdateTime: null,
+          retrievalTime: new Date().toISOString(),
+          qualityFlag: "VERIFIED",
+          license: "CC BY 4.0",
+          attribution: "OpenAQ"
+        }],
+        forecast: [{
+          id: "fc-1",
+          latitude: baseStation.latitude,
+          longitude: baseStation.longitude,
+          pollutant: "PM2.5",
+          forecastValue: 130,
+          unit: "µg/m³",
+          validTime: "2026-11-27T06:00:00Z",
+          issueTime: "2026-11-26T12:00:00Z",
+          modelDomain: "CAMS_GLOBAL",
+          spatialResolutionKm: 45,
+          temporalResolutionHours: 1,
+          typology: "TYPE_D_MODEL_FORECAST",
+          retrievalTime: new Date().toISOString(),
+          license: "CC BY 4.0",
+          attribution: "CAMS"
+        }],
+        currentHour: 14,
+        rules: { ...baseAlertRules, notifyOnForecastExceedance: true }
+      });
+      expect(forecastAlerts.map((a) => a.kind)).toEqual(["POLLUTANT_THRESHOLD", "FORECAST_WARNING"]);
+      expect(forecastAlerts[0]?.severity).toBe("VERY_POOR");
+
+      // Session auth revocation flag & fail-closed cookie catch (even with dev mock header)
+      vi.spyOn(globalFirebaseAuth, "isConfigured").mockReturnValue(true);
+      const verifySpy = vi.spyOn(globalFirebaseAuth, "verifySessionCookie")
+        .mockResolvedValueOnce({ uid: "verified-uid", email: "verified@example.com" } as never)
+        .mockRejectedValueOnce(new Error("revoked"));
+      const verifiedUser = await resolveSessionUser(
+        new NextRequest("https://hawasaathi.in/api/v1/profile", { headers: { cookie: "hs_session=tok1" } })
+      );
+      expect(verifiedUser).toEqual({ uid: "verified-uid", email: "verified@example.com" });
+      expect(verifySpy).toHaveBeenCalledWith("tok1", true);
+      const rejectedEvenWithDev = await resolveSessionUser(
+        new NextRequest("https://hawasaathi.in/api/v1/profile", {
+          headers: { cookie: "hs_session=revoked", "x-mock-auth-uid": "spoof-fallback" }
+        })
+      );
+      expect(rejectedEvenWithDev).toBeNull();
+      const devFallbackUser = await resolveSessionUser(
+        new NextRequest("https://hawasaathi.in/api/v1/profile", { headers: { "x-mock-auth-uid": "dev-u" } })
+      );
+      expect(devFallbackUser).toEqual({ uid: "dev-u", email: "dev-u@example.com" });
+      expect(await resolveSessionAuth(new NextRequest("https://hawasaathi.in/api/v1/profile"))).toBe(false);
+
+      // Running-window explanatory notes (kills Stryker note-string mutants cleanly)
+      expect(checkRunningWindowSufficiency("PM2.5", 16, 24).sufficiencyNote).toContain("16 valid hours");
+      expect(checkRunningWindowSufficiency("CO", 6, 8).sufficiencyNote).toContain("75% completeness");
+      expect(checkRunningWindowSufficiency("O3", 1, 1).sufficiencyNote).toContain("1-hour acute");
+
+      // 7. Trailing 24h window cap & 8h (6/8) completeness in SourceOrchestrator
+      const obs26h = Array.from({ length: 26 }, (_, hr) => {
+        const dt = new Date(Date.UTC(2026, 10, 25, 0, 0, 0) + hr * 3600_000).toISOString();
+        return {
+          id: `o-${hr}`,
+          stationId: "openaq_3409320",
+          stationName: "RBU",
+          providerId: "OPENAQ" as const,
+          pollutant: "PM10" as const,
+          // First 2 oldest hours are extreme outliers (500); trailing 24 hours are strictly 100
+          value: hr < 2 ? 500 : 100,
+          unit: "µg/m³" as const,
+          averagingPeriod: "1h" as const,
+          typology: "TYPE_C_RAW_MEASUREMENT" as const,
+          observationTime: dt,
+          sourceUpdateTime: dt,
+          retrievalTime: new Date(Date.UTC(2026, 10, 26, 2, 5, 0)).toISOString(),
+          qualityFlag: "VERIFIED" as const,
+          license: "CC BY 4.0",
+          attribution: "OpenAQ"
+        };
+      });
+      const o3_7h = Array.from({ length: 7 }, (_, hr) => {
+        const dt = new Date(Date.UTC(2026, 10, 26, 1, 0, 0) + (hr - 7) * 3600_000).toISOString();
+        return {
+          ...obs26h[0]!,
+          id: `o3-${hr}`,
+          pollutant: "O3" as const,
+          value: 50,
+          observationTime: dt,
+          sourceUpdateTime: dt
+        };
+      });
+      // Inject 16h PM2.5 + 26h PM10 + 7h O3 (satisfies 6/8 rule!) + unverified ppb CO
+      const pm25_20h = obs26h.slice(6).map((x, idx) => ({ ...x, id: `pm25-${idx}`, pollutant: "PM2.5" as const, value: 60 }));
+      const coUnverified = [{ ...obs26h[25]!, id: "co-bad", pollutant: "CO" as const, value: 0.9, unit: null, rawUnit: "ppb" }];
+
+      const orch = new SourceOrchestrator({
+        openaqProvider: {
+          providerId: "OPENAQ",
+          getCapabilities: async () => ({
+            providerId: "OPENAQ",
+            displayName: "OpenAQ",
+            providesGroundObservations: true,
+            providesAtmosphericForecast: false,
+            providesStationSearch: true,
+            rateLimitPerMinute: 60,
+            defaultCacheTtlSeconds: 600,
+            legalLicense: "CC BY 4.0",
+            mandatoryAttribution: "OpenAQ"
+          }),
+          searchStations: async () => ({ providerId: "OPENAQ", stations: [], retrievedAt: "", status: "CONFIGURED", warnings: [] }),
+          getObservations: async () => ({
+            providerId: "OPENAQ",
+            observations: [...obs26h, ...pm25_20h, ...o3_7h, ...coUnverified],
+            retrievedAt: new Date(Date.UTC(2026, 10, 26, 2, 5, 0)).toISOString(),
+            status: "CONFIGURED",
+            warnings: []
+          }),
+          getForecast: async () => ({
+            providerId: "OPENAQ",
+            forecast: [],
+            modelDomain: "NONE",
+            spatialResolutionKm: 0,
+            temporalResolutionHours: 0,
+            retrievedAt: "",
+            status: "CONFIGURED",
+            warnings: []
+          })
+        },
+        cacheService: new CacheService(new RedisService({}))
+      });
+      const aqCheck = await orch.getStationAirQuality("openaq_3409320", baseStation);
+      // Trailing 24h PM10 excludes 2 oldest 500 outliers => concentration strictly 100 (subIndex 100), not 130.77!
+      const pm10Sub = aqCheck.calculatedAqi?.subIndices.find((s) => s.pollutant === "PM10");
+      expect(pm10Sub?.concentration).toBe(100);
+      // O3 with 7/8 valid hours passes 6-hour minimum statutory check without hitting /16 rejection
+      const o3Sub = aqCheck.calculatedAqi?.subIndices.find((s) => s.pollutant === "O3");
+      expect(o3Sub?.validHours).toBe(7);
+      // Unverified CO rawUnit ppb surfaces explicit raw unit in skip warning
+      expect(aqCheck.warnings.some((w) => w.includes("unverified or missing unit (ppb)"))).toBe(true);
+
+      // 8. 8-hour insufficiency warning (<6 valid hours) & non-JSON chat error resilience + guest-context helpers
+      const orch5h = new SourceOrchestrator({
+        openaqProvider: {
+          providerId: "OPENAQ",
+          getCapabilities: async () => ({
+            providerId: "OPENAQ",
+            displayName: "OpenAQ",
+            providesGroundObservations: true,
+            providesAtmosphericForecast: false,
+            providesStationSearch: true,
+            rateLimitPerMinute: 60,
+            defaultCacheTtlSeconds: 600,
+            legalLicense: "CC BY 4.0",
+            mandatoryAttribution: "OpenAQ"
+          }),
+          searchStations: async () => ({ providerId: "OPENAQ", stations: [], retrievedAt: "", status: "CONFIGURED", warnings: [] }),
+          getObservations: async () => ({
+            providerId: "OPENAQ",
+            observations: o3_7h.slice(0, 5).map((x, idx) => ({
+              ...x,
+              id: `o3-short-${idx}`,
+              observationTime: new Date(Date.UTC(2026, 10, 26, 0, 0, 0) + idx * 3600_000).toISOString()
+            })),
+            retrievedAt: new Date(Date.UTC(2026, 10, 26, 5, 0, 0)).toISOString(),
+            status: "CONFIGURED",
+            warnings: []
+          }),
+          getForecast: async () => ({
+            providerId: "OPENAQ",
+            forecast: [],
+            modelDomain: "NONE",
+            spatialResolutionKm: 0,
+            temporalResolutionHours: 0,
+            retrievedAt: "",
+            status: "CONFIGURED",
+            warnings: []
+          })
         }
       });
-      expect(bufferedAlerts).toHaveLength(0);
+      const res5h = await orch5h.getStationAirQuality("openaq_3409320", baseStation);
+      expect(res5h.warnings.some((w) => w.includes("5/6 statutory hours"))).toBe(true);
+
+      const { clearGuestContext, saveGuestContext, getGuestContext } = await import("@/lib/firebase/guest-context");
+      const storeMap = new Map<string, string>();
+      vi.stubGlobal("window", {
+        sessionStorage: {
+          getItem: (k: string) => storeMap.get(k) ?? null,
+          setItem: (k: string, v: string) => { storeMap.set(k, v); },
+          removeItem: (k: string) => { storeMap.delete(k); }
+        }
+      });
+      saveGuestContext({ language: "bn" });
+      expect(getGuestContext()?.language).toBe("bn");
+      storeMap.set("hawasaathi_guest_context", "{corrupt-json");
+      expect(getGuestContext()).toBeNull();
+      clearGuestContext();
+      expect(getGuestContext()).toBeNull();
+
+      // 9. AiChatWorkspace non-JSON HTTP 503 resilience
+      const { AiChatWorkspace } = await import("@/components/chat/ai-chat-workspace");
+      const chatHookStates = new Map<number, unknown>();
+      let cHookIdx = 0;
+      const origH = internals.H;
+      const runChatRender = () => {
+        cHookIdx = 0;
+        internals.H = {
+          useState: (init: unknown) => {
+            const idx = cHookIdx++;
+            if (!chatHookStates.has(idx)) chatHookStates.set(idx, typeof init === "function" ? (init as () => unknown)() : init);
+            return [chatHookStates.get(idx), (v: unknown) => {
+              const prev = chatHookStates.get(idx);
+              chatHookStates.set(idx, typeof v === "function" ? (v as (p: unknown) => unknown)(prev) : v);
+            }];
+          },
+          useEffect: () => {},
+          useCallback: (fn: unknown) => fn,
+          useRef: (init: unknown) => ({ current: init }),
+          useMemo: (fn: () => unknown) => fn(),
+          useContext: () => ({}),
+          useReducer: (r: unknown, i: unknown) => [i, () => {}],
+          useId: () => "id-chat-503"
+        } as unknown as typeof internals.H;
+        return AiChatWorkspace({
+          language: "en",
+          selectedStation: baseStation,
+          calculatedAqi: null,
+          observations: [],
+          forecast: []
+        }) as unknown as { props: { children: unknown } };
+      };
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: async () => "<html>503 Service Unavailable</html>"
+      }));
+      const chatTree0 = runChatRender();
+      let starterClick: (() => Promise<void>) | undefined;
+      const walkChat = (node: unknown) => {
+        if (!node || typeof node !== "object") return;
+        const el = node as { type?: unknown; props?: Record<string, unknown> };
+        if (el.type === "button" && JSON.stringify(el.props?.["children"] || "").includes("Explain PM2.5")) {
+          starterClick = el.props?.["onClick"] as () => Promise<void>;
+        }
+        const ch = el.props?.["children"];
+        if (Array.isArray(ch)) ch.forEach(walkChat);
+        else if (ch) walkChat(ch);
+      };
+      walkChat(chatTree0);
+      starterClick?.();
+      await new Promise((r) => setTimeout(r, 15));
+      const chatTreeErr = runChatRender();
+      expect(JSON.stringify(chatTreeErr)).toContain("HTTP 503");
+
+      // Empty text() + no json() fallback on HTTP 400 + lazy modal loaders
+      vi.stubGlobal("fetch", vi.fn()
+        .mockResolvedValueOnce({ ok: false, status: 400, text: async () => "" })
+        .mockResolvedValueOnce({ ok: false, status: 400 })
+      );
+      starterClick?.();
+      await new Promise((r) => setTimeout(r, 15));
+      const chatTree400 = runChatRender();
+      expect(JSON.stringify(chatTree400)).toContain("HTTP 400");
+      starterClick?.();
+      await new Promise((r) => setTimeout(r, 15));
+      const chatTreePlain400 = runChatRender();
+      expect(JSON.stringify(chatTreePlain400)).toContain("HTTP 400");
+
+      const lazyModalMods = await Promise.all([loadAuthModal()]);
+      expect(lazyModalMods.every((m) => typeof m === "function")).toBe(true);
+      internals.H = origH;
+      chatHookStates.clear();
     } finally {
       internals.H = origH;
       globalThis.fetch = origFetch;
       globalThis.window = origWindow;
-      vi.unstubAllGlobals();
       vi.restoreAllMocks();
     }
+  });
+
+  it("orders unsorted hourly buckets oldest-first before slice(-24) selects the newest 24 observations", async () => {
+    const { SourceOrchestrator } = await import("@/services/air-quality/source-orchestrator");
+    const baseMs = Date.now() - 26 * 3600_000;
+    // 26 hourly observations: oldest 2 hours (00:00, 01:00) have 500 µg/m³; newest 24 hours have 50 µg/m³.
+    // Deliberately shuffle order so unsorted slicing would include 500 µg/m³.
+    const rawHours = Array.from({ length: 26 }, (_, idx) => ({
+      stationId: "openaq_unsorted_test",
+      stationName: "Unsorted Test Station",
+      city: "Kolkata",
+      state: "West Bengal",
+      latitude: 22.57,
+      longitude: 88.36,
+      provider: "OPENAQ" as const,
+      pollutant: "PM2.5" as const,
+      value: idx < 2 ? 500 : 50,
+      unit: "µg/m³",
+      averagingPeriod: "1h" as const,
+      observationTime: new Date(baseMs + idx * 3600_000).toISOString(),
+      retrievalTime: new Date(baseMs + 26 * 3600_000).toISOString(),
+      quality: "PROVISIONAL" as const,
+    }));
+    const shuffled = [...rawHours].sort((a, b) => (a.observationTime.slice(11, 13) > b.observationTime.slice(11, 13) ? -1 : 1));
+    const mockOpenAq = {
+      getObservations: vi.fn().mockResolvedValue({ observations: shuffled, warnings: [] }),
+      findNearbyStations: vi.fn().mockResolvedValue([]),
+      healthCheck: vi.fn().mockResolvedValue({ ok: true }),
+    };
+    const mockCpcb = {
+      getObservations: vi.fn().mockResolvedValue({ observations: [], warnings: [] }),
+      findNearbyStations: vi.fn().mockResolvedValue([]),
+      healthCheck: vi.fn().mockResolvedValue({ ok: true }),
+    };
+    const mockCams = {
+      fetchForecast: vi.fn().mockResolvedValue([]),
+      healthCheck: vi.fn().mockResolvedValue({ ok: true }),
+    };
+    const orchestrator = new SourceOrchestrator({
+      cpcbProvider: mockCpcb as never,
+      openaqProvider: mockOpenAq as never,
+      openMeteoProvider: mockCams as never,
+    });
+    const res = await orchestrator.getStationAirQuality("openaq_unsorted_test", {
+      id: "openaq_unsorted_test",
+      providerId: "OPENAQ",
+      name: "Unsorted Test Station",
+      city: "Kolkata",
+      state: "West Bengal",
+      latitude: 22.57,
+      longitude: 88.36,
+      availablePollutants: ["PM2.5"],
+      lastReportedAt: null,
+      license: "CC BY 4.0",
+      attribution: "OpenAQ",
+    });
+    const pm25Sub = res.partialSubIndices?.find((s) => s.pollutant === "PM2.5");
+    expect(pm25Sub).toBeDefined();
+    // If newest 24 hours (all 50 µg/m³) are selected, average is 50 µg/m³ (sub-index 83), NOT inflated by 500 µg/m³.
+    expect(pm25Sub?.concentration).toBe(50);
+    expect(pm25Sub?.subIndex).toBe(83);
   });
 });
