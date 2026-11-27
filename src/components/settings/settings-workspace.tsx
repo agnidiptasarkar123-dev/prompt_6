@@ -212,7 +212,7 @@ export const SettingsWorkspace: React.FC<SettingsWorkspaceProps> = ({
                   type="button"
                   onClick={() => onUpdateSavedPlaces(savedPlaces.filter((x) => x.id !== pl.id))}
                   aria-label={`Remove saved place ${pl.customName}`}
-                  className="rounded p-1 text-rose-500 hover:bg-rose-500/10"
+                  className="rounded p-1 text-[var(--hs-accent-coral)] hover:bg-rose-500/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

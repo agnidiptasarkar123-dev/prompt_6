@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { type NextRequest } from "next/server";
 import { successResponse, errorResponse, checkRouteRateLimit } from "@/lib/http/api-response";
+import { parseValidatedJsonBody, verifySameOriginRequest } from "@/lib/http/request-guards";
 import { resolveSessionUser } from "@/lib/http/session-auth";
 import { globalFirebaseAuth } from "@/lib/firebase/admin";
 import { globalProfileRepository } from "@/services/profiles/profile-repository";
@@ -31,7 +32,8 @@ export async function GET(req: NextRequest) {
   });
 
   if (isExport) {
-    res.headers.set("Content-Disposition", `attachment; filename="hawasaathi-profile-${authUser.uid}.json"`);
+    const safeUid = authUser.uid.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 64) || "user";
+    res.headers.set("Content-Disposition", `attachment; filename="hawasaathi-profile-${safeUid}.json"`);
   }
 
   return res;
@@ -41,22 +43,16 @@ export async function PUT(req: NextRequest) {
   const rateLimitError = await checkRouteRateLimit(req, 40, 60);
   if (rateLimitError) return rateLimitError;
 
+  const csrfError = verifySameOriginRequest(req, "Cross-origin profile update forbidden.");
+  if (csrfError) return csrfError;
+
   const authUser = await resolveSessionUser(req);
   if (!authUser) {
     return errorResponse(401, "UNAUTHORIZED", "Valid authentication session cookie is required.");
   }
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse(400, "INVALID_JSON", "Request body must be valid JSON.");
-  }
-
-  const parsed = UpdateProfileRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return errorResponse(400, "SCHEMA_VALIDATION_ERROR", parsed.error.issues.map((i) => i.message).join("; "));
-  }
+  const parsed = await parseValidatedJsonBody(req, UpdateProfileRequestSchema);
+  if (!parsed.ok) return parsed.response;
 
   try {
     const updated = await globalProfileRepository.saveProfile(authUser.uid, parsed.data, authUser.email);
@@ -71,6 +67,9 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const rateLimitError = await checkRouteRateLimit(req, 20, 60);
   if (rateLimitError) return rateLimitError;
+
+  const csrfError = verifySameOriginRequest(req, "Cross-origin profile deletion forbidden.");
+  if (csrfError) return csrfError;
 
   const authUser = await resolveSessionUser(req);
   if (!authUser) {

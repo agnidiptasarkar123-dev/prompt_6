@@ -88,11 +88,11 @@ export const THEME_PALETTES: Record<ResolvedTheme, ThemeTokenSet> = {
     headerText: "#FFFFFF",
     sidebarBg: "#164E4A",
     sidebarText: "#FFFFFF",
-    accentPrimary: "#168A68",
-    accentBlue: "#317EAC",
-    accentAmber: "#A96E1E",
-    accentCoral: "#B9574E",
-    accentViolet: "#7061A8",
+    accentPrimary: "#117557",
+    accentBlue: "#226791",
+    accentAmber: "#7F4D08",
+    accentCoral: "#A63C34",
+    accentViolet: "#62539B",
     focusRing: "#1F9D78"
   },
   dark: {

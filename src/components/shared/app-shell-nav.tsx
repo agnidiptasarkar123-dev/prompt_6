@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import {
   LayoutDashboard,
   MapPin,
@@ -106,7 +107,7 @@ export const AppShellNav: React.FC<AppShellNavProps> = ({
             {item.id === "alerts" && unreadAlertsCount > 0 && (
               <span
                 className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                  active ? "bg-white/25 text-current" : "bg-[#D94B4B] text-white"
+                  active ? "bg-[var(--hs-surface-bg)] text-[var(--hs-text-primary)]" : "bg-[#C02B2B] text-white"
                 }`}
               >
                 {unreadAlertsCount > 9 ? "9+" : unreadAlertsCount}
@@ -140,8 +141,15 @@ export const AppShellNav: React.FC<AppShellNavProps> = ({
 
       {/* Mobile Slide-out Navigation Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
-          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs" onClick={onCloseMobile} />
+        <div
+          tabIndex={-1}
+          className="fixed inset-0 z-50 flex lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+        >
+          <DialogFocusTrap onClose={onCloseMobile} />
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs" aria-hidden="true" onClick={onCloseMobile} />
           <div className="relative z-10 flex w-72 max-w-[85vw] flex-col border-r border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm font-bold text-[var(--hs-text-primary)]">HawaSaathi 2.0</span>

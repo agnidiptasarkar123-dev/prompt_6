@@ -67,7 +67,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-emerald-500/10",
           border: "border-emerald-500/35",
-          text: "text-emerald-600 dark:text-emerald-400",
+          text: "text-[var(--hs-accent)]",
           badgeBg: "bg-emerald-500 text-slate-950",
           label: t.categoryGood
         };
@@ -76,7 +76,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-lime-500/10",
           border: "border-lime-500/35",
-          text: "text-lime-600 dark:text-lime-400",
+          text: "text-[var(--hs-accent)]",
           badgeBg: "bg-lime-500 text-slate-950",
           label: t.categorySatisfactory
         };
@@ -85,7 +85,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-amber-500/10",
           border: "border-amber-500/35",
-          text: "text-amber-600 dark:text-amber-400",
+          text: "text-[var(--hs-accent-amber)]",
           badgeBg: "bg-amber-500 text-slate-950",
           label: t.categoryModerate
         };
@@ -94,7 +94,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-orange-500/10",
           border: "border-orange-500/35",
-          text: "text-orange-600 dark:text-orange-400",
+          text: "text-[var(--hs-accent-amber)]",
           badgeBg: "bg-orange-500 text-slate-950",
           label: t.categoryPoor
         };
@@ -103,8 +103,8 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-red-500/10",
           border: "border-red-500/35",
-          text: "text-red-600 dark:text-red-400",
-          badgeBg: "bg-red-500 text-white",
+          text: "text-[var(--hs-accent-coral)]",
+          badgeBg: "bg-red-500 text-slate-950",
           label: t.categoryVeryPoor
         };
       case "SEVERE":
@@ -112,7 +112,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
         return {
           bg: "bg-rose-950/30",
           border: "border-rose-600/50",
-          text: "text-rose-500 dark:text-rose-400",
+          text: "text-[var(--hs-accent-coral)]",
           badgeBg: "bg-rose-600 text-white",
           label: t.categorySevere
         };
@@ -180,7 +180,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
   const provenanceBadge = isOfficialBulletin
     ? {
       label: "Type A: Official CPCB AQI",
-      cls: "bg-blue-500/15 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/35"
+      cls: "bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)] ring-1 ring-[var(--hs-info-border)]"
     }
     : hasCalculatedAqi
       ? {
@@ -190,12 +190,12 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
       : hasRawObservations
         ? {
           label: "Type C: Raw Monitored",
-          cls: "bg-amber-500/15 text-amber-600 dark:text-amber-300 ring-1 ring-amber-500/40"
+          cls: "bg-[var(--hs-warm-bg)] text-[var(--hs-accent-amber)] ring-1 ring-[var(--hs-warm-border)]"
         }
         : hasForecastOnly
           ? {
             label: "Type D: Model Forecast Context",
-            cls: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 ring-1 ring-indigo-500/35"
+            cls: "bg-[var(--hs-learn-bg)] text-[var(--hs-accent-violet)] ring-1 ring-[var(--hs-learn-border)]"
           }
           : {
             label: "No verified observation available",
@@ -219,7 +219,7 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
               {provenanceBadge.label}
             </span>
             {aqiStatus === "STALE" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/20 px-2.5 py-0.5 text-[10px] font-bold text-orange-600 dark:text-orange-300">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--hs-warm-bg)] border border-[var(--hs-warm-border)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--hs-accent-amber)]">
                 <Clock className="h-3 w-3" /> STALE (&gt;24h)
               </span>
             )}
@@ -296,9 +296,9 @@ export const AqiSummaryCard: React.FC<AqiSummaryCardProps> = ({
             )}
           </div>
         ) : (
-          <div className="flex-1 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3">
+          <div className="flex-1 rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-4 space-y-3">
             <div className="flex items-start space-x-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--hs-accent-amber)]" />
               <div className="min-w-0">
                 <p className="text-sm font-bold text-[var(--hs-text-primary)]">
                   {aqiStatus === "STALE" ? "Verified AQI Stale (>24h)" : t.aqiUnavailable}

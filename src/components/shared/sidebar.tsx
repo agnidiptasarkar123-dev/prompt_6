@@ -148,7 +148,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>Alert Thresholds</span>
             </div>
             {unreadAlertsCount > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#D94B4B] px-1 text-[10px] font-bold text-white">
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C02B2B] px-1 text-[10px] font-bold text-white">
                 {unreadAlertsCount}
               </span>
             )}

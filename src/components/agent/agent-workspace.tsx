@@ -12,6 +12,7 @@ import type {
   NormalizedForecast
 } from "@/schemas/providers/normalized-provider.schema";
 import type { AgentStructuredResponse } from "@/services/ai/agent-orchestrator";
+import { compactForecastForRequest, compactObservationsForRequest } from "@/lib/http/compact-payload";
 
 export interface AgentWorkspaceProps {
   readonly language: SupportedLanguage;
@@ -63,8 +64,8 @@ export const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
           stationId: selectedStation?.id,
           station: selectedStation,
           calculatedAqi,
-          observations,
-          forecast,
+          observations: compactObservationsForRequest(observations),
+          forecast: compactForecastForRequest(forecast),
           coordinates: selectedStation
             ? { latitude: selectedStation.latitude, longitude: selectedStation.longitude }
             : undefined,
@@ -194,7 +195,7 @@ export const AgentWorkspace: React.FC<AgentWorkspaceProps> = ({
       </form>
 
       {error && (
-        <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-500">
+        <div role="alert" className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-[var(--hs-accent-coral)]">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>

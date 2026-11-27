@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { fetchJsonWithTimeout } from "@/lib/http/upstream-fetch";
 import {
   OpenMeteoApiResponseSchema,
   type OpenMeteoApiResponse
@@ -12,10 +13,12 @@ export interface OpenMeteoClientOptions {
 export class OpenMeteoClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly allowedHosts: readonly string[] | undefined;
 
   constructor(options: OpenMeteoClientOptions = {}) {
     this.baseUrl = options.baseUrl || "https://air-quality-api.open-meteo.com/v1/air-quality";
     this.timeoutMs = options.timeoutMs || 8000;
+    this.allowedHosts = options.baseUrl ? undefined : ["air-quality-api.open-meteo.com"];
   }
 
   public async getCamsForecast(params: {
@@ -36,31 +39,12 @@ export class OpenMeteoClient {
       url.searchParams.set("forecast_days", String(Math.min(params.horizonDays, 5)));
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(url.toString(), {
-        method: "GET",
-        headers: {
-          Accept: "application/json"
-        },
-        signal: controller.signal
-      });
-
-      if (!response.ok) {
-        throw new Error(`Open-Meteo upstream error: HTTP ${response.status} from ${url.toString()}`);
-      }
-
-      const json = await response.json();
-      return OpenMeteoApiResponseSchema.parse(json);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new Error(`Open-Meteo upstream request timed out after ${this.timeoutMs}ms`);
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    return fetchJsonWithTimeout({
+      url: url.toString(),
+      allowedHosts: this.allowedHosts,
+      timeoutMs: this.timeoutMs,
+      errorPrefix: "Open-Meteo",
+      parse: (json) => OpenMeteoApiResponseSchema.parse(json)
+    });
   }
 }

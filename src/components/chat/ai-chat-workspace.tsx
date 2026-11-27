@@ -14,9 +14,11 @@ import {
   ShieldAlert,
   Pencil
 } from "lucide-react";
+import { getBrowserLocalStorage, readValidatedJsonStorage, writeJsonStorage } from "@/lib/storage/safe-storage";
 import type { SupportedLanguage } from "@/i18n/translations";
 import { getV2UiStrings } from "@/i18n/v2-translations";
 import { SafeMarkdown } from "@/components/shared/safe-markdown";
+import { compactForecastForRequest, compactObservationsForRequest } from "@/lib/http/compact-payload";
 import type { CpcbAqiResult } from "@/schemas/cpcb.schema";
 import type {
   NormalizedStation,
@@ -142,6 +144,21 @@ function nowEpochMs(): number {
   return Date.now();
 }
 
+function isChatThreadArray(raw: unknown): raw is ChatThread[] {
+  return (
+    Array.isArray(raw) &&
+    raw.length > 0 &&
+    raw.every(
+      (t): t is ChatThread =>
+        typeof t === "object" &&
+        t !== null &&
+        typeof (t as { id?: unknown }).id === "string" &&
+        typeof (t as { title?: unknown }).title === "string" &&
+        Array.isArray((t as { messages?: unknown }).messages)
+    )
+  );
+}
+
 export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
   language,
   selectedStation,
@@ -169,27 +186,28 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(CHAT_STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as ChatThread[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setThreads(parsed);
-          setActiveThreadId(parsed[0]!.id);
-        }
-      }
-    } catch {
-      // Ignore storage failures safely
+    const parsed = readValidatedJsonStorage(
+      getBrowserLocalStorage(),
+      CHAT_STORAGE_KEY,
+      isChatThreadArray
+    );
+    if (parsed && parsed[0]) {
+      setThreads(parsed);
+      setActiveThreadId(parsed[0].id);
     }
   }, []);
 
   const persistThreads = (next: ChatThread[]) => {
     setThreads(next);
-    try {
-      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      // Ignore quota failures
-    }
+    writeJsonStorage(getBrowserLocalStorage(), CHAT_STORAGE_KEY, next);
+  };
+
+  const updateAndPersistThreads = (updater: (prev: ChatThread[]) => ChatThread[]) => {
+    setThreads((prev) => {
+      const next = updater(prev);
+      writeJsonStorage(getBrowserLocalStorage(), CHAT_STORAGE_KEY, next);
+      return next;
+    });
   };
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? threads[0]!;
@@ -231,8 +249,8 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
           station: shareStationConsent ? selectedStation : null,
           stations: shareStationConsent && stations ? stations.slice(0, 5) : undefined,
           calculatedAqi,
-          observations,
-          forecast,
+          observations: compactObservationsForRequest(observations),
+          forecast: compactForecastForRequest(forecast),
           history: activeThread.messages.slice(-4).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
           hasConsentForPersonalization: shareStationConsent
         })
@@ -285,8 +303,8 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
           serverTotalMs: payload.timings?.serverTotalMs,
           timestamp: nowTimeLabel()
         };
-        persistThreads(
-          withUser.map((t) =>
+        updateAndPersistThreads((prev) =>
+          prev.map((t) =>
             t.id === activeThread.id ? { ...t, messages: [...t.messages, assistantMsg] } : t
           )
         );
@@ -388,7 +406,7 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
           <button
             type="button"
             onClick={handleClearActive}
-            className="inline-flex items-center gap-1 rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] px-2.5 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-500/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] px-2.5 py-1.5 text-xs font-semibold text-[var(--hs-accent-coral)] hover:bg-rose-500/10"
           >
             <Trash2 className="h-3.5 w-3.5" />
             <span>{v2.chatClear}</span>
@@ -440,7 +458,7 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
               type="button"
               onClick={() => handleDeleteThread(th.id)}
               aria-label={`Delete conversation ${th.title}`}
-              className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full p-1 text-[var(--hs-text-secondary)] hover:text-rose-500"
+              className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center rounded-full p-1 text-[var(--hs-text-secondary)] hover:text-[var(--hs-accent-coral)]"
             >
               <Trash2 className="h-3 w-3" />
             </button>
@@ -498,7 +516,7 @@ export const AiChatWorkspace: React.FC<AiChatWorkspaceProps> = ({
       </div>
 
       {error && (
-        <div role="alert" className="flex items-center justify-between rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-500">
+        <div role="alert" className="flex items-center justify-between rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-[var(--hs-accent-coral)]">
           <span>{error}</span>
           {lastFailedPrompt && (
             <button

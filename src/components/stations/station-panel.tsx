@@ -71,9 +71,9 @@ export const StationPanel: React.FC<StationPanelProps> = ({
     <section aria-labelledby="stations-heading" className="hs-card rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-5 shadow-card-subtle">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 id="stations-heading" className="text-base font-bold text-[var(--hs-text-primary)]">
+          <h2 id="stations-heading" className="text-base font-bold text-[var(--hs-text-primary)]">
             {t.stationPanelTitle}
-          </h3>
+          </h2>
           <p className="text-xs text-[var(--hs-text-secondary)]">
             {stations.length} stations discovered within radius • {freshStationsCount} fresh (&le;24h) •{" "}
             {eligibleCoverageCount} multi-pollutant PM • {rawOnlyCount} partial raw • {noReadingCount} inactive

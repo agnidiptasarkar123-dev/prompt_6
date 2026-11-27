@@ -11,8 +11,12 @@ export interface ApiResponseOptions<T> {
   readonly isDistributed?: boolean;
 }
 
+function nextRequestId(): string {
+  return `req_${crypto.randomUUID().replace(/-/g, "").slice(0, 8)}`;
+}
+
 export function successResponse<T>(options: ApiResponseOptions<T>): NextResponse {
-  const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
+  const requestId = nextRequestId();
   const headers = new Headers();
   headers.set("X-Request-Id", requestId);
   headers.set("X-Content-Type-Options", "nosniff");
@@ -40,7 +44,7 @@ export function errorResponse(
   message: string,
   retryable: boolean = false
 ): NextResponse {
-  const requestId = `req_${Math.random().toString(36).substring(2, 10)}`;
+  const requestId = nextRequestId();
   const headers = new Headers();
   headers.set("X-Request-Id", requestId);
   headers.set("X-Content-Type-Options", "nosniff");
@@ -67,6 +71,14 @@ export function errorResponse(
   );
 }
 
+function extractRouteScope(req: Request): string {
+  try {
+    return new URL(req.url).pathname;
+  } catch {
+    return "/api";
+  }
+}
+
 export async function checkRouteRateLimit(
   req: Request,
   limit: number = 60,
@@ -74,7 +86,8 @@ export async function checkRouteRateLimit(
 ): Promise<NextResponse | null> {
   const forwarded = req.headers.get("x-forwarded-for");
   const ip = forwarded ? forwarded.split(",")[0]!.trim() || "anonymous" : "anonymous";
-  const rateLimitResult = await globalRateLimiter.checkLimit(`ip_${ip}`, limit, windowSeconds);
+  const routeScope = extractRouteScope(req);
+  const rateLimitResult = await globalRateLimiter.checkLimit(`ip_${ip}:${routeScope}`, limit, windowSeconds);
 
   if (!rateLimitResult.allowed) {
     return errorResponse(

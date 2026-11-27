@@ -86,9 +86,9 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
             <Home className="h-5 w-5" />
           </div>
           <div className="min-w-0">
-            <h3 id="indoor-coach-heading" className="text-lg font-bold text-[var(--hs-text-primary)] hs-wrap-safe">
+            <h2 id="indoor-coach-heading" className="text-lg font-bold text-[var(--hs-text-primary)] hs-wrap-safe">
               {t.indoorCoachTitle}
-            </h3>
+            </h2>
             <p className="text-xs text-[var(--hs-text-secondary)]">
               Source control, natural ventilation windows, and mechanical air filtration
             </p>
@@ -100,8 +100,8 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
       </div>
 
       {/* Sensor Disclaimer Alert */}
-      <div className="mt-4 flex items-start space-x-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-[var(--hs-text-primary)]">
-        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+      <div className="mt-4 flex items-start space-x-2.5 rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-3.5 text-xs text-[var(--hs-text-primary)]">
+        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[var(--hs-accent-amber)]" />
         <p className="leading-relaxed hs-wrap-safe">{t.indoorCoachWarning}</p>
       </div>
 
@@ -111,16 +111,16 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
         <div className="min-w-0 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-5">
           <div className="flex items-center space-x-2 text-[var(--hs-accent)]">
             <Wind className="h-4 w-4 shrink-0" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Natural Ventilation</h4>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Natural Ventilation</h3>
           </div>
           <div className="mt-3 space-y-2.5">
             <span
               className={`inline-block rounded-lg px-2.5 py-1 text-xs font-bold ${
                 isOutdoorUnsafe || resolvedVentilation.windowAction === "KEEP_SEALED"
-                  ? "bg-rose-500/15 text-rose-500 border border-rose-500/35"
+                  ? "bg-rose-500/15 text-[var(--hs-accent-coral)] border border-rose-500/35"
                   : resolvedVentilation.windowAction === "OPEN_CROSS_VENTILATION"
-                    ? "bg-emerald-500/15 text-emerald-500 border border-emerald-500/35"
-                    : "bg-amber-500/15 text-amber-500 border border-amber-500/35"
+                    ? "bg-emerald-500/15 text-[var(--hs-accent)] border border-emerald-500/35"
+                    : "bg-amber-500/15 text-[var(--hs-accent-amber)] border border-amber-500/35"
               }`}
             >
               {resolvedVentilation.windowAction}
@@ -132,7 +132,7 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
               {resolvedVentilation.practicalMethod}
             </p>
             {aqiCategory === null && resolvedVentilation.cautions[0] && (
-              <p className="text-[11px] font-medium text-amber-600 dark:text-amber-300 hs-wrap-safe">
+              <p className="text-[11px] font-medium text-[var(--hs-accent-amber)] hs-wrap-safe">
                 {resolvedVentilation.cautions[0]}
               </p>
             )}
@@ -141,9 +141,9 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
 
         {/* Source Control */}
         <div className="min-w-0 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-5">
-          <div className="flex items-center space-x-2 text-rose-500">
+          <div className="flex items-center space-x-2 text-[var(--hs-accent-coral)]">
             <Flame className="h-4 w-4 shrink-0" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Indoor Source Control</h4>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Indoor Source Control</h3>
           </div>
           <div className="mt-3 space-y-2 text-xs text-[var(--hs-text-secondary)] leading-relaxed hs-wrap-safe">
             {hazardAssessment && hazardAssessment.mitigationRecommendations.length > 0 ? (
@@ -163,7 +163,7 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
         <div className="min-w-0 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-5 md:col-span-2 xl:col-span-1">
           <div className="flex items-center space-x-2 text-[var(--hs-accent)]">
             <Fan className="h-4 w-4 shrink-0" />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Air Purifier Planner</h4>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--hs-text-primary)]">Air Purifier Planner</h3>
           </div>
           <div className="mt-3 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
@@ -193,9 +193,9 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div className="flex items-center gap-2">
             <Calculator className="h-4 w-4 text-[var(--hs-accent)]" />
-            <h4 className="text-xs font-bold text-[var(--hs-text-primary)] uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-[var(--hs-text-primary)] uppercase tracking-wider">
               {t.cadrTitle}
-            </h4>
+            </h3>
           </div>
           <span className="text-[11px] text-[var(--hs-text-secondary)]">
             Formula: Required CADR (m³/h) = Length × Width × Height × Target ACH
@@ -275,10 +275,10 @@ export const IndoorCoachPanel: React.FC<IndoorCoachPanelProps> = ({
           <span
             className={`font-bold ${
               estimatedAch >= 4.0
-                ? "text-emerald-600 dark:text-emerald-400"
+                ? "text-[var(--hs-accent)]"
                 : estimatedAch >= 2.5
-                  ? "text-amber-600 dark:text-amber-300"
-                  : "text-rose-600 dark:text-rose-400"
+                  ? "text-[var(--hs-accent-amber)]"
+                  : "text-[var(--hs-accent-coral)]"
             }`}
           >
             {estimatedAch} ACH{" "}

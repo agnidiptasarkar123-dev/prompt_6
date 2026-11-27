@@ -3,6 +3,7 @@
 
 import React from "react";
 import { ShieldCheck, Sparkles, CalendarClock, Globe, Contrast, X } from "lucide-react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import { getV2UiStrings } from "@/i18n/v2-translations";
 import type { SupportedLanguage } from "@/i18n/translations";
 
@@ -24,11 +25,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   return (
     <div
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={v2.onboardingWelcome}
+      aria-labelledby="onboarding-modal-heading"
     >
+      <DialogFocusTrap onClose={onClose} />
       <div className="hs-card relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-2xl">
         <button
           type="button"
@@ -39,7 +42,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-xl font-bold text-[var(--hs-text-primary)]">{v2.onboardingWelcome}</h2>
+        <h2 id="onboarding-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">{v2.onboardingWelcome}</h2>
         <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
           Evidence-first urban air quality platform built for Indian cities with deterministic CPCB math, 23 official Indian languages, and privacy-by-default.
         </p>

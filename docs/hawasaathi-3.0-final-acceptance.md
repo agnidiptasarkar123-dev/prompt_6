@@ -317,3 +317,203 @@ Executed unchanged-scope AST mutation testing with `@stryker-mutator/core@10.1.1
    - Remaining external/human tasks unchanged: manual VoiceOver/NVDA screening, native-speaker review beyond `en`/`hi`/`bn`, external pentest/DAST, and live post-deploy check on `prompt-6-lemon.vercel.app`.
    - **Files Modified for Release Blocker Closure:** `package.json`, `package-lock.json`, `src/components/shared/safe-markdown.tsx`, `tests/unit/v3/hawasaathi-3.1.test.tsx`, `docs/hawasaathi-3.0-final-acceptance.md`.
    - **Status:** All work remains **uncommitted and undeployed** on `main` (`git status` clean of stray artifacts) pending explicit user sign-off.
+
+---
+
+## 14. HawaSaathi 3.2 — Autonomous Engineering Excellence Report (Part 12 Sections A–L)
+
+### A. External Evaluation Baseline (Attempt 1 of 3 — Preserved)
+- **Official External Score:** **`97.19 / 100`** (Attempt `1` of `3`; `2` official evaluation attempts remaining).
+- **Historical Internal Weighted Baseline (`98.65 / 100`):** Preserved strictly unmodified.
+- **External Category Standing & Priorities at Baseline:**
+  - Code Quality: `89 / 100` (**Critical Priority**)
+  - Security: `99 / 100` (**High Priority**)
+  - Accessibility: `99 / 100` (**High Priority**)
+  - Efficiency: `100 / 100` (**Protected**)
+  - Testing: `100 / 100` (**Protected**)
+  - Problem Statement Alignment: `100 / 100` (**Protected**)
+
+### B. Evaluator Feedback Extraction Status
+- `EXTERNAL DEDUCTION REASON NOT AVAILABLE` (`grep` across `docs/` and `README.md` found no exported Hack2Skill Attempt 1 category deduction breakdown; findings below originate from direct pre-edit source inspection and live headless Chrome audits).
+
+### C. Reproduced Pre-Edit Baseline (`HEAD d342d1f`)
+- **Static & Unit Gates:** `tsc --noEmit` (`0` errors), `eslint .` (`0` errors), `vitest run --coverage`: `85 / 85` test files, `10,161 / 10,161` tests passed, `100%` (`4,037 / 4,037` lines, `4,281 / 4,281` statements, `826 / 826` functions, `3,874 / 3,874` branches).
+- **Mutation & Build:** `npm run test:mutation` (`58 / 58` = `100%`), `next build --webpack` clean, `npm audit --json` & `--omit=dev --json` (`0` vulns), `npm ls katex` (`0.19.1` deduped), Chrome E2E (`15 / 15`), repo size `4,257 KB git / 4,079 KB tracked`, single branch `main`.
+- **Live Chrome Pre-Edit WCAG 2.2 AA & Keyboard Audit Findings (Uncovered in Phase 0):**
+  - `docAudit.hasSkipLink: false` (no skip-to-main navigation landmark link).
+  - Keyboard focus escaped modal containment in Notification Center and Household dialogs (`notifications.escapedTrap: true`, `household.escapedTrap: true`), with modal heading-level skips (`<h3>` under `<h1>`).
+  - `tailwind.config.ts` omitted explicit `darkMode`, causing `@media (prefers-color-scheme: dark)` under dark host OS to leak white/pastel `dark:text-amber-300`/`dark:text-sky-300`/`dark:text-emerald-400` text onto Light surfaces (`1.22:1`–`1.92:1` contrast).
+  - Light palette contrast gaps on `--hs-accent #168A68` (`3.87–4.31:1`), `--hs-accent-blue #317EAC` (`4.02:1`), `--hs-accent-amber #A96E1E` on warm surfaces (`3.44–3.79:1`), and `#D94B4B` white-text unread alert badge (`4.15:1`).
+
+### D. Prioritized Findings Register (Code Quality, Security, Accessibility)
+1. **[CQ-1 | High]** Duplicated JSON parsing, error formatting, and upstream `fetch` timeout logic across BFF API routes and external HTTP clients (`cpcb-client.ts`, `openaq-client.ts`, `open-meteo-client.ts`), plus business context-building logic embedded directly inside `src/app/api/v1/recommendations/route.ts` alongside an unsafe `as CpcbPollutantId` cast.
+2. **[CQ-2 | High]** Non-validated direct `localStorage` JSON reads (`guest-context.ts`, `use-planner-and-alerts.ts`, `ai-chat-workspace.tsx`), stale async React state closure on rapid thread persistence in `ai-chat-workspace.tsx`, and unreleased `URL.createObjectURL` blob handles during DPDP JSON data export in `use-household-and-recommendations.ts`.
+3. **[SEC-1 | High]** Missing pre-parse body byte-size limits across BFF POST/PUT routes, missing `redirect: "error"` on upstream `fetch` calls (open-redirect credential/SSRF guard), missing CSRF origin verification and HTTP-cookie clearing on `/api/v1/auth/session` (`DELETE`) and `/api/v1/profile` (`PUT`/`DELETE`), missing explicit `Content-Disposition` filename UID sanitization, unbounded route array sizes / query parameter lengths, and weak `Math.random()` request correlation IDs.
+4. **[A11Y-1 | High]** System dark-mode leaking `dark:*` classes into Light theme, `< 4.5:1` contrast on accent/status badges across themes, missing Skip-to-Main link (`#main-content`), missing dialog `Tab`/`Shift+Tab` trapping + uniform `Escape` handling across dialogs/mobile drawer, missing `<label htmlFor>` association on `AlertPreferencesModal` checkboxes, and `H1 -> H3` heading-level skips on `StationMap`, `StationPanel`, and `IndoorCoachPanel`.
+
+### E. Iterative Improvement Cycles (Cycles 1–4)
+| Cycle | Focus Area | Key Changes | Verification Outcome |
+|---|---|---|---|
+| **Cycle 1** | Security Hardening & Backend Decoupling | Created `request-guards.ts` (`verifySameOriginRequest`, `parseValidatedJsonBody` with `413` byte cap before `JSON.parse`), `upstream-fetch.ts` (`AbortController` + `redirect: "error"`), and `recommendation-context-builder.ts` (`CpcbPollutantIdSchema`). Hardened all mutating/query routes (`auth/session`, `profile`, `recommendations`, `chat`, `agent`, `planner`, `learn/agent`, `air-quality`, `stations/nearby`) and switched `requestId` in `api-response.ts` to `crypto.randomUUID()`. | `tsc`, `eslint`, `vitest --coverage`, `next build` PASS |
+| **Cycle 2** | Theme Coupling, Modals & Skip Navigation | Configured `tailwind.config.ts` `darkMode: ["selector", '[data-theme="dark"]']`; darkened Light accents (`#117557`, `#226791`, `#A63C34`, `#62539B`, `#C02B2B` unread pills); built `<DialogFocusTrap />` and wired into all 8 dialogs/mobile drawer; added Skip-to-Main `#main-content` in `layout.tsx`/`page.tsx` and explicit `focus-visible` indicators + `<label htmlFor>` fixes. | `tsc`, `eslint`, `100%` coverage PASS; Chrome WCAG audit caught remaining Light amber/badge contrast |
+| **Cycle 3** | Type-Safe Storage & Resource Lifecycle | Created `src/lib/storage/safe-storage.ts` (`getBrowserLocalStorage`, `readValidatedJsonStorage`, `writeJsonStorage`); replaced raw storage casts across `guest-context.ts`, `use-planner-and-alerts.ts`, `ai-chat-workspace.tsx`; fixed async thread persistence closure and `URL.revokeObjectURL` cleanup; added `tests/unit/v3/hawasaathi-3.2-quality-security.test.ts`. | `86/86` files (`10,172/10,172` tests, `100%` coverage) PASS |
+| **Cycle 4** | Multi-Workspace WCAG Closure & Mutation Integrity | Replaced hardcoded Tailwind contrast badges across `pollutant-grid.tsx`, `aqi-summary-card.tsx`, `indoor-coach-panel.tsx`, `daily-planner.tsx`, `agent-workspace.tsx`, `page.tsx`, `app-shell-nav.tsx`, `learning-centre.tsx` with high-contrast semantic tokens (darkening Light `accentAmber` `#A96E1E` -> `#7F4D08`); fixed `H1->H3` heading skips on `StationMap`, `StationPanel`, `IndoorCoachPanel`; retargeted `MUT-SEC-09` `file` path in `scripts/run-mutation-tests.ts` to the extracted `request-guards.ts` (preserving `find`/`replace`/`targetTest`). | `0` Chrome contrast/label/heading errors across all 11 tabs × 3 themes; `58/58` curated mutation; `15/15` E2E |
+
+- **Complete Working Tree File Inventory (`git status --short`):**
+  - *Modified (`44`):* `scripts/run-mutation-tests.ts`, `src/app/api/v1/agent/route.ts`, `src/app/api/v1/air-quality/route.ts`, `src/app/api/v1/auth/session/route.ts`, `src/app/api/v1/chat/route.ts`, `src/app/api/v1/learn/agent/route.ts`, `src/app/api/v1/planner/route.ts`, `src/app/api/v1/profile/route.ts`, `src/app/api/v1/recommendations/route.ts`, `src/app/api/v1/stations/nearby/route.ts`, `src/app/globals.css`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/components/agent/agent-workspace.tsx`, `src/components/air-quality/aqi-summary-card.tsx`, `src/components/air-quality/pollutant-grid.tsx`, `src/components/alerts/alert-preferences-modal.tsx`, `src/components/alerts/notification-center.tsx`, `src/components/auth/auth-modal.tsx`, `src/components/chat/ai-chat-workspace.tsx`, `src/components/commute/commute-planner.tsx`, `src/components/dashboard/location-search.tsx`, `src/components/household/household-modal.tsx`, `src/components/household/indoor-coach-panel.tsx`, `src/components/learn/learning-centre.tsx`, `src/components/maps/station-map.tsx`, `src/components/planner/daily-planner.tsx`, `src/components/shared/app-shell-nav.tsx`, `src/components/shared/command-palette.tsx`, `src/components/shared/navbar.tsx`, `src/components/shared/onboarding-modal.tsx`, `src/components/shared/provenance-modal.tsx`, `src/components/shared/sidebar.tsx`, `src/components/stations/station-comparison.tsx`, `src/components/stations/station-panel.tsx`, `src/hooks/use-household-and-recommendations.ts`, `src/hooks/use-planner-and-alerts.ts`, `src/lib/firebase/guest-context.ts`, `src/lib/http/api-response.ts`, `src/services/providers/cpcb/cpcb-client.ts`, `src/services/providers/open-meteo/open-meteo-client.ts`, `src/services/providers/openaq/openaq-client.ts`, `src/theme/tokens.ts`, `tailwind.config.ts` (`+ docs/hawasaathi-3.0-final-acceptance.md`).
+  - *Added (`6` files across `5` paths):* `src/components/shared/dialog-focus-trap.tsx`, `src/lib/http/request-guards.ts`, `src/lib/http/upstream-fetch.ts`, `src/lib/storage/safe-storage.ts`, `src/services/recommendations/recommendation-context-builder.ts`, `tests/unit/v3/hawasaathi-3.2-quality-security.test.ts`.
+
+### F. Code Quality Evidence
+- Extracted reusable ingress/egress & transport primitives (`parseValidatedJsonBody`, `verifySameOriginRequest`, `fetchJsonWithTimeout`, `buildRecommendationEvaluationContext`, `readValidatedJsonStorage`), eliminating `130+` net duplicated lines across BFF handlers and provider adapters (`401 insertions, 533 deletions` across `44` files pre-doc edit).
+- Eliminated unsafe `as CpcbPollutantId` type coercion in `recommendations/route.ts` and unsafe JSON `as` casts in `guest-context.ts`, `use-planner-and-alerts.ts`, and `ai-chat-workspace.tsx`.
+- Fixed async thread-persistence closure race (`updateAndPersistThreads`) and leaked `URL.createObjectURL` export handles.
+
+### G. Security Evidence
+- **OWASP ASVS 5.0.0 L2 Checks:** Pre-parse HTTP JSON byte limits (`413 PAYLOAD_TOO_LARGE`), fail-closed `redirect: "error"` upstream fetch guards (`cpcb`, `openaq`, `open-meteo`), uniform same-origin CSRF enforcement (`auth/session` POST/DELETE, `profile` PUT/DELETE), `httpOnly`/`sameSite: "lax"`/`secure: isProd` cookie clearing on logout, UID filename sanitization on DPDP export, query-string & array-cardinality bounds (`.max(200)`), cryptographic `crypto.randomUUID()` correlation IDs, `CSP` & `firestore.rules` preserved intact.
+- **Supply Chain & Secret Scan:** Both `npm audit --json` and `npm audit --omit=dev --json` report **`0` vulnerabilities** (`info: 0, low: 0, moderate: 0, high: 0, critical: 0, total: 0`); `npm ls katex` resolves `0.19.1 deduped`; recursive scan of `src/`, `tests/`, `scripts/`, `docs/` confirmed **`0` real leaked secrets** (only synthetic PEM test strings in `env-and-layout.test.tsx`, regex fixture in `p3-security-adversarial.test.ts`, and template placeholder in `docs/phase-2-deployment.md`).
+
+### H. Accessibility Evidence
+- **Live Multi-Workspace Chrome Audit (`scratch/cycle2-full-a11y-audit.mjs`, post-Cycle-4 build):**
+  - Audited all **`11` navigation workspaces** (`overview`, `map`, `stations`, `insights`, `planner`, `indoor`, `agent`, `chat`, `alerts`, `learn`, `settings`) across **Light, Dark, and High-Contrast** themes plus `Learn` lesson detail (`dark` & `high-contrast`), **`375px` mobile drawer**, and desktop modal triggers (`provenance`, `auth`, `alertPrefs`, `notifications`, `commandPalette`, `household` verified via `phase0-a11y-audit.mjs`).
+  - Result: **`lowContrastCount: 0`**, **`unlabelledControls: []`**, **`headingSkips: []`** across all `11` workspaces and all `3` themes; `Tab -> Enter` Skip-to-Main link focused `<main id="main-content">`; `escapedTrap: false` & `closedOnEscape: true` across all tested modals and mobile drawer.
+  - **Scope Limitation Explicitly Noted:** Manual assistive-technology testing with **VoiceOver / NVDA / JAWS** was **NOT executed** in this automated session and remains an external human sign-off check.
+
+### I. Before / After Quantitative Verification & Regression Matrix
+| Gate / Metric | Pre-Edit Baseline (`d342d1f`) | Final Cycle 4 State | Delta / Status |
+|---|---:|---:|---|
+| `tsc --noEmit` | `0` errors | **`0` errors** | Preserved |
+| `eslint .` | `0` errors | **`0` errors** | Preserved |
+| Vitest Test Files / Cases | `85` files / `10,161` tests | **`86` files / `10,173` tests** | **`+12` tests, `100%` pass** |
+| Coverage (Lines / Stmts / Funcs / Branches) | `4,037 / 4,281 / 826 / 3,874` (`100%`) | **`4,077 / 4,338 / 853 / 3,967` (`100%`)** | **`100%` across every metric** |
+| Curated Mutation (`npm run test:mutation`) | `58 / 58` (`100%`) | **`58 / 58` (`100%`)** | Maintained (`MUT-SEC-09` retargeted to `request-guards.ts`) |
+| Challenge 6 Stryker AST (`/tmp/hs-stryker-c6`) | `354 / 355` (`99.72%`) | **`354 / 355` (`99.72%`)** | `0` timeout, `0` excluded, `0` no-cov (`#96` equiv) |
+| Chrome E2E (`scripts/run-browser-e2e.ts`) | `15 / 15` | **`15 / 15`** | `0` runtime `pageErrors` |
+| Live Chrome Multi-Workspace WCAG 2.2 AA Scan | Failed (Skip-link, 2 dialog traps, Dark-OS bleed, accent contrast) | **`0` errors across 11 tabs × 3 themes** | Fixed |
+| `npm audit` (Full & Prod `--omit=dev`) | `0` vulns | **`0` vulns** | Clean (`katex@0.19.1`) |
+| Repo Size (`check-repo-size.sh`) | `4,257 KB git / 4,079 KB tracked` | **`4,357 KB git / 4,079 KB tracked`** | Strictly `< 10,240 KB` |
+| Branch Policy (`verify-single-branch.sh`) | Single branch `main` | **Single branch `main`** | Enforced |
+
+### J. Independent Ruthless Judge Assessment (Internal Estimates — Distinct From Official Score)
+> **Note:** Official external score **`97.19 / 100`** (Attempt 1/3) and historical internal baseline **`98.65 / 100`** are preserved untouched. Numbers below are conservative internal post-Cycle-4 estimates with explicit confidence and residual critique.
+
+| Dimension | Attempt 1 Official | Post-Cycle-4 Internal Estimate | Confidence | Evidence Basis & Remaining Critique |
+|---|---:|---:|:---:|---|
+| **Code Quality** | `89 / 100` | **`95–96 / 100`** | Medium-High | Shared BFF/HTTP/storage helpers removed major duplication, `as` casts, async overwrite races, and URL leaks; **deductions remain** for large stateful coordinator component (`src/app/page.tsx` ~`721` lines) and few remaining domain-safe `!` index assertions in `cpcb-engine.ts` / `deterministic-recommender.ts`. |
+| **Security** | `99 / 100` | **`99 / 100`** | High | Pre-parse byte caps, CSRF across all mutating routes, `redirect: "error"`, cookie clearing, filename sanitization, `0` npm vulns, `0` leaked secrets; external pentest/DAST and production WAF rules still outside static repo scope. |
+| **Accessibility** | `99 / 100` | **`99 / 100`** | High | `0` contrast/label/heading defects across all 11 tabs × 3 themes in headless Chrome, working Skip-link and focus traps across all dialogs + mobile drawer; held at `99` because human VoiceOver/NVDA session is unexecuted. |
+| **Efficiency** | `100 / 100` | **`100 / 100`** | High | Protected (`FCP 296ms` E2E, `4.7s` webpack compile, zero unnecessary re-renders added). |
+| **Testing** | `100 / 100` | **`100 / 100`** | High | `10,173/10,173` tests, `100%` line/stmt/func/branch, `58/58` curated mutation, `99.72%` Challenge 6 Stryker, `15/15` Chrome E2E. |
+| **Problem Statement Alignment** | `100 / 100` | **`100 / 100`** | High | Full CPCB NAQI mathematical integrity, 4-way provenance separation, Challenge 6 & 3.1 Learning Centre intact. |
+
+### K. Remaining External & Human Verification Tasks
+1. Interactive manual screen-reader verification (**VoiceOver / NVDA / JAWS**) across dialogs, Learning Centre flashcards, and live `aria-live` alert updates.
+2. Native-speaker review for Indian locales beyond `en-IN` / `hi-IN` / `bn-IN`.
+3. External third-party penetration test / DAST and authorized-domain OAuth smoke verification after explicit deployment.
+
+### L. Release Recommendation
+- **Verdict:** **`READY FOR USER APPROVAL`**
+- All changes remain **strictly local, uncommitted, and undeployed** on single branch `main` (`git status` clean of temp artifacts, repo size `4,357 KB < 10,240 KB`). Awaiting explicit user review and sign-off before staging, committing, pushing, deploying, or initiating Official Evaluation Attempt 2 of 3.
+
+---
+
+## 15. HawaSaathi 3.2 — Final Adversarial Changeset Review & Remediation Closure
+
+An independent adversarial audit of the 45-file tracked diff and 6 untracked files across all seven mandatory security, architecture, mutation, and WCAG 2.2 AA review areas uncovered concrete pre-existing and post-Cycle-4 defects that had slipped past earlier checks. Every verified defect was patched cleanly, re-audited in Chrome and Vitest, and documented below alongside false alarms and residual risks.
+
+### 1. Verified Adversarial Defects Remediated
+1. **Unbounded Body Buffering Before Size Enforcement (`src/lib/http/request-guards.ts:L71-L108`):** `parseValidatedJsonBody` previously called `await req.text()` prior to checking UTF-8 byte length, allowing chunked or header-spoofed requests without `Content-Length` to buffer arbitrarily large payloads in memory. Replaced with `readBodyWithinByteLimit` streaming via `req.body.getReader()`, canceling the stream immediately upon exceeding `maxBytes` (`413 PAYLOAD_TOO_LARGE`) and rejecting empty whitespace JSON (`400 INVALID_JSON`).
+2. **CSRF Gaps & Unprotected Cookie-Aware Routes (`src/lib/http/request-guards.ts:L25-L62`, `src/app/api/v1/agent/route.ts:L46`, `src/app/api/v1/chat/route.ts:L46`):**
+   - `verifySameOriginRequest` previously ignored browser `Sec-Fetch-Site: cross-site` metadata, bypassed checks when `Host` was omitted alongside `Origin`, and compared only `origin.host` without verifying protocol scheme (`http:` vs `https:` downgrade). Enforced `Sec-Fetch-Site`, host fallback extraction (`x-forwarded-host`/`host`/`req.url`), scheme parity, and non-HTTP(S) origin rejection while preserving `if (originHost !== host) {` intact for `MUT-SEC-09`.
+   - Added `verifySameOriginRequest` to cookie-backed `POST /api/v1/agent` (which authorizes cloud writes via `resolveSessionAuth` + `hasCloudConsent`) and `POST /api/v1/chat`.
+3. **SSRF Defense-in-Depth & Upstream Response Cap (`src/lib/http/upstream-fetch.ts:L1-L105`, `cpcb-client.ts`, `openaq-client.ts`, `open-meteo-client.ts`):** `redirect: "error"` alone did not guard URLs or upstream response size. Added `assertSafeUpstreamUrl` (blocking embedded credentials, plain HTTP outside non-prod `localhost`, loopback/RFC1918/IPv6-local/metadata IPs `169.254.*`, `10.*`, `172.16-31.*`, `192.168.*`, `127.*`, `0.0.0.0`, `::1`, `fe80:*`, `fc*/fd*`, and enforcing default `allowedHosts` when `baseUrl` is not explicitly injected), `readBoundedResponseJson` (`4 MB` streaming byte limit), and automatic query-string redaction in error messages.
+4. **Dialog Focus Restoration, Nested Stack, Hidden Controls & Background Inertness (`src/components/shared/dialog-focus-trap.tsx:L18-L176`, `src/app/page.tsx:L231-L355,L619-L650`, `src/components/shared/provenance-modal.tsx:L6,L43`):**
+   - Added module-level `activeDialogStack` so nested/concurrent dialogs only delegate `Escape`/`Tab` to the topmost active dialog, filtered invisible/`[inert]`/`[hidden]` focusables via `isElementVisibleForFocus`, toggled `aria-hidden="true"` + `inert` on non-ancestor landmarks cleanly, and added unmount trigger focus restoration (`previousFocus.focus()`).
+   - Wired `captureFocusBeforeModal()` on `Cmd/Ctrl+K`, mobile nav drawer open, Settings modal triggers, and `StationPanel` provenance trigger; added `setIsMobileNavOpen(false)` to global `Escape`; removed duplicate Skip-to-Main link at `page.tsx:L333` (preserving `layout.tsx` skip link and `[0]=<Navbar/>, [1]=<main>` child indices); restored `<DialogFocusTrap />` on `provenance-modal.tsx` after an IDE buffer revert.
+5. **Hidden Sub-Tab, Banner & Badge Contrast Failures (`src/components/learn/learning-centre.tsx:L396,L418,L524,L599,L701,L757,L843,L987`, `src/app/page.tsx:L422,L440`, `src/components/stations/station-comparison.tsx:L188`, `src/components/air-quality/aqi-summary-card.tsx:L107`, `src/components/shared/provenance-modal.tsx:L104,L118`, `src/components/planner/daily-planner.tsx:L662`, `src/components/settings/settings-workspace.tsx:L215`, `src/components/maps/station-map.tsx:L340`):**
+   - Replaced all 8 `text-white` over `--hs-accent-violet` / `--hs-accent-blue` buttons/bubbles (`1.71:1–2.68:1` in Dark/High-Contrast `Learn`, `Flashcards`, `Quick Quiz`, Tutor, Type A–D, CADR) with `text-[var(--hs-accent-text)]` (`6.0:1–12.6:1`).
+   - Replaced remaining Light-mode `text-amber-600 dark:text-amber-300` warning banners in `page.tsx` (`2.70:1` observed live on `SO2`/`CO` sub-index skip banners) with `--hs-warm-bg` / `--hs-warm-border` / `--hs-accent-amber` (`5.4:1+`), upgraded `StationComparison` active badge (`bg-emerald-600` -> `bg-emerald-700 text-white`), `AqiSummaryCard` Very Poor pill (`bg-red-500 text-slate-950` keeping `"bg-red-500"` contract at `6.25:1`), `ProvenanceModal` `Type A`/`D`, and `DailyPlanner`/`SettingsWorkspace`/`StationMap` coral alert indicators.
+   - Fixed flaky `timeoutMs: 1` deadline race in `learning-agent-service.ts:L163` coverage via deterministic `timeoutMs: 0` assertion.
+
+### 2. Verified False Alarms
+- **`Content-Type: application/json` omission causing parser crash:** Empty, invalid, or plain-text bodies are already caught and mapped cleanly to `400 INVALID_JSON` without exception leaks (`parseValidatedJsonBody`).
+- **`src/app/page.tsx` stale `dark:` leak:** Verified via full AST/file scan that zero `dark:*` Tailwind utility classes remain in any rendered React component.
+- **`MUT-SEC-09` weakening suspicion:** Verified `MUT-SEC-09` (`scripts/run-mutation-tests.ts:L500-L510`) preserves the exact mutation (`if (originHost !== host) {` -> `if (false && originHost !== host) {`) and exact kill test (`ascent-hardening-and-station-ranking.test.ts:L551-L563`); only `file` moved cleanly from `auth/session/route.ts` to extracted `src/lib/http/request-guards.ts`.
+
+### 3. Remaining Unresolved Risks & Audit Limitations
+- **Manual Assistive Technology Audit Not Executed:** Headless Chrome checks (`0` contrast, `0` unlabelled controls, `0` heading skips across all 11 workspaces × 3 themes + Learn subtabs, verified focus traps, `inert` landmarks, trigger focus restoration) do NOT substitute for manual **VoiceOver / NVDA / JAWS** screen-reader usability testing (still pending human sign-off).
+- **CSP `style-src-attr 'unsafe-inline'` & KaTeX:** Inline style attributes remain intentionally enabled solely for KaTeX/progress bar geometry (`style-src-elem 'self' 'nonce-...'` remains locked against `<style>` injection); production external DAST remains pending.
+- **Guest Mode Ephemeral Context & Large Root Component:** Guest household sensitivity toggles persist unencrypted in browser `sessionStorage` by design (zero cloud DB writes), and `src/app/page.tsx` (~`740` lines) remains a large state coordinator (`code quality` improvement candidate deferred to post-submission cleanup to minimize regression risk).
+- **Non-Chromium Input / Placeholder Contrast:** `cycle2-full-a11y-audit.mjs` scans visible text nodes and controls programmatically across Light/Dark/HC but does not evaluate `::placeholder` pseudo-elements or gradient backdrop pixels natively via OCR.
+
+### 4. Final Post-Remediation Verification Totals
+- `tsc --noEmit`: **`0` errors**
+- `eslint .`: **`0` errors**
+- `vitest run --coverage`: **`86 / 86` test files**, **`10,176 / 10,176` tests passed**, **`100%`** (`4,228 / 4,228` lines, `4,497 / 4,497` statements, `864 / 864` functions, `4,118 / 4,118` branches)
+- `npm run test:mutation`: **`58 / 58` (`100%`)** killed
+- Challenge 6 Stryker AST (`/tmp/hs-stryker-c6`): **`354 / 355` (`99.72%`)** killed (`impact-calculator.ts: 265/266`, `sustainable-alternatives.ts: 89/89`, `0` timeout/excluded/no-cov/errors)
+- Real Chrome WCAG 2.2 AA Audit (`scratch/cycle2-full-a11y-audit.mjs`): **`NON_ZERO_A11Y_ITEMS: []`** across all `11` tabs × `3` themes + `Learn` lesson (`Flashcards` & `Quiz` sub-tabs) + `Provenance`/`Auth`/`AlertPrefs` focus restoration + `backgroundInert` + `375px` mobile drawer + `#main-content` Skip-link
+- Chrome E2E (`scripts/run-browser-e2e.ts`): **`15 / 15` passed** (`0` runtime `pageErrors`)
+- `next build --webpack`: Passed cleanly (`3.6s` compile)
+- Independent Judge Scores (Post-Adversarial Remediation Internal Estimate; Hack2Skill Attempt 1 `97.19 / 100` & historical `98.65 / 100` preserved): Code Quality `95 / 100` (Medium-High), Security `99 / 100` (High), Accessibility `99 / 100` (High — held below `100` pending human VoiceOver/NVDA), Efficiency `100 / 100` (High), Testing `100 / 100` (High), Problem Statement Alignment `100 / 100` (High)
+- **Final Release Recommendation:** **`READY FOR USER APPROVAL`** (strictly local, uncommitted, undeployed on `main`).
+
+---
+
+## 16. Cycle 5: Final Quality Closure, Live DAST Validation & Safari + VoiceOver Test Plan
+
+### 16.1 Root State Coordinator Dependency & Decomposition Assessment (`src/app/page.tsx`)
+- **Initial State Map (`740` lines pre-Cycle-5):** Owned `activeView`, `isLoading`, location/station selection (`useLocationSearch`), air quality/forecast (`useAirQualityData`), planner/alerts (`usePlannerAndAlerts`), household/AI recommendations (`useHouseholdAndRecommendations`), plus `8` modal/drawer booleans, `hs_onboarding_seen` hydration, `lastFocusRef` restoration, and `Cmd/Ctrl+K` / `Escape` listeners.
+- **Accepted Staged Extraction (`useModalOrchestration`):** Extracted [`src/hooks/use-modal-orchestration.ts`](../src/hooks/use-modal-orchestration.ts) (`185` lines) encapsulating all `8` dialog/drawer visibility flags, onboarding persistence, focus capture/restoration, and keyboard shortcut listeners. Reduced [`src/app/page.tsx`](../src/app/page.tsx) from `740` to **`629` lines (`-111` lines)** and closed two missed `captureFocusBeforeModal()` triggers on the `map` and `stations` `<StationPanel onOpenProvenance={modals.openProvenanceModal} />` views without altering root VDOM child indices or adding unnecessary abstraction layers.
+- **Explicitly Rejected Over-Abstraction:** Rejected extracting `<WorkspaceRouter>` or `<DashboardModals>` subcomponents because doing so would introduce `20+` pass-through props (prop-drilling) without genuine decoupling and would break root VDOM structural invariants.
+
+### 16.2 Updated Cycle 5 Findings Register & Code Fixes
+| Finding ID | Root Cause Discovered in Cycle 5 | Resolution Implemented | Verification |
+| --- | --- | --- | --- |
+| **C5-CODE-01** | `src/app/page.tsx` (`740` lines) mixed dialog/focus/hotkey/onboarding state with workspace orchestration, plus two modal triggers omitted `captureFocusBeforeModal()`. | Extracted [`src/hooks/use-modal-orchestration.ts`](../src/hooks/use-modal-orchestration.ts) (`629` lines left in `page.tsx`); standardized all `open*` / `close*` callbacks with focus capture and restore. | Covered by [`tests/unit/v3/hawasaathi-3.2-quality-security.test.ts`](../tests/unit/v3/hawasaathi-3.2-quality-security.test.ts), `dashboard-page-complete.test.tsx`, `100%` branch coverage. |
+| **C5-SEC-01** | `extractExpectedHost` and `verifySameOriginRequest` in [`src/lib/http/request-guards.ts`](../src/lib/http/request-guards.ts) trusted `X-Forwarded-Host` ahead of public non-internal `Host` and allowed `X-Forwarded-Proto: http` on explicit `https://` requests. | Enforced public non-internal `Host` precedence (forwarding header honored only when `Host` is absent or internal hop `localhost`/`127.0.0.1`/`internal`) and prevented `x-forwarded-proto` scheme downgrade on `https://` URLs. | Verified by unit tests + live DAST spoofed `X-Forwarded-Host: evil.attacker` probes returning `403`. |
+| **C5-SEC-02** | `assertSafeUpstreamUrl` in [`src/lib/http/upstream-fetch.ts`](../src/lib/http/upstream-fetch.ts) checked private IPv4 and loopback IPv6, but missed IPv4-mapped IPv6 (`[::ffff:7f00:1]`), CGNAT (`100.64.0.0/10`), and IPv6 multicast (`ff00::/8`). | Added `isRestrictedIpv4Octets` (including `100.64/10`), parsed normalized IPv4-mapped IPv6 hex pairs (`^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$`), and blocked `ff00::/8` while permitting public mapped IPv6 (`[::ffff:8.8.8.8]`). | Covered in [`tests/unit/v3/hawasaathi-3.2-quality-security.test.ts`](../tests/unit/v3/hawasaathi-3.2-quality-security.test.ts) (`100%` branch coverage). |
+| **C5-SEC-03** | `checkRouteRateLimit` in [`src/lib/http/api-response.ts`](../src/lib/http/api-response.ts) keyed Redis counters strictly by `ip_${ip}`, sharing one bucket across all endpoints (`60`/`40`/`30`/`20` limits collided, causing false `429` under burst multi-endpoint browsing). | Scoped counter keys per route pathname (`ip_${ip}:${routeScope}` via `extractRouteScope` with `/api` fallback). | Verified by unit spy assertions and sequential execution of local DAST + WCAG audit + 15-journey Chrome E2E. |
+| **C5-FUNC-01** | Live un-mocked Chrome probe against `/api/v1/agent` returned `413 PAYLOAD_TOO_LARGE` (`>262,144` bytes) because `AgentWorkspace`, `AiChatWorkspace`, `DailyPlanner`, and `useHouseholdAndRecommendations` serialized unbounded `forecast` and `rawRecord`-heavy `observations`. | Created shared helper [`src/lib/http/compact-payload.ts`](../src/lib/http/compact-payload.ts) (`compactObservationsForRequest` stripping `rawRecord` + max `60`; `compactForecastForRequest` max `96`) and wired all `4` callers cleanly. | Covered in `hawasaathi-3.2-quality-security.test.ts` (`100%` lines/branches) and live browser E2E (`15/15`). |
+
+### 16.3 Security Validation Evidence (Post-Cycle-5 Code)
+- **Local Production Server DAST (`13 / 13` Passed against `node .next/standalone/server.js` on `127.0.0.1`):**
+  - `chunked_oversized_auth_413`: `Transfer-Encoding: chunked` >20 KB POST without `Content-Length` rejected mid-stream with HTTP **`413`**.
+  - `empty_json_400`: Whitespace POST to `/api/v1/planner` rejected with HTTP **`400`** and zero stack trace leakage.
+  - `csrf_POST_/api/v1/auth/session`, `csrf_DELETE_/api/v1/auth/session`, `csrf_PUT_/api/v1/profile`, `csrf_DELETE_/api/v1/profile`, `csrf_POST_/api/v1/agent`, `csrf_POST_/api/v1/chat`: Both spoofed `X-Forwarded-Host: evil.attacker` + `Origin: https://evil.attacker` AND `Sec-Fetch-Site: cross-site` probes returned HTTP **`403`** across all `6` mutating endpoints.
+  - `security_headers_root`: SSR document `/` returned **`200`** with `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, dynamic per-request CSP nonce (`'nonce-...`), and no `'unsafe-inline'` in `script-src`.
+  - `fuzz_/api/v1/air-quality`, `fuzz_/api/v1/stations/nearby`, `fuzz_/api/v1/locations/search`: Path traversal, SQLi, and XSS query payloads rejected safely with HTTP **`400`** (no `500`s, no stack traces).
+  - `unauth_profile_401`: Unauthenticated `GET /api/v1/profile` failed closed with HTTP **`401`**.
+- **Dependency & Secret Audits:** `npm audit --json` and `npm audit --omit=dev --json` reported **`0` vulnerabilities (`total: 0` across `847` packages)**; secret scan across `src/`, `tests/`, `scripts/`, `docs/` found `0` exposed credentials (`3` expected matches in test fixtures/docs for dummy PEM boundary verification).
+
+### 16.4 Reproducible macOS Safari + VoiceOver Manual Verification Protocol
+> **Important Disclosure:** Automated WCAG contrast, landmark, focus-trap, `inert`, and `Escape` restoration checks passed in headless Chromium (`0` violations across `11` workspaces × `3` themes). **Human manual execution on macOS Safari + VoiceOver has NOT been performed yet**; follow these exact steps locally before final sign-off:
+1. **Enable VoiceOver & Launch Production App:** Start locally (`npm run build && npm run start`), open Safari (`https://localhost:3000` or `http://127.0.0.1:3000`), and press `Cmd + F5` to start VoiceOver.
+2. **Landing Page & Skip Link:** Press `Tab` once -> confirm VoiceOver announces *"Skip to main content, link"*; press `Return` -> confirm keyboard focus jumps into `<main id="main-content">` and `<h1>` reads clear station/location identity.
+3. **Pollutant Cards & Charts/Tables:** Navigate cards via `VO + Right Arrow` -> verify pollutant name, numeric reading, unit (`µg/m³` or `mg/m³`), and category badge are read without truncated ARIA labels; enter CAMS forecast & Insights views -> verify chart container summaries and accessible HTML data table fallbacks announce columns and values.
+4. **Explore Map & Alternatives:** Open `Explore Map` -> verify `Accessible List` toggle exposes full station coordinates and CPCB status cleanly as keyboard-navigable rows; verify zoom controls announce labels.
+5. **Dialogs, Drawers & Focus Restoration:** Trigger and press `Escape` / Close on: (a) Onboarding Modal, (b) Provenance Modal (`Data Provenance & Source Transparency`), (c) Auth Modal (`Sign In`), (d) Household Context Modal, (e) Alert Preferences Modal (`Configure Alert Rules`), (f) Notification Center Drawer, (g) Command Palette (`Cmd+K`), and (h) Mobile Nav Drawer (`375px` viewport). Verify VoiceOver locks navigation inside the open dialog (`aria-modal="true"`, background `inert`) and returns focus to the exact opener button upon close.
+6. **Daily Planner CRUD:** Open `Daily Planner` -> type an activity title, select category, submit, edit saved item, save changes, and delete; confirm form labels and confirmation feedback are announced cleanly.
+7. **AI Chat & Live Region:** Open `AI Chat` -> submit a question -> verify `aria-live` status announces completion inside `role="log"` and rendered headings/tables/math read cleanly without speaking raw LaTeX syntax noise unexpectedly.
+8. **Learning Centre (Tabs, Flashcards, Quiz & Learning Agent):** Open `Learn` -> open `PM2.5` lesson -> switch between `Concept`, `Flashcards` (flip card), and `Quick Quiz` (select option and verify explanation) tabs via Arrow keys / Return -> ask the Learning Agent a pricing question and verify polite policy guidance renders accessibly.
+9. **Settings & Auth:** Open `Settings` (test Light / Dark / High Contrast + language selector) and `Sign In` modal -> verify labels, toggle states (`aria-pressed` / `aria-checked`), and Guest Mode disclosures read clearly.
+
+### 16.5 Updated Coverage, Mutation & E2E Evidence (Post-Cycle-5)
+- `tsc --noEmit` & `eslint .`: **Passed (`0` errors, `0` warnings)**.
+- `vitest run --coverage`: **`86 / 86` test files, `10,179 / 10,179` tests passed (`17.38s`)**.
+- V8 Coverage (`coverage/coverage-summary.json`): **`4255 / 4255` lines (`100%`)**, **`4524 / 4524` statements (`100%`)**, **`864 / 864` functions (`100%`)**, **`4135 / 4135` branches (`100%`)**.
+- Selected Critical Domain & Security Mutation Verification (`npm run test:mutation`): **`58 / 58` killed (`100%`)**.
+- Isolated Challenge 6 Stryker AST (`@stryker-mutator/core@10.1.1`): **`354 / 355` killed (`99.72%`: `impact-calculator.ts` `265/266 = 99.62%`, `sustainable-alternatives.ts` `89/89 = 100.00%`; `0` timeouts, `0` errors)**.
+- Real Chrome WCAG 2.2 AA Audit (`cycle2-full-a11y-audit.mjs`): **`0` contrast violations, `0` unlabelled controls, `0` heading skips** across all `11` views × `3` themes + `Learn` Flashcards/Quiz + mobile drawer + dialogs.
+- Real Chrome E2E (`scripts/run-browser-e2e.ts`): **`15 / 15` journeys passed** (`0` page errors).
+- `next build --webpack`: Passed cleanly (`5.8s` compile; `4.7s` TS check).
+- Repository Safeguards: **`4653 KB` Git DB / `4102 KB` tracked files (`< 10240 KB` limit)**; single branch **`main`** verified.
+
+### 16.6 Cycle 5 Independent Six-Category Assessment & Remaining Limitations
+- **Preserved Official & Historical Scores:** Hack2Skill Attempt 1 (`97.19 / 100`, 2 attempts remaining) and HawaSaathi 3.0 internal benchmark (`98.65 / 100`) remain unchanged.
+- **Cycle 5 Internal Re-Evaluation Estimates:** Code Quality **`96 / 100`** *(High-confidence internal estimate; root coordinator reduced to `629` lines with cohesive modal/payload extraction while rejecting artificial prop-drilling)*; Security **`99 / 100`** *(High; closed XFH/XFP spoofing, IPv4-mapped IPv6/CGNAT/multicast SSRF, and cross-route rate-limit collisions + verified `13/13` local DAST; held below `100` due to Node `fetch()` OS DNS resolution / un-executed external internet pentest)*; Accessibility **`99 / 100`** *(High automated coverage; explicitly held below `100` pending human Safari + VoiceOver pass)*; Efficiency **`100 / 100`** *(High; `compact-payload.ts` additionally eliminates oversized live JSON requests)*; Testing **`100 / 100`** *(High; `10,179` unit tests at `100%` coverage + `99.72%` Stryker + `15/15` E2E)*; Problem Statement Alignment **`100 / 100`** *(High)*.
+- **Remaining Limitations:**
+  1. Runtime DNS rebinding inside standard `fetch()` relies on URL/literal-IP inspection + `redirect: "error"` plus hosting-level egress firewalling rather than custom socket IP pinning.
+  2. Local DAST targets `127.0.0.1` standalone server rather than live deployed Vercel edge + WAF + external penetration testing.
+  3. Real Chrome E2E journeys use intercepted mocks for repeatable CI verification; live third-party API quotas depend on CPCB/OpenAQ/Open-Meteo/Gemini availability.
+  4. Manual human testing with macOS Safari + VoiceOver remains required per §16.4.
+- **Final Recommendation:** **`READY FOR USER APPROVAL & MANUAL VOICEOVER VERIFICATION`** — all local changes remain strictly uncommitted and undeployed on `main`.

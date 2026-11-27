@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo } from "react";
 import { Search, X, Sun, Moon, Contrast, Compass } from "lucide-react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import { APP_NAV_ITEMS, type AppRouteView } from "./app-shell-nav";
 import { getV2UiStrings } from "@/i18n/v2-translations";
 import type { SupportedLanguage } from "@/i18n/translations";
@@ -89,16 +90,19 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   return (
     <div
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/65 p-4 pt-20 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-label="Quick Actions Command Palette"
     >
+      <DialogFocusTrap onClose={onClose} initialFocusSelector="input" />
       <div className="hs-card w-full max-w-lg overflow-hidden rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] shadow-2xl">
         <div className="flex items-center border-b border-[var(--hs-border-subtle)] px-4 py-3">
-          <Search className="mr-2.5 h-4 w-4 text-[var(--hs-accent)]" />
+          <Search className="mr-2.5 h-4 w-4 text-[var(--hs-accent)]" aria-hidden="true" />
           <input
             type="text"
+            aria-label="Search views and themes"
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -109,7 +113,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               }
             }}
             placeholder={v2.commandPalettePlaceholder}
-            className="w-full bg-transparent text-sm text-[var(--hs-text-primary)] placeholder-[var(--hs-text-secondary)] focus:outline-none"
+            className="w-full rounded bg-transparent text-sm text-[var(--hs-text-primary)] placeholder-[var(--hs-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hs-focus-ring)]"
           />
           <button
             type="button"

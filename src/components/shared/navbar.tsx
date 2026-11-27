@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Bell className="h-4 w-4" />
               {unreadAlertsCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#D94B4B] text-[10px] font-bold text-white ring-2 ring-[#164E4A]">
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#C02B2B] text-[10px] font-bold text-white ring-2 ring-[#164E4A]">
                   {unreadAlertsCount > 9 ? "9+" : unreadAlertsCount}
                 </span>
               )}

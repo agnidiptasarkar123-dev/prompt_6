@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { WifiOff, RefreshCw, AlertTriangle } from "lucide-react";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
@@ -35,6 +35,7 @@ import {
 import { useAirQualityTelemetry } from "@/hooks/use-air-quality-telemetry";
 import { usePlannerAndAlerts } from "@/hooks/use-planner-and-alerts";
 import { useHouseholdAndRecommendations } from "@/hooks/use-household-and-recommendations";
+import { useModalOrchestration } from "@/hooks/use-modal-orchestration";
 import { getGuestContext, saveGuestContext } from "@/lib/firebase/guest-context";
 import { getTextDirection, type SupportedLanguage } from "@/i18n/translations";
 import { resolveLocale } from "@/i18n/locale-registry";
@@ -76,23 +77,12 @@ function syncDocumentTheme(mode: ThemeMode): void {
 export default function DashboardPage() {
   // Navigation & App Shell State
   const [activeView, setActiveView] = useState<AppRouteView>("overview");
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-
-  // Appearance & Localization State
   const [themeMode, setThemeMode] = useState<ThemeMode>("light");
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const [selectedLocation, setSelectedLocation] = useState<SelectedLocationState>(DEFAULT_LOCATION);
-
-  // Modals & Focus Restoration State
   const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
-  const [isHouseholdModalOpen, setIsHouseholdModalOpen] = useState<boolean>(false);
-  const [isProvenanceModalOpen, setIsProvenanceModalOpen] = useState<boolean>(false);
-  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState<boolean>(false);
-  const [isAlertPreferencesOpen, setIsAlertPreferencesOpen] = useState<boolean>(false);
-  const lastFocusRef = useRef<{ focus?: () => void } | null>(null);
+
+  const modals = useModalOrchestration();
 
   const clearAiExplanation = useCallback(() => {
     setAiExplanation(null);
@@ -159,10 +149,6 @@ export default function DashboardPage() {
     syncDocumentTheme(mode);
   }, []);
 
-  const closeAuthModalOnDelete = useCallback(() => {
-    setIsAuthModalOpen(false);
-  }, []);
-
   const {
     householdContext,
     setHouseholdContext,
@@ -187,22 +173,10 @@ export default function DashboardPage() {
     setLanguage,
     handleThemeChange,
     setAiExplanation,
-    onAccountDeletedCloseAuth: closeAuthModalOnDelete
+    onAccountDeletedCloseAuth: modals.closeAuthModalOnDelete
   });
 
-  const captureFocusBeforeModal = () => {
-    lastFocusRef.current =
-      typeof document !== "undefined"
-        ? (document.activeElement as { focus?: () => void } | null)
-        : null;
-  };
-
-  const closeModalAndRestoreFocus = (setter: (open: boolean) => void) => {
-    setter(false);
-    lastFocusRef.current?.focus?.();
-  };
-
-  // Hydrate client preferences & global shortcut listener
+  // Hydrate client theme & guest preferences
   useEffect(() => {
     const storedTheme = getStoredThemeMode();
     setThemeMode(storedTheme);
@@ -218,36 +192,6 @@ export default function DashboardPage() {
     if (ctx?.householdContext) {
       setHouseholdContext(ctx.householdContext as unknown as HouseholdContext);
     }
-
-    try {
-      const seenOnboarding = window.localStorage?.getItem?.("hs_onboarding_seen");
-      if (!seenOnboarding) {
-        setIsOnboardingOpen(true);
-      }
-    } catch {
-      // Ignore storage errors safely
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setIsCommandPaletteOpen((open) => !open);
-        return;
-      }
-      if (e.key === "Escape") {
-        setIsAuthModalOpen(false);
-        setIsHouseholdModalOpen(false);
-        setIsProvenanceModalOpen(false);
-        setIsNotificationCenterOpen(false);
-        setIsAlertPreferencesOpen(false);
-        setIsCommandPaletteOpen(false);
-        lastFocusRef.current?.focus?.();
-      }
-    };
-    window.addEventListener?.("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener?.("keydown", handleKeyDown);
-    };
   }, [setHouseholdContext]);
 
   // Synchronize HTML lang and RTL/LTR direction whenever language changes
@@ -279,15 +223,6 @@ export default function DashboardPage() {
   const handleSwitchStation = (station: NormalizedStation) => {
     handleSelectStation(station);
     setActiveView("overview");
-  };
-
-  const handleDismissOnboarding = () => {
-    closeModalAndRestoreFocus(setIsOnboardingOpen);
-    try {
-      window.localStorage?.setItem?.("hs_onboarding_seen", "true");
-    } catch {
-      // Ignore
-    }
   };
 
   const handleLocateUser = useCallback(() => {
@@ -331,30 +266,18 @@ export default function DashboardPage() {
           onLanguageChange={handleLanguageChange}
           isAuthenticated={isAuthenticated}
           userEmail={userEmail}
-          onOpenAuthModal={() => {
-            captureFocusBeforeModal();
-            setIsAuthModalOpen(true);
-          }}
+          onOpenAuthModal={modals.openAuthModal}
           onSignOut={handleSignOut}
           unreadAlertsCount={unreadCount}
-          onOpenNotifications={() => {
-            captureFocusBeforeModal();
-            setIsNotificationCenterOpen(true);
-          }}
+          onOpenNotifications={modals.openNotificationCenter}
           themeMode={themeMode}
           onThemeChange={handleThemeChange}
-          onToggleMobileNav={() => setIsMobileNavOpen((prev) => !prev)}
-          onOpenCommandPalette={() => {
-            captureFocusBeforeModal();
-            setIsCommandPaletteOpen(true);
-          }}
-          onOpenHelp={() => {
-            captureFocusBeforeModal();
-            setIsOnboardingOpen(true);
-          }}
+          onToggleMobileNav={modals.toggleMobileNav}
+          onOpenCommandPalette={modals.openCommandPalette}
+          onOpenHelp={modals.openOnboarding}
         />
 
-        <main id="main-content" className="mx-auto flex-1 w-full max-w-6xl px-3 py-6 sm:px-6 space-y-6">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex-1 w-full max-w-6xl px-3 py-6 sm:px-6 space-y-6 focus:outline-none">
           <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
             {liveAnnouncement}
           </div>
@@ -368,10 +291,7 @@ export default function DashboardPage() {
             />
             <button
               type="button"
-              onClick={() => {
-                captureFocusBeforeModal();
-                setIsHouseholdModalOpen(true);
-              }}
+              onClick={modals.openHouseholdModal}
               className="shrink-0 min-h-[40px] rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-4 py-2 text-xs font-semibold text-[var(--hs-text-primary)] hover:border-[var(--hs-accent)] transition"
             >
               Household Profile &amp; Sensitivities
@@ -395,10 +315,7 @@ export default function DashboardPage() {
                 discoveredStationsCount={stations.length}
                 forecastPointsCount={forecast.length}
                 isLoading={loadingAirQuality}
-                onOpenProvenance={() => {
-                  captureFocusBeforeModal();
-                  setIsProvenanceModalOpen(true);
-                }}
+                onOpenProvenance={modals.openProvenanceModal}
                 observations={observations}
                 alternativeStation={alternativeStation}
                 onSelectStation={handleSelectStation}
@@ -412,7 +329,7 @@ export default function DashboardPage() {
             {(isOffline || usingCachedSnapshot) && (
               <div
                 role="status"
-                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-600 dark:text-amber-300"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] px-4 py-3 text-xs text-[var(--hs-accent-amber)]"
               >
                 <div className="flex items-center gap-2">
                   <WifiOff className="h-4 w-4 shrink-0" />
@@ -421,7 +338,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => void fetchStationsAndForecast()}
-                  className="inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-amber-500/40 bg-[var(--hs-surface-bg)] px-2.5 py-1 font-semibold text-[var(--hs-text-primary)]"
+                  className="inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-[var(--hs-warm-border)] bg-[var(--hs-surface-bg)] px-2.5 py-1 font-semibold text-[var(--hs-text-primary)]"
                 >
                   <RefreshCw className="h-3 w-3" />
                   <span>Retry Telemetry</span>
@@ -430,7 +347,7 @@ export default function DashboardPage() {
             )}
 
             {warnings.length > 0 && (
-              <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-300 flex items-start gap-2">
+              <div className="rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-3 text-xs text-[var(--hs-accent-amber)] flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                 <div>
                   {warnings.map((w, i) => (
@@ -489,7 +406,7 @@ export default function DashboardPage() {
                   stations={stations}
                   selectedStationId={selectedStation?.id || null}
                   onSelectStation={handleSelectStation}
-                  onOpenProvenance={() => setIsProvenanceModalOpen(true)}
+                  onOpenProvenance={modals.openProvenanceModal}
                 />
               </div>
             )}
@@ -507,7 +424,7 @@ export default function DashboardPage() {
                   stations={stations}
                   selectedStationId={selectedStation?.id || null}
                   onSelectStation={handleSelectStation}
-                  onOpenProvenance={() => setIsProvenanceModalOpen(true)}
+                  onOpenProvenance={modals.openProvenanceModal}
                 />
               </div>
             )}
@@ -563,14 +480,8 @@ export default function DashboardPage() {
                 alerts={alerts}
                 unreadCount={unreadCount}
                 alertPreferences={alertPreferences}
-                onConfigureRules={() => {
-                  captureFocusBeforeModal();
-                  setIsAlertPreferencesOpen(true);
-                }}
-                onOpenDrawer={() => {
-                  captureFocusBeforeModal();
-                  setIsNotificationCenterOpen(true);
-                }}
+                onConfigureRules={modals.openAlertPreferences}
+                onOpenDrawer={modals.openNotificationCenter}
               />
             )}
 
@@ -604,9 +515,9 @@ export default function DashboardPage() {
                   setActiveView("overview");
                 }}
                 currentLocation={selectedLocation}
-                onOpenHouseholdModal={() => setIsHouseholdModalOpen(true)}
-                onOpenAlertPreferences={() => setIsAlertPreferencesOpen(true)}
-                onOpenAuthModal={() => setIsAuthModalOpen(true)}
+                onOpenHouseholdModal={modals.openHouseholdModal}
+                onOpenAlertPreferences={modals.openAlertPreferences}
+                onOpenAuthModal={modals.openAuthModal}
                 isAuthenticated={isAuthenticated}
               />
             )}
@@ -620,7 +531,7 @@ export default function DashboardPage() {
                 stations={stations}
                 selectedStationId={selectedStation?.id || null}
                 onSelectStation={handleSelectStation}
-                onOpenProvenance={() => setIsProvenanceModalOpen(true)}
+                onOpenProvenance={modals.openProvenanceModal}
               />
               <StationMap
                 center={selectedLocation}
@@ -643,8 +554,8 @@ export default function DashboardPage() {
           activeView={activeView}
           onSelectView={setActiveView}
           language={language}
-          isMobileOpen={isMobileNavOpen}
-          onCloseMobile={() => setIsMobileNavOpen(false)}
+          isMobileOpen={modals.isMobileNavOpen}
+          onCloseMobile={modals.closeMobileNav}
           unreadAlertsCount={unreadCount}
           locationLabel={selectedLocation.name}
         />
@@ -653,8 +564,8 @@ export default function DashboardPage() {
       <Footer language={language} />
 
       <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsAuthModalOpen)}
+        isOpen={modals.isAuthModalOpen}
+        onClose={modals.closeAuthModal}
         language={language}
         isAuthenticated={isAuthenticated}
         userEmail={userEmail}
@@ -664,16 +575,16 @@ export default function DashboardPage() {
       />
 
       <HouseholdModal
-        isOpen={isHouseholdModalOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsHouseholdModalOpen)}
+        isOpen={modals.isHouseholdModalOpen}
+        onClose={modals.closeHouseholdModal}
         language={language}
         initialContext={householdContext}
         onSave={handleSaveHousehold}
       />
 
       <ProvenanceModal
-        isOpen={isProvenanceModalOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsProvenanceModalOpen)}
+        isOpen={modals.isProvenanceModalOpen}
+        onClose={modals.closeProvenanceModal}
         station={selectedStation}
         calculatedAqi={calculatedAqi}
         observations={observations}
@@ -681,38 +592,35 @@ export default function DashboardPage() {
       />
 
       <NotificationCenter
-        isOpen={isNotificationCenterOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsNotificationCenterOpen)}
+        isOpen={modals.isNotificationCenterOpen}
+        onClose={modals.closeNotificationCenter}
         language={language}
         alerts={alerts}
         onMarkAllAsRead={() => setAlerts((prev) => prev.map((a) => ({ ...a, isRead: true })))}
         onDismissAlert={(id) => setAlerts((prev) => prev.filter((a) => a.id !== id))}
         onClearAllAlerts={() => setAlerts([])}
-        onOpenPreferences={() => {
-          setIsNotificationCenterOpen(false);
-          setIsAlertPreferencesOpen(true);
-        }}
+        onOpenPreferences={modals.openAlertPreferencesFromDrawer}
       />
 
       <AlertPreferencesModal
-        isOpen={isAlertPreferencesOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsAlertPreferencesOpen)}
+        isOpen={modals.isAlertPreferencesOpen}
+        onClose={modals.closeAlertPreferences}
         language={language}
         initialPreferences={alertPreferences}
         onSavePreferences={savePreferences}
       />
 
       <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => closeModalAndRestoreFocus(setIsCommandPaletteOpen)}
+        isOpen={modals.isCommandPaletteOpen}
+        onClose={modals.closeCommandPalette}
         onSelectView={setActiveView}
         onThemeChange={handleThemeChange}
         language={language}
       />
 
       <OnboardingModal
-        isOpen={isOnboardingOpen}
-        onClose={handleDismissOnboarding}
+        isOpen={modals.isOnboardingOpen}
+        onClose={modals.dismissOnboarding}
         language={language}
         onNavigate={(v) => setActiveView(v)}
       />

@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import { TRANSLATIONS, type SupportedLanguage } from "@/i18n/translations";
 import { X, Sliders, Moon, Shield } from "lucide-react";
 
@@ -43,16 +44,18 @@ export function AlertPreferencesModal({
 
   return (
     <div
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="alert-preferences-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
     >
+      <DialogFocusTrap onClose={onClose} />
       <div className="relative w-full max-w-md rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--hs-border-subtle)] pb-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--hs-accent)]/15 text-[var(--hs-accent)]">
-              <Sliders className="h-4 w-4" />
+              <Sliders className="h-4 w-4" aria-hidden="true" />
             </div>
             <h2 id="alert-preferences-title" className="text-base font-bold text-[var(--hs-text-primary)]">
               {t.alertPreferences}
@@ -93,9 +96,11 @@ export function AlertPreferencesModal({
 
           <div className="flex items-start justify-between gap-3 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-3">
             <div className="flex items-start gap-2.5">
-              <Shield className="h-4 w-4 text-[var(--hs-accent)] mt-0.5 shrink-0" />
+              <Shield className="h-4 w-4 text-[var(--hs-accent)] mt-0.5 shrink-0" aria-hidden="true" />
               <div>
-                <span className="text-xs font-semibold block">Notification Hysteresis</span>
+                <label htmlFor="hysteresis-checkbox" className="text-xs font-semibold block cursor-pointer">
+                  Notification Hysteresis
+                </label>
                 <span className="text-[11px] text-[var(--hs-text-secondary)] leading-relaxed block">
                   Prevents notification flapping when air quality oscillates near boundary values.
                 </span>
@@ -113,8 +118,10 @@ export function AlertPreferencesModal({
           <div className="rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] p-3 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Moon className="h-4 w-4 text-[var(--hs-accent)]" />
-                <span className="text-xs font-semibold">{t.quietHours}</span>
+                <Moon className="h-4 w-4 text-[var(--hs-accent)]" aria-hidden="true" />
+                <label htmlFor="quiet-hours-checkbox" className="text-xs font-semibold cursor-pointer">
+                  {t.quietHours}
+                </label>
               </div>
               <input
                 type="checkbox"

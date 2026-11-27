@@ -258,9 +258,9 @@ export const StationMap: React.FC<StationMapProps> = ({
     <section aria-labelledby="map-heading" className="hs-card overflow-hidden rounded-2xl border border-[var(--hs-info-border)] bg-[var(--hs-surface-bg)] p-4 shadow-card-subtle">
       <div className="flex items-center justify-between pb-3">
         <div>
-          <h3 id="map-heading" className="text-sm font-bold text-[var(--hs-text-primary)]">
+          <h2 id="map-heading" className="text-sm font-bold text-[var(--hs-text-primary)]">
             Monitoring Stations Map
-          </h3>
+          </h2>
           <p className="text-xs text-[var(--hs-text-secondary)]">
             Center: {center.latitude.toFixed(4)}°N, {center.longitude.toFixed(4)}°E
           </p>
@@ -337,7 +337,7 @@ export const StationMap: React.FC<StationMapProps> = ({
           role="alert"
           className="flex flex-col items-center justify-center rounded-xl border border-rose-500/40 bg-rose-500/10 p-6 text-center"
         >
-          <AlertCircle className="h-7 w-7 text-rose-500 mb-2" />
+          <AlertCircle className="h-7 w-7 text-[var(--hs-accent-coral)] mb-2" />
           <p className="text-sm font-semibold text-[var(--hs-text-primary)]">Map Display Fallback Active</p>
           <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">{errorMessage}</p>
           <button

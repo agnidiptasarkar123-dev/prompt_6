@@ -33,11 +33,11 @@ function getQualityBadge(flag: NormalizedObservation["qualityFlag"]) {
     case "VERIFIED":
       return { label: "VERIFIED", cls: "bg-[var(--hs-accent)]/15 text-[var(--hs-accent)] border-[var(--hs-accent)]/30" };
     case "PROVISIONAL":
-      return { label: "PROVISIONAL", cls: "bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/30" };
+      return { label: "PROVISIONAL", cls: "bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)] border-[var(--hs-info-border)]" };
     case "STALE":
-      return { label: "STALE (>24h)", cls: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/35" };
+      return { label: "STALE (>24h)", cls: "bg-[var(--hs-warm-bg)] text-[var(--hs-accent-amber)] border-[var(--hs-warm-border)]" };
     default:
-      return { label: "SUSPICIOUS", cls: "bg-rose-500/15 text-rose-500 border-rose-500/35" };
+      return { label: "SUSPICIOUS", cls: "bg-rose-500/15 text-[var(--hs-accent-coral)] border-rose-500/35" };
   }
 }
 
@@ -159,7 +159,7 @@ export const PollutantGrid: React.FC<PollutantGridProps> = ({
                 ) : (
                   <div className="rounded-lg border border-dashed border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-2.5 py-2 text-center text-xs font-medium text-[var(--hs-text-secondary)]">
                     {providerUnavailable ? (
-                      <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-300">
+                      <span className="inline-flex items-center gap-1 text-[var(--hs-accent-amber)]">
                         <AlertTriangle className="h-3 w-3" />
                         Provider Unavailable
                       </span>

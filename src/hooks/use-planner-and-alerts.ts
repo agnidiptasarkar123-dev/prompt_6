@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useState, useEffect, useMemo } from "react";
 import { evaluateSmartAlerts } from "@/domain/alerts/smart-alert-engine";
+import { getBrowserLocalStorage, readValidatedJsonStorage, writeJsonStorage } from "@/lib/storage/safe-storage";
 import type { EnvironmentalAlert } from "@/components/alerts/notification-center";
 import type { AlertPreferencesState } from "@/components/alerts/alert-preferences-modal";
 import type {
@@ -20,6 +21,31 @@ export interface PlannerAndAlertsInput {
   readonly forecast: readonly NormalizedForecast[];
 }
 
+function isRecordObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isAlertPreferencesState(raw: unknown): raw is AlertPreferencesState {
+  return (
+    isRecordObject(raw) &&
+    typeof raw.severityThreshold === "string" &&
+    typeof raw.hysteresisEnabled === "boolean" &&
+    typeof raw.quietHoursEnabled === "boolean"
+  );
+}
+
+function isPlannedActivityArray(raw: unknown): raw is PlannedActivity[] {
+  return Array.isArray(raw) && raw.every((item) => isRecordObject(item) && typeof item.id === "string");
+}
+
+function isSavedPlaceArray(raw: unknown): raw is SavedPlace[] {
+  return Array.isArray(raw) && raw.every((item) => isRecordObject(item) && typeof item.id === "string");
+}
+
+function isExposureDiaryArray(raw: unknown): raw is ExposureDiaryEntry[] {
+  return Array.isArray(raw) && raw.every((item) => isRecordObject(item) && typeof item.id === "string");
+}
+
 export function usePlannerAndAlerts(input: PlannerAndAlertsInput) {
   const [plannerActivities, setPlannerActivities] = useState<PlannedActivity[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
@@ -34,26 +60,15 @@ export function usePlannerAndAlerts(input: PlannerAndAlertsInput) {
   });
 
   useEffect(() => {
-    try {
-      const savedPrefs = window.localStorage?.getItem?.("hs_alert_preferences");
-      if (savedPrefs) {
-        setAlertPreferences(JSON.parse(savedPrefs) as AlertPreferencesState);
-      }
-      const savedPlan = window.localStorage?.getItem?.("hs_planner_activities_v2");
-      if (savedPlan) {
-        setPlannerActivities(JSON.parse(savedPlan) as PlannedActivity[]);
-      }
-      const savedPl = window.localStorage?.getItem?.("hs_saved_places_v2");
-      if (savedPl) {
-        setSavedPlaces(JSON.parse(savedPl) as SavedPlace[]);
-      }
-      const savedDiary = window.localStorage?.getItem?.("hs_exposure_diary_v2");
-      if (savedDiary) {
-        setDiaryEntries(JSON.parse(savedDiary) as ExposureDiaryEntry[]);
-      }
-    } catch {
-      // Ignore malformed local state safely
-    }
+    const storage = getBrowserLocalStorage();
+    const savedPrefs = readValidatedJsonStorage(storage, "hs_alert_preferences", isAlertPreferencesState);
+    if (savedPrefs) setAlertPreferences(savedPrefs);
+    const savedPlan = readValidatedJsonStorage(storage, "hs_planner_activities_v2", isPlannedActivityArray);
+    if (savedPlan) setPlannerActivities(savedPlan);
+    const savedPl = readValidatedJsonStorage(storage, "hs_saved_places_v2", isSavedPlaceArray);
+    if (savedPl) setSavedPlaces(savedPl);
+    const savedDiary = readValidatedJsonStorage(storage, "hs_exposure_diary_v2", isExposureDiaryArray);
+    if (savedDiary) setDiaryEntries(savedDiary);
   }, []);
 
   useEffect(() => {
@@ -102,38 +117,22 @@ export function usePlannerAndAlerts(input: PlannerAndAlertsInput) {
 
   const handleUpdateActivities = (next: PlannedActivity[]) => {
     setPlannerActivities(next);
-    try {
-      window.localStorage?.setItem?.("hs_planner_activities_v2", JSON.stringify(next));
-    } catch {
-      // Ignore quota
-    }
+    writeJsonStorage(window.localStorage, "hs_planner_activities_v2", next);
   };
 
   const handleUpdateSavedPlaces = (next: SavedPlace[]) => {
     setSavedPlaces(next);
-    try {
-      window.localStorage?.setItem?.("hs_saved_places_v2", JSON.stringify(next));
-    } catch {
-      // Ignore quota
-    }
+    writeJsonStorage(window.localStorage, "hs_saved_places_v2", next);
   };
 
   const handleUpdateDiary = (next: ExposureDiaryEntry[]) => {
     setDiaryEntries(next);
-    try {
-      window.localStorage?.setItem?.("hs_exposure_diary_v2", JSON.stringify(next));
-    } catch {
-      // Ignore quota
-    }
+    writeJsonStorage(window.localStorage, "hs_exposure_diary_v2", next);
   };
 
   const savePreferences = (prefs: AlertPreferencesState) => {
     setAlertPreferences(prefs);
-    try {
-      window.localStorage?.setItem?.("hs_alert_preferences", JSON.stringify(prefs));
-    } catch {
-      // Ignore quota
-    }
+    writeJsonStorage(window.localStorage, "hs_alert_preferences", prefs);
   };
 
   const unreadCount = useMemo(() => alerts.filter((a) => !a.isRead).length, [alerts]);

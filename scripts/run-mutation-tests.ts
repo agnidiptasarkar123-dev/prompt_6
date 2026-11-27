@@ -501,7 +501,7 @@ export const MUTATIONS: MutationTarget[] = [
     id: "MUT-SEC-09",
     subsystem: "Auth Session Boundary",
     requirement: "Cross-Origin CSRF Rejection",
-    file: "src/app/api/v1/auth/session/route.ts",
+    file: "src/lib/http/request-guards.ts",
     targetTest: "tests/unit/security/ascent-hardening-and-station-ranking.test.ts",
     description: "Invert CSRF origin check (originHost === host)",
     find: "if (originHost !== host) {",

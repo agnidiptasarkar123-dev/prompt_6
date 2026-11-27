@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { X, Users } from "lucide-react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import type { SupportedLanguage } from "@/i18n/translations";
 import type { HouseholdContext } from "@/schemas/user-context.schema";
 import type { TransitMode, RoutineActivity } from "@/schemas/routine.schema";
@@ -142,11 +143,13 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
 
   return (
     <div
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="household-modal-heading"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 p-4 backdrop-blur-sm"
     >
+      <DialogFocusTrap onClose={onClose} />
       <div className="hs-card relative w-full max-w-lg rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-modal-subtle">
         <button
           type="button"
@@ -159,9 +162,9 @@ export const HouseholdModal: React.FC<HouseholdModalProps> = ({
 
         <div className="flex items-center space-x-2">
           <Users className="h-5 w-5 text-[var(--hs-accent)]" />
-          <h3 id="household-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
+          <h2 id="household-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
             Household Context & Routine
-          </h3>
+          </h2>
         </div>
         <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
           Voluntarily personalize your recommendations for multi-generational household vulnerabilities. Health info is non-diagnostic.

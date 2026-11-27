@@ -21,6 +21,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  if ((stationId && stationId.length > 120) || (stationName && stationName.length > 160)) {
+    return errorResponse(400, "INVALID_PARAMETERS", "Station parameters exceed allowed length.");
+  }
+
   try {
     let resolvedStationId: string | undefined = stationId || undefined;
     let resolvedStationHint = undefined;

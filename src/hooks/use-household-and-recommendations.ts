@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { saveGuestContext } from "@/lib/firebase/guest-context";
+import { compactObservationsForRequest } from "@/lib/http/compact-payload";
 import type { SupportedLanguage } from "@/i18n/translations";
 import type { ThemeMode } from "@/theme/tokens";
 import type { CpcbAqiResult, CpcbCategory } from "@/schemas/cpcb.schema";
@@ -76,7 +77,7 @@ export function useHouseholdAndRecommendations(params: UseHouseholdAndRecommenda
   // Evaluate Recommendations & Indoor Ventilation safely without false MODERATE fallback
   const evaluateRecommendations = useCallback(async () => {
     try {
-      const evidenceList = observations.map((o) => ({
+      const evidenceList = compactObservationsForRequest(observations).map((o) => ({
         evidenceId: o.id,
         source: o.providerId,
         pollutant: o.pollutant,
@@ -147,6 +148,7 @@ export function useHouseholdAndRecommendations(params: UseHouseholdAndRecommenda
       a.href = url;
       a.download = `hawasaathi-profile-export-${Date.now()}.json`;
       a.click();
+      setTimeout(() => URL.revokeObjectURL?.(url), 1000);
     }
   };
 

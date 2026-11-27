@@ -2,12 +2,13 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse, checkRouteRateLimit } from "@/lib/http/api-response";
+import { parseValidatedJsonBody, verifySameOriginRequest } from "@/lib/http/request-guards";
 import { globalFirebaseAuth } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
 
 const SessionRequestSchema = z.object({
-  idToken: z.string().min(1)
+  idToken: z.string().min(1).max(8192)
 });
 
 const SESSION_COOKIE_NAME = "hs_session";
@@ -16,31 +17,15 @@ export async function POST(req: NextRequest) {
   const rateLimitError = await checkRouteRateLimit(req, 20, 60);
   if (rateLimitError) return rateLimitError;
 
-  // CSRF validation
-  const origin = req.headers.get("origin");
-  const host = req.headers.get("host");
-  if (origin && host) {
-    try {
-      const originHost = new URL(origin).host;
-      if (originHost !== host) {
-        return errorResponse(403, "CSRF_FORBIDDEN", "Cross-origin session creation forbidden.");
-      }
-    } catch {
-      return errorResponse(403, "CSRF_FORBIDDEN", "Malformed origin header.");
-    }
-  }
+  const csrfError = verifySameOriginRequest(req, "Cross-origin session creation forbidden.");
+  if (csrfError) return csrfError;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse(400, "INVALID_JSON", "Request body must be valid JSON.");
-  }
-
-  const parsed = SessionRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return errorResponse(400, "INVALID_TOKEN", "idToken is required.");
-  }
+  const parsed = await parseValidatedJsonBody(req, SessionRequestSchema, {
+    maxBytes: 16_384,
+    schemaErrorCode: "INVALID_TOKEN",
+    schemaErrorMessage: "idToken is required."
+  });
+  if (!parsed.ok) return parsed.response;
 
   if (!globalFirebaseAuth.isConfigured()) {
     return errorResponse(
@@ -81,6 +66,12 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const rateLimitError = await checkRouteRateLimit(req, 30, 60);
+  if (rateLimitError) return rateLimitError;
+
+  const csrfError = verifySameOriginRequest(req, "Cross-origin session termination forbidden.");
+  if (csrfError) return csrfError;
+
   const sessionCookie = req.cookies?.get?.(SESSION_COOKIE_NAME)?.value;
   if (sessionCookie && globalFirebaseAuth.isConfigured()) {
     try {
@@ -98,6 +89,9 @@ export async function DELETE(req: NextRequest) {
   res.cookies.set({
     name: SESSION_COOKIE_NAME,
     value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     maxAge: 0,
     path: "/"
   });

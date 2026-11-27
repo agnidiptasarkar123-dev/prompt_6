@@ -33,6 +33,10 @@ export async function GET(req: NextRequest) {
     return errorResponse(400, "INVALID_RADIUS", "radiusKm must be a number between 1 and 150 km.");
   }
 
+  if (query && query.length > 100) {
+    return errorResponse(400, "QUERY_TOO_LONG", "Station query must not exceed 100 characters.");
+  }
+
   try {
     const result = await globalSourceOrchestrator.searchNearbyStations({
       latitude: lat,

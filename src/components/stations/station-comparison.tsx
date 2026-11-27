@@ -128,7 +128,7 @@ export const StationComparison: React.FC<StationComparisonProps> = ({
                       <td key={st.id} className="px-4 py-2.5">
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                            eligible ? "bg-emerald-500/15 text-emerald-500" : "bg-amber-500/15 text-amber-500"
+                            eligible ? "bg-emerald-500/15 text-[var(--hs-accent)]" : "bg-amber-500/15 text-[var(--hs-accent-amber)]"
                           }`}
                         >
                           {eligible ? "Eligible (≥3 incl. PM)" : "Partial / Raw Only"}
@@ -185,7 +185,7 @@ export const StationComparison: React.FC<StationComparisonProps> = ({
                           onClick={() => onSelectStation(st)}
                           className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
                             isActive
-                              ? "bg-emerald-600 text-white"
+                              ? "bg-emerald-700 text-white"
                               : "bg-[var(--hs-accent)] text-[var(--hs-accent-text)] hover:opacity-90"
                           }`}
                         >

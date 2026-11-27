@@ -104,9 +104,9 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
         <div className="relative flex-1">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" />
+              <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" aria-hidden="true" />
             ) : (
-              <Search className="h-4 w-4 text-[var(--hs-text-secondary)]" />
+              <Search className="h-4 w-4 text-[var(--hs-text-secondary)]" aria-hidden="true" />
             )}
           </div>
           <input
@@ -117,7 +117,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
               if (results.length > 0) setIsOpen(true);
             }}
             placeholder={t.searchPlaceholder}
-            className="w-full rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] py-2.5 pl-10 pr-4 text-sm text-[var(--hs-text-primary)] placeholder-[var(--hs-text-secondary)] shadow-xs focus:border-[var(--hs-accent)] focus:outline-none"
+            className="w-full rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] py-2.5 pl-10 pr-4 text-sm text-[var(--hs-text-primary)] placeholder-[var(--hs-text-secondary)] shadow-xs focus:border-[var(--hs-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hs-focus-ring)]"
             aria-label="Search city or location"
           />
         </div>
@@ -129,16 +129,16 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
           className="inline-flex shrink-0 items-center justify-center space-x-1.5 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-4 py-2.5 text-xs font-semibold text-[var(--hs-text-primary)] transition hover:border-[var(--hs-accent)] shadow-xs disabled:opacity-50"
         >
           {geoLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" />
+            <Loader2 className="h-4 w-4 animate-spin text-[var(--hs-accent)]" aria-hidden="true" />
           ) : (
-            <Navigation className="h-4 w-4 text-[var(--hs-accent)]" />
+            <Navigation className="h-4 w-4 text-[var(--hs-accent)]" aria-hidden="true" />
           )}
           <span>{t.useLocation}</span>
         </button>
       </div>
 
       {geoError && (
-        <p className="mt-1 text-xs text-rose-500" role="alert">
+        <p className="mt-1 text-xs text-[var(--hs-accent-coral)]" role="alert">
           {geoError}
         </p>
       )}
@@ -162,7 +162,7 @@ export const LocationSearch: React.FC<LocationSearchProps> = ({
                 }}
                 className="flex w-full items-center space-x-2 px-4 py-2.5 text-left text-sm text-[var(--hs-text-primary)] transition hover:bg-[var(--hs-subtle-bg)]"
               >
-                <MapPin className="h-4 w-4 text-[var(--hs-accent)] shrink-0" />
+                <MapPin className="h-4 w-4 text-[var(--hs-accent)] shrink-0" aria-hidden="true" />
                 <span className="font-medium">{loc.name}</span>
                 <span className="text-xs text-[var(--hs-text-secondary)]">({loc.state})</span>
               </button>

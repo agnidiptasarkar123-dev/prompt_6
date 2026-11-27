@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { SupportedLanguage } from "@/i18n/translations";
 import { getV2UiStrings } from "@/i18n/v2-translations";
+import { compactForecastForRequest, compactObservationsForRequest } from "@/lib/http/compact-payload";
 import type { CpcbAqiResult } from "@/schemas/cpcb.schema";
 import type {
   NormalizedStation,
@@ -317,8 +318,8 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
         body: JSON.stringify({
           activities: dayActivities,
           aqiResult: calculatedAqi,
-          observations,
-          forecast
+          observations: compactObservationsForRequest(observations),
+          forecast: compactForecastForRequest(forecast)
         })
       });
       const json = await res.json();
@@ -356,10 +357,10 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
   };
 
   const badgeStyle = (suitability: string) => {
-    if (suitability === "RECOMMENDED") return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/35";
-    if (suitability === "CAUTION") return "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/35";
-    if (suitability === "AVOID_OR_RESCHEDULE") return "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/35";
-    return "bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/35";
+    if (suitability === "RECOMMENDED") return "bg-emerald-500/15 text-[var(--hs-accent)] border-emerald-500/35";
+    if (suitability === "CAUTION") return "bg-[var(--hs-warm-bg)] text-[var(--hs-accent-amber)] border-[var(--hs-warm-border)]";
+    if (suitability === "AVOID_OR_RESCHEDULE") return "bg-rose-500/15 text-[var(--hs-accent-coral)] border-rose-500/35";
+    return "bg-[var(--hs-info-bg)] text-[var(--hs-accent-blue)] border-[var(--hs-info-border)]";
   };
 
   return (
@@ -472,7 +473,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
             </div>
 
             {serverVerifyError && (
-              <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-500">
+              <div role="alert" className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-[var(--hs-accent-coral)]">
                 {serverVerifyError}
               </div>
             )}
@@ -501,7 +502,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
             {evaluation.conflicts.length > 0 && (
               <div
                 role="alert"
-                className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-xs text-amber-600 dark:text-amber-300 space-y-1"
+                className="rounded-xl border border-[var(--hs-warm-border)] bg-[var(--hs-warm-bg)] p-3.5 text-xs text-[var(--hs-accent-amber)] space-y-1"
               >
                 <p className="font-bold flex items-center gap-1.5">
                   <AlertTriangle className="h-4 w-4" />
@@ -659,7 +660,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
               </div>
 
               {formError && (
-                <p className="sm:col-span-2 lg:col-span-4 text-xs font-medium text-rose-500">{formError}</p>
+                <p className="sm:col-span-2 lg:col-span-4 text-xs font-medium text-[var(--hs-accent-coral)]">{formError}</p>
               )}
             </form>
 
@@ -753,7 +754,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
                           onClick={() => handleToggleFavorite(act.id)}
                           aria-label={act.isFavorite ? "Remove favorite" : "Mark favorite"}
                           className={`rounded-lg p-1.5 border border-[var(--hs-border-subtle)] ${
-                            act.isFavorite ? "text-amber-500 bg-amber-500/10" : "text-[var(--hs-text-secondary)]"
+                            act.isFavorite ? "text-[var(--hs-accent-amber)] bg-[var(--hs-warm-bg)]" : "text-[var(--hs-text-secondary)]"
                           }`}
                         >
                           <Star className="h-3.5 w-3.5" />
@@ -762,7 +763,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
                           type="button"
                           onClick={() => handleDeleteActivity(act.id)}
                           aria-label={`Delete ${act.title}`}
-                          className="rounded-lg p-1.5 border border-[var(--hs-border-subtle)] text-rose-500 hover:bg-rose-500/10"
+                          className="rounded-lg p-1.5 border border-[var(--hs-border-subtle)] text-[var(--hs-accent-coral)] hover:bg-rose-500/10"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -876,7 +877,7 @@ export const DailyPlanner: React.FC<DailyPlannerProps> = ({
                     type="button"
                     onClick={() => onUpdateDiary(diaryEntries.filter((d) => d.id !== entry.id))}
                     aria-label="Remove journal entry"
-                    className="rounded p-1 text-rose-500 hover:bg-rose-500/10"
+                    className="rounded p-1 text-[var(--hs-accent-coral)] hover:bg-rose-500/10"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>

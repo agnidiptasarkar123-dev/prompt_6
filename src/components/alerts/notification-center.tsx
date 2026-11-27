@@ -2,6 +2,7 @@
 "use client";
 
 import React from "react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import { TRANSLATIONS, type SupportedLanguage } from "@/i18n/translations";
 import { Bell, X, CheckCheck, Trash2, AlertTriangle, ShieldAlert, Info } from "lucide-react";
 
@@ -47,25 +48,25 @@ export function NotificationCenter({
       case "SEVERE":
         return (
           <span className="inline-flex items-center gap-1 rounded bg-rose-950/80 px-2 py-0.5 text-xs font-semibold text-rose-300 border border-rose-800">
-            <ShieldAlert className="h-3 w-3" /> {t.categorySevere}
+            <ShieldAlert className="h-3 w-3" aria-hidden="true" /> {t.categorySevere}
           </span>
         );
       case "VERY_POOR":
         return (
           <span className="inline-flex items-center gap-1 rounded bg-purple-950/80 px-2 py-0.5 text-xs font-semibold text-purple-300 border border-purple-800">
-            <AlertTriangle className="h-3 w-3" /> {t.categoryVeryPoor}
+            <AlertTriangle className="h-3 w-3" aria-hidden="true" /> {t.categoryVeryPoor}
           </span>
         );
       case "POOR":
         return (
           <span className="inline-flex items-center gap-1 rounded bg-orange-950/80 px-2 py-0.5 text-xs font-semibold text-orange-300 border border-orange-800">
-            <AlertTriangle className="h-3 w-3" /> {t.categoryPoor}
+            <AlertTriangle className="h-3 w-3" aria-hidden="true" /> {t.categoryPoor}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center gap-1 rounded bg-amber-950/80 px-2 py-0.5 text-xs font-semibold text-amber-300 border border-amber-800">
-            <Info className="h-3 w-3" /> {t.categoryModerate}
+            <Info className="h-3 w-3" aria-hidden="true" /> {t.categoryModerate}
           </span>
         );
     }
@@ -73,16 +74,18 @@ export function NotificationCenter({
 
   return (
     <div
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="notification-center-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
     >
+      <DialogFocusTrap onClose={onClose} />
       <div className="relative flex max-h-[85vh] w-full max-w-xl flex-col rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--hs-border-subtle)] px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--hs-accent)]/15 text-[var(--hs-accent)]">
-              <Bell className="h-5 w-5" />
+              <Bell className="h-5 w-5" aria-hidden="true" />
             </div>
             <div>
               <h2 id="notification-center-title" className="text-base font-bold text-[var(--hs-text-primary)]">
@@ -119,7 +122,7 @@ export function NotificationCenter({
               onClick={onMarkAllAsRead}
               className="inline-flex items-center gap-1.5 font-medium text-[var(--hs-accent)] hover:opacity-80"
             >
-              <CheckCheck className="h-3.5 w-3.5" />
+              <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
               <span>{t.markAllRead}</span>
             </button>
             <button
@@ -127,7 +130,7 @@ export function NotificationCenter({
               onClick={onClearAllAlerts}
               className="inline-flex items-center gap-1.5 font-medium text-[var(--hs-text-secondary)] hover:text-rose-500"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
               <span>{t.clearAlerts}</span>
             </button>
           </div>
@@ -136,7 +139,7 @@ export function NotificationCenter({
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-[var(--hs-text-secondary)]">
-              <Bell className="h-10 w-10 mb-2 opacity-40" />
+              <Bell className="h-10 w-10 mb-2 opacity-40" aria-hidden="true" />
               <p className="text-sm">{t.noAlerts}</p>
             </div>
           ) : (

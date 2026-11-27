@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { X, Download, Trash2, Loader2, Check } from "lucide-react";
+import { DialogFocusTrap } from "@/components/shared/dialog-focus-trap";
 import { TRANSLATIONS, type SupportedLanguage } from "@/i18n/translations";
 import { signInWithGoogle, sendEmailSignInLink } from "@/lib/firebase/client";
 
@@ -88,11 +89,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <div
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-heading"
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 p-4 backdrop-blur-sm"
     >
+      <DialogFocusTrap onClose={onClose} />
       <div className="hs-card relative w-full max-w-md rounded-2xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] p-6 shadow-modal-subtle">
         <button
           type="button"
@@ -103,9 +106,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <X className="h-5 w-5" />
         </button>
 
-        <h3 id="auth-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
+        <h2 id="auth-modal-heading" className="text-xl font-bold text-[var(--hs-text-primary)]">
           {isAuthenticated ? "Account & Privacy Settings" : t.signIn}
-        </h3>
+        </h2>
         <p className="mt-1 text-xs text-[var(--hs-text-secondary)]">
           {isAuthenticated
             ? `Signed in as ${userEmail || "Authenticated User"}`

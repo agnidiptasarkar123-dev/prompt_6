@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { type NextRequest } from "next/server";
 import { z } from "zod";
-import { successResponse, errorResponse, checkRouteRateLimit } from "@/lib/http/api-response";
+import { successResponse, checkRouteRateLimit } from "@/lib/http/api-response";
+import { parseValidatedJsonBody, verifySameOriginRequest } from "@/lib/http/request-guards";
 import { resolveSessionAuth } from "@/lib/http/session-auth";
 import { generateGroundedChatReply } from "@/services/ai/chat-service";
 import { SupportedAiLanguageSchema } from "@/schemas/ai-explanation.schema";
@@ -20,8 +21,8 @@ const ChatRequestSchema = z.object({
   station: NormalizedStationSchema.nullable().optional(),
   stations: z.array(NormalizedStationSchema).max(20).optional(),
   calculatedAqi: CpcbAqiResultSchema.nullable().optional(),
-  observations: z.array(NormalizedObservationSchema).optional().default([]),
-  forecast: z.array(NormalizedForecastSchema).optional().default([]),
+  observations: z.array(NormalizedObservationSchema).max(200).optional().default([]),
+  forecast: z.array(NormalizedForecastSchema).max(200).optional().default([]),
   history: z
     .array(
       z.object({
@@ -41,23 +42,13 @@ export async function POST(req: NextRequest) {
   const rateLimitMs = Date.now() - tRlStart;
   if (rateLimitError) return rateLimitError;
 
-  const tValStart = Date.now();
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse(400, "INVALID_JSON", "Request body must be valid JSON.");
-  }
+  const csrfError = verifySameOriginRequest(req, "Cross-origin chat execution forbidden.");
+  if (csrfError) return csrfError;
 
-  const parsed = ChatRequestSchema.safeParse(body);
+  const tValStart = Date.now();
+  const parsed = await parseValidatedJsonBody(req, ChatRequestSchema);
   const schemaValidationMs = Date.now() - tValStart;
-  if (!parsed.success) {
-    return errorResponse(
-      400,
-      "SCHEMA_VALIDATION_ERROR",
-      parsed.error.issues.map((i) => i.message).join("; ")
-    );
-  }
+  if (!parsed.ok) return parsed.response;
 
   const tAuthStart = Date.now();
   const isAuthenticated = await resolveSessionAuth(req);

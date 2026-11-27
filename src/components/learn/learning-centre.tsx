@@ -66,10 +66,10 @@ const EMPTY_PROGRESS: LearnProgressState = {
 };
 
 const CPCB_BANDS = [
-  { band: "Good (0–50)", impact: "Minimal health impact. Ideal for all outdoor activities and natural ventilation.", color: "bg-emerald-600 text-white" },
+  { band: "Good (0–50)", impact: "Minimal health impact. Ideal for all outdoor activities and natural ventilation.", color: "bg-emerald-700 text-white" },
   { band: "Satisfactory (51–100)", impact: "Minor breathing discomfort possible for unusually sensitive people.", color: "bg-lime-500 text-slate-900" },
   { band: "Moderate (101–200)", impact: "Discomfort for people with asthma, heart, or lung conditions; children should pace strenuous outdoor sport.", color: "bg-amber-400 text-slate-950" },
-  { band: "Poor (201–300)", impact: "Breathing discomfort for most people on prolonged exposure; prefer indoor alternatives.", color: "bg-orange-500 text-white" },
+  { band: "Poor (201–300)", impact: "Breathing discomfort for most people on prolonged exposure; prefer indoor alternatives.", color: "bg-orange-500 text-slate-950" },
   { band: "Very Poor (301–400)", impact: "Respiratory illness on prolonged exposure; wear N95/FFP2 masks outdoors and keep windows sealed.", color: "bg-red-600 text-white" },
   { band: "Severe (401–500)", impact: "Health impact even on healthy individuals; avoid outdoor exertion and run True HEPA purifiers.", color: "bg-rose-700 text-white" }
 ] as const;
@@ -369,7 +369,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
               <h3
                 ref={detailHeadingRef}
                 tabIndex={-1}
-                className="pt-1 text-lg font-extrabold text-[var(--hs-text-primary)] focus:outline-none"
+                className="pt-1 text-lg font-extrabold text-[var(--hs-text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hs-focus-ring)] rounded"
               >
                 {selectedLesson.title}
               </h3>
@@ -393,7 +393,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                     onClick={() => setLevel(item.id)}
                     className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition ${
                       level === item.id
-                        ? "bg-[var(--hs-accent-violet)] text-white"
+                        ? "bg-[var(--hs-accent-violet)] text-[var(--hs-accent-text)]"
                         : "text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
                     }`}
                   >
@@ -415,7 +415,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                 onClick={() => setStudyMode(m.id)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   studyMode === m.id
-                    ? "bg-[var(--hs-accent-blue)] text-white"
+                    ? "bg-[var(--hs-accent-blue)] text-[var(--hs-accent-text)]"
                     : "border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-text-secondary)] hover:text-[var(--hs-text-primary)]"
                 }`}
               >
@@ -521,7 +521,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                         type="button"
                         aria-expanded={flashcardRevealed}
                         onClick={() => setFlashcardRevealed((v) => !v)}
-                        className="rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-white"
+                        className="rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-[var(--hs-accent-text)]"
                       >
                         {flashcardRevealed ? "Hide Answer" : "Reveal Answer"}
                       </button>
@@ -596,7 +596,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                     <button
                       type="button"
                       onClick={() => handleSubmitQuiz(selectedLesson)}
-                      className="rounded-lg bg-[var(--hs-accent-blue)] px-4 py-2 text-xs font-bold text-white"
+                      className="rounded-lg bg-[var(--hs-accent-blue)] px-4 py-2 text-xs font-bold text-[var(--hs-accent-text)]"
                     >
                       Check Answers
                     </button>
@@ -698,7 +698,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                       key={msg.id}
                       className={`rounded-lg px-3 py-2 text-xs ${
                         msg.role === "user"
-                          ? "ml-6 bg-[var(--hs-accent-violet)] text-white"
+                          ? "ml-6 bg-[var(--hs-accent-violet)] text-[var(--hs-accent-text)]"
                           : "mr-2 border border-[var(--hs-border-subtle)] bg-[var(--hs-subtle-bg)] text-[var(--hs-text-primary)]"
                       }`}
                     >
@@ -748,13 +748,13 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                   onChange={(e) => setTutorInput(e.target.value)}
                   placeholder={`Ask about ${selectedLesson.code} concepts...`}
                   aria-label={`Ask learning tutor about ${selectedLesson.code}`}
-                  className="flex-1 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-3 py-2 text-xs text-[var(--hs-text-primary)] placeholder:text-[var(--hs-text-secondary)] focus:border-[var(--hs-accent-violet)] focus:outline-none"
+                  className="flex-1 rounded-xl border border-[var(--hs-border-subtle)] bg-[var(--hs-surface-bg)] px-3 py-2 text-xs text-[var(--hs-text-primary)] placeholder:text-[var(--hs-text-secondary)] focus:border-[var(--hs-accent-violet)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--hs-focus-ring)]"
                 />
                 <button
                   type="submit"
                   disabled={tutorLoading || !tutorInput.trim()}
                   aria-label="Ask learning tutor"
-                  className="inline-flex items-center gap-1 rounded-xl bg-[var(--hs-accent-violet)] px-3.5 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  className="inline-flex items-center gap-1 rounded-xl bg-[var(--hs-accent-violet)] px-3.5 py-2 text-xs font-bold text-[var(--hs-accent-text)] disabled:opacity-50"
                 >
                   {tutorLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                   <span>Ask</span>
@@ -813,7 +813,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                 <button
                   type="button"
                   onClick={(e) => openLesson("cpcb-naqi", e?.currentTarget)}
-                  className="shrink-0 rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-white"
+                  className="shrink-0 rounded-lg bg-[var(--hs-accent)] px-3 py-1.5 text-xs font-bold text-[var(--hs-accent-text)]"
                 >
                   Open Interactive NAQI Lesson →
                 </button>
@@ -840,7 +840,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                 <button
                   type="button"
                   onClick={(e) => openLesson("type-a-d", e?.currentTarget)}
-                  className="shrink-0 rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-white"
+                  className="shrink-0 rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-[var(--hs-accent-text)]"
                 >
                   Practice Type A–D Quiz →
                 </button>
@@ -984,7 +984,7 @@ export const LearningCentre: React.FC<LearningCentreProps> = ({ language }) => {
                   <button
                     type="button"
                     onClick={(e) => openLesson("cadr-ventilation", e?.currentTarget)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-white"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--hs-accent-violet)] px-3 py-1.5 text-xs font-bold text-[var(--hs-accent-text)]"
                   >
                     Open CADR Lesson &amp; Study Tutor →
                   </button>

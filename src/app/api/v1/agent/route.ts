@@ -2,6 +2,7 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { successResponse, errorResponse, checkRouteRateLimit } from "@/lib/http/api-response";
+import { parseValidatedJsonBody, verifySameOriginRequest } from "@/lib/http/request-guards";
 import { resolveSessionAuth } from "@/lib/http/session-auth";
 import { runIntelligentAgentTask } from "@/services/ai/agent-orchestrator";
 import { SupportedAiLanguageSchema } from "@/schemas/ai-explanation.schema";
@@ -17,11 +18,11 @@ export const runtime = "nodejs";
 const AgentRequestSchema = z.object({
   prompt: z.string().min(1).max(1000),
   language: SupportedAiLanguageSchema.default("en"),
-  stationId: z.string().optional(),
+  stationId: z.string().max(120).optional(),
   station: NormalizedStationSchema.nullable().optional(),
   calculatedAqi: CpcbAqiResultSchema.nullable().optional(),
-  observations: z.array(NormalizedObservationSchema).optional().default([]),
-  forecast: z.array(NormalizedForecastSchema).optional().default([]),
+  observations: z.array(NormalizedObservationSchema).max(200).optional().default([]),
+  forecast: z.array(NormalizedForecastSchema).max(200).optional().default([]),
   coordinates: z
     .object({
       latitude: z.number().min(6).max(38),
@@ -42,21 +43,11 @@ export async function POST(req: NextRequest) {
   const rateLimitError = await checkRouteRateLimit(req, 30, 60);
   if (rateLimitError) return rateLimitError;
 
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return errorResponse(400, "INVALID_JSON", "Request body must be valid JSON.");
-  }
+  const csrfError = verifySameOriginRequest(req, "Cross-origin agent execution forbidden.");
+  if (csrfError) return csrfError;
 
-  const parsed = AgentRequestSchema.safeParse(body);
-  if (!parsed.success) {
-    return errorResponse(
-      400,
-      "SCHEMA_VALIDATION_ERROR",
-      parsed.error.issues.map((i) => i.message).join("; ")
-    );
-  }
+  const parsed = await parseValidatedJsonBody(req, AgentRequestSchema);
+  if (!parsed.ok) return parsed.response;
 
   const isAuthenticated = await resolveSessionAuth(req);
   const d = parsed.data;

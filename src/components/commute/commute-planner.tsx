@@ -58,7 +58,7 @@ export function CommutePlanner({
     >
       <div className="flex items-center gap-3 border-b border-[var(--hs-border-subtle)] pb-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--hs-accent)]/15 text-[var(--hs-accent)]">
-          <Navigation className="h-5 w-5" />
+          <Navigation className="h-5 w-5" aria-hidden="true" />
         </div>
         <div className="min-w-0">
           <h2 id="commute-planner-heading" className="text-base font-bold text-[var(--hs-text-primary)] hs-wrap-safe">
@@ -145,13 +145,13 @@ export function CommutePlanner({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {mode === "CYCLE" ? (
-              <Bike className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" />
+              <Bike className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" aria-hidden="true" />
             ) : mode === "WALK" ? (
-              <Footprints className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" />
+              <Footprints className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" aria-hidden="true" />
             ) : mode === "CAB_CAR" ? (
-              <Car className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" />
+              <Car className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" aria-hidden="true" />
             ) : (
-              <Bus className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" />
+              <Bus className="h-6 w-6 shrink-0 text-[var(--hs-accent)]" aria-hidden="true" />
             )}
             <div className="min-w-0">
               <span className="text-xs text-[var(--hs-text-secondary)]">Route Profile</span>
@@ -164,20 +164,20 @@ export function CommutePlanner({
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs text-[var(--hs-text-secondary)]">Exposure Index:</span>
             {riskLevel === "UNVERIFIED" ? (
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-500 border border-amber-500/35">
-                <AlertTriangle className="h-3.5 w-3.5" /> Unverified (AQI Unavailable)
+              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-[var(--hs-accent-amber)] border border-amber-500/35">
+                <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Unverified (AQI Unavailable)
               </span>
             ) : riskLevel === "VERY_HIGH" ? (
-              <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-bold text-rose-500 border border-rose-500/35">
-                <ShieldAlert className="h-3.5 w-3.5" /> High Inhalation Risk
+              <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/15 px-2.5 py-1 text-xs font-bold text-[var(--hs-accent-coral)] border border-rose-500/35">
+                <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" /> High Inhalation Risk
               </span>
             ) : riskLevel === "HIGH" ? (
-              <span className="inline-flex items-center gap-1 rounded-md bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-orange-500 border border-orange-500/35">
-                <ShieldAlert className="h-3.5 w-3.5" /> Elevated Exposure
+              <span className="inline-flex items-center gap-1 rounded-md bg-orange-500/15 px-2.5 py-1 text-xs font-bold text-[var(--hs-accent-amber)] border border-orange-500/35">
+                <ShieldAlert className="h-3.5 w-3.5" aria-hidden="true" /> Elevated Exposure
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-md bg-[var(--hs-accent)]/15 px-2.5 py-1 text-xs font-bold text-[var(--hs-accent)] border border-[var(--hs-accent)]/35">
-                <CheckCircle className="h-3.5 w-3.5" /> Manageable Exposure
+                <CheckCircle className="h-3.5 w-3.5" aria-hidden="true" /> Manageable Exposure
               </span>
             )}
           </div>
@@ -202,15 +202,15 @@ export function CommutePlanner({
           )}
 
           {isPeakHour && (
-            <p className="flex items-center gap-1.5 text-amber-500 font-medium">
-              <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+            <p className="flex items-center gap-1.5 text-[var(--hs-accent-amber)] font-medium">
+              <Clock className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
               <span>Peak commuter hours coincide with elevated roadside NO₂ and primary tailpipe emissions.</span>
             </p>
           )}
         </div>
 
         <div className="mt-4 flex items-start gap-2 rounded-lg bg-[var(--hs-surface-bg)] border border-[var(--hs-border-subtle)] p-2.5 text-[11px] text-[var(--hs-text-secondary)]">
-          <Info className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <Info className="h-4 w-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <span className="hs-wrap-safe">{t.exposureNotice}</span>
         </div>
       </div>

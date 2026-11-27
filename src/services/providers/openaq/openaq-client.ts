@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { fetchJsonWithTimeout } from "@/lib/http/upstream-fetch";
 import {
   OpenAQLocationsResponseSchema,
   OpenAQMeasurementsResponseSchema,
@@ -16,11 +17,13 @@ export class OpenAQClient {
   private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly allowedHosts: readonly string[] | undefined;
 
   constructor(options: OpenAQClientOptions = {}) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl || "https://api.openaq.org/v3";
     this.timeoutMs = options.timeoutMs || 15000;
+    this.allowedHosts = options.baseUrl ? undefined : ["api.openaq.org"];
   }
 
   public isConfigured(): boolean {
@@ -103,37 +106,20 @@ export class OpenAQClient {
   }
 
   private async fetchWithAuth<T>(url: string, schema: { parse: (json: unknown) => T }): Promise<T> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "X-API-Key": this.apiKey!
-        },
-        signal: controller.signal
-      });
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get("Retry-After") || "60";
-        throw new Error(`OpenAQ rate limit exceeded (HTTP 429). Retry after ${retryAfter}s`);
-      }
-
-      if (!response.ok) {
-        throw new Error(`OpenAQ upstream error: HTTP ${response.status} from ${url}`);
-      }
-
-      const json = await response.json();
-      return schema.parse(json);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new Error(`OpenAQ upstream request timed out after ${this.timeoutMs}ms`);
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    return fetchJsonWithTimeout({
+      url,
+      headers: { "X-API-Key": this.apiKey! },
+      allowedHosts: this.allowedHosts,
+      timeoutMs: this.timeoutMs,
+      errorPrefix: "OpenAQ",
+      mapHttpError: (response) => {
+        if (response.status === 429) {
+          const retryAfter = response.headers.get("Retry-After") || "60";
+          return new Error(`OpenAQ rate limit exceeded (HTTP 429). Retry after ${retryAfter}s`);
+        }
+        return null;
+      },
+      parse: (json) => schema.parse(json)
+    });
   }
 }

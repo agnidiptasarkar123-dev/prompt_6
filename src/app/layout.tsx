@@ -24,7 +24,15 @@ export default function RootLayout({
       <head>
         <Script src="/theme-init.js" strategy="beforeInteractive" />
       </head>
-      <body>{children}</body>
+      <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-[var(--hs-surface-bg)] focus:px-4 focus:py-2 focus:text-xs focus:font-bold focus:text-[var(--hs-text-primary)] focus:ring-2 focus:ring-[var(--hs-focus-ring)] focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

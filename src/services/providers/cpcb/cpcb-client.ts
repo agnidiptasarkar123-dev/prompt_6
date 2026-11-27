@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { fetchJsonWithTimeout } from "@/lib/http/upstream-fetch";
 import { CpcbApiResponseSchema, type CpcbApiResponse } from "@/schemas/providers/cpcb-upstream.schema";
 
 export interface CpcbClientOptions {
@@ -11,11 +12,13 @@ export class CpcbClient {
   private readonly apiKey: string | undefined;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly allowedHosts: readonly string[] | undefined;
 
   constructor(options: CpcbClientOptions = {}) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl || "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69";
     this.timeoutMs = options.timeoutMs || 15000;
+    this.allowedHosts = options.baseUrl ? undefined : ["api.data.gov.in"];
   }
 
   public isConfigured(): boolean {
@@ -50,32 +53,14 @@ export class CpcbClient {
       }
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
-
-    try {
-      const response = await fetch(url.toString(), {
-        method: "GET",
-        headers: {
-          Accept: "application/json"
-        },
-        signal: controller.signal
-      });
-
-      if (!response.ok) {
-        const redactedUrl = CpcbClient.redactUrl(url.toString());
-        throw new Error(`CPCB upstream error: HTTP ${response.status} from ${redactedUrl}`);
-      }
-
-      const json = await response.json();
-      return CpcbApiResponseSchema.parse(json);
-    } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") {
-        throw new Error(`CPCB upstream request timed out after ${this.timeoutMs}ms`);
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
+    const fullUrl = url.toString();
+    return fetchJsonWithTimeout({
+      url: fullUrl,
+      displayUrl: CpcbClient.redactUrl(fullUrl),
+      allowedHosts: this.allowedHosts,
+      timeoutMs: this.timeoutMs,
+      errorPrefix: "CPCB",
+      parse: (json) => CpcbApiResponseSchema.parse(json)
+    });
   }
 }
